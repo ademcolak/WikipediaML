@@ -2,147 +2,193 @@
 scraper.py
 ----------
 Bu dosya Wikipedia sayfalarından veri çekmek için kullanılır.
-İlk adım: Bir sayfanın HTML içeriğini almak.
+Caching ile performans optimizasyonu yapılmıştır.
 """
 
-import requests  # HTTP istekleri yapmak için (GET, POST vs.)
-from bs4 import BeautifulSoup  # HTML'i parse etmek (okumak/anlamak) için
+import requests
+from bs4 import BeautifulSoup
+from functools import lru_cache
 
 
 class WikipediaScraper:
     """
     Wikipedia sayfalarını çeken ve işleyen sınıf.
 
-    Neden class kullanıyoruz?
-    - İleride birçok fonksiyon ekleyeceğiz (link çekme, filtreleme vs.)
-    - Hepsini bir arada tutmak kodu organize eder
-    - Base URL gibi ortak değişkenleri bir kere tanımlarız
+    Features:
+    - HTML fetching ve parsing
+    - Link extraction
+    - LRU Cache (sık kullanılan sayfaları tekrar çekmez)
+    - Cache statistics
     """
 
-    def __init__(self):
+    def __init__(self, cache_size: int = 128, timeout: int = 10):
         """
-        Constructor - class'tan obje oluşturulduğunda çalışır.
-        Temel ayarları burada yapıyoruz.
-        """
-        # Wikipedia'nın base URL'i - tüm sayfa linkleri bununla başlar
-        self.base_url = "https://en.wikipedia.org/wiki/"
+        WikipediaScraper'ı başlat.
 
-        # HTTP isteklerinde kendimizi tanıtıyoruz (bazı siteler bot'ları engeller)
-        # User-Agent ile normal bir tarayıcı gibi görünüyoruz
+        Parametreler:
+            cache_size (int): Cache'lenecek maksimum sayfa sayısı
+                             Default: 128 (LRU - en az kullanılan silinir)
+            timeout (int): HTTP request timeout (saniye)
+                          Default: 10
+        """
+        self.base_url = "https://en.wikipedia.org/wiki/"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
+        self.timeout = timeout
+
+        # Cache statistics
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+        # Cache için functools.lru_cache kullanmak yerine manual cache yapıyoruz
+        # Çünkü class method'larında lru_cache kullanmak zor
+        # Basit dict cache (LRU için collections.OrderedDict kullanabiliriz)
+        from collections import OrderedDict
+        self._cache = OrderedDict()
+        self._cache_size = cache_size
 
     def get_page_html(self, page_title: str) -> BeautifulSoup | None:
         """
         Verilen Wikipedia sayfa başlığının HTML içeriğini çeker.
+        Cache'de varsa direkt döndürür (network call yapmaz).
 
         Parametreler:
-            page_title (str): Wikipedia sayfa başlığı, örn: "Potato" veya "Barack_Obama"
-                              Boşluklar yerine _ kullanılır
+            page_title (str): Wikipedia sayfa başlığı, örn: "Potato"
 
         Dönüş:
             BeautifulSoup objesi (başarılı) veya None (başarısız)
 
-        Örnek kullanım:
-            scraper = WikipediaScraper()
-            soup = scraper.get_page_html("Potato")
+        Cache Mantığı:
+            1. Cache'de var mı kontrol et → Varsa döndür (CACHE HIT)
+            2. Yoksa Wikipedia'dan çek → Cache'e ekle → Döndür (CACHE MISS)
+            3. Cache doluysa → En eski entry'yi sil (LRU)
         """
-        # Tam URL'i oluştur: https://en.wikipedia.org/wiki/Potato
+        # Cache'de var mı kontrol et
+        if page_title in self._cache:
+            self.cache_hits += 1
+            # Cache hit: Mevcut entry'yi en sona taşı (recently used)
+            self._cache.move_to_end(page_title)
+            return self._cache[page_title]
+
+        # Cache miss: Wikipedia'dan çek
+        self.cache_misses += 1
+        soup = self._fetch_from_wikipedia(page_title)
+
+        if soup:
+            # Cache'e ekle
+            self._add_to_cache(page_title, soup)
+
+        return soup
+
+    def _fetch_from_wikipedia(self, page_title: str) -> BeautifulSoup | None:
+        """
+        Wikipedia'dan sayfa HTML'ini çeker (network call).
+
+        Bu metod sadece cache miss durumunda çağrılır.
+        """
         url = self.base_url + page_title
 
         try:
-            # GET isteği gönder - sayfanın içeriğini iste
-            # headers ile tarayıcı gibi görünüyoruz
-            # timeout=10 ile 10 saniyede cevap gelmezse vazgeç
-            response = requests.get(url, headers=self.headers, timeout=10)
-
-            # HTTP durum kodunu kontrol et
-            # 200 = Başarılı, 404 = Sayfa bulunamadı, 500 = Sunucu hatası vs.
-            # raise_for_status() 200 dışında hata fırlatır
+            response = requests.get(url, headers=self.headers, timeout=self.timeout)
             response.raise_for_status()
-
-            # HTML içeriğini BeautifulSoup ile parse et
-            # 'html.parser' Python'un dahili HTML parser'ı
             soup = BeautifulSoup(response.text, 'html.parser')
-
             return soup
 
         except requests.exceptions.RequestException as e:
-            # Herhangi bir hata olursa (bağlantı, timeout, 404 vs.)
-            print(f"Hata oluştu: {e}")
+            print(f"❌ Hata ({page_title}): {e}")
             return None
+
+    def _add_to_cache(self, page_title: str, soup: BeautifulSoup):
+        """
+        Sayfayı cache'e ekler. Cache doluysa en eski entry'yi siler (LRU).
+        """
+        # Cache dolu mu kontrol et
+        if len(self._cache) >= self._cache_size:
+            # En eski entry'yi sil (FIFO - first in first out)
+            self._cache.popitem(last=False)
+
+        # Yeni entry'yi ekle (en sona)
+        self._cache[page_title] = soup
+
+    def clear_cache(self):
+        """Cache'i temizle ve statistics'i sıfırla."""
+        self._cache.clear()
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def get_cache_stats(self) -> dict:
+        """
+        Cache istatistiklerini döndür.
+
+        Returns:
+            dict: {
+                'size': Mevcut cache boyutu,
+                'max_size': Maksimum cache boyutu,
+                'hits': Cache hit sayısı,
+                'misses': Cache miss sayısı,
+                'hit_rate': Hit rate (%)
+            }
+        """
+        total_requests = self.cache_hits + self.cache_misses
+        hit_rate = (self.cache_hits / total_requests * 100) if total_requests > 0 else 0
+
+        return {
+            'size': len(self._cache),
+            'max_size': self._cache_size,
+            'hits': self.cache_hits,
+            'misses': self.cache_misses,
+            'hit_rate': hit_rate
+        }
 
     def get_wiki_links(self, soup: BeautifulSoup) -> list[str]:
         """
-        Bir Wikipedia sayfasındaki tüm Wikipedia makale linklerini bulur.
+        Bir Wikipedia sayfasındaki tüm makale linklerini bulur.
 
         Parametreler:
-            soup (BeautifulSoup): Daha önce çektiğimiz HTML objesi
+            soup (BeautifulSoup): HTML objesi
 
         Dönüş:
-            list[str]: Wikipedia makale başlıklarının listesi
-                       Örn: ["United_States", "Vegetable", "Starch", ...]
+            list[str]: Wikipedia makale başlıkları
+                      Örn: ["United_States", "Vegetable", ...]
 
-        Nasıl çalışır:
-            1. Sayfadaki tüm <a> (anchor/link) etiketlerini bul
-            2. href="/wiki/..." olanları filtrele
-            3. Özel sayfaları (File:, Help:, Wikipedia: vs.) çıkar
-            4. Sadece makale isimlerini döndür
+        Filtreleme:
+            - Sadece /wiki/ ile başlayan linkler
+            - Özel sayfalar hariç (File:, Help:, Template: vs.)
+            - Sayfa içi linkler hariç (#anchor)
+            - Duplicate'ler hariç
         """
-        # Sonuçları tutacak liste
         wiki_links = []
 
-        # Filtrelemek istediğimiz özel sayfalar
-        # Bunlar Wikipedia'nın iç sayfaları, makale değiller
+        # Wikipedia'nın özel sayfaları (makale değil)
         excluded_prefixes = (
-            "File:",  # Dosyalar (resimler vs.)
-            "Help:",  # Yardım sayfaları
-            "Wikipedia:",  # Wikipedia hakkında sayfalar
-            "Template:",  # Şablon sayfaları
-            "Category:",  # Kategori sayfaları
-            "Special:",  # Özel sayfalar (arama vs.)
-            "Talk:",  # Tartışma sayfaları
-            "Portal:",  # Portal sayfaları
-            "User:",  # Kullanıcı sayfaları
-            "Module:",  # Modül sayfaları
+            "File:", "Help:", "Wikipedia:", "Template:",
+            "Category:", "Special:", "Talk:", "Portal:",
+            "User:", "Module:",
         )
 
-        # Sadece ana içerik alanındaki linkleri al
-        # Wikipedia'da ana içerik "mw-content-text" id'li div içinde
-        # Bu sayede menü, footer vs. linkleri almıyoruz
+        # Ana içerik alanını bul (menü/footer hariç)
         content_div = soup.find('div', id='mw-content-text')
-
         if not content_div:
-            print("İçerik alanı bulunamadı!")
             return []
 
-        # Tüm <a> etiketlerini bul
-        # <a href="/wiki/United_States">United States</a> gibi
-        all_links = content_div.find_all('a', href=True)
+        # Tüm linkleri bul ve filtrele
+        for link in content_div.find_all('a', href=True):
+            href = link['href']
 
-        for link in all_links:
-            href = link['href']  # href özelliğini al
-
-            # Sadece /wiki/ ile başlayanları al
-            # Dış linkler https:// ile başlar, bunları istemiyoruz
+            # Sadece Wikipedia makale linkleri
             if not href.startswith('/wiki/'):
                 continue
 
-            # /wiki/ kısmını kaldır, sadece makale adını al
-            # "/wiki/United_States" -> "United_States"
-            page_name = href[6:]  # İlk 6 karakter "/wiki/"
+            # "/wiki/" kısmını kaldır
+            page_name = href[6:]
 
-            # # işareti varsa atla (sayfa içi link, örn: "Potato#History")
-            if '#' in page_name:
+            # Filtreleme: anchor linkler, özel sayfalar, duplicate'ler
+            if ('#' in page_name or
+                page_name.startswith(excluded_prefixes) or
+                page_name in wiki_links):
                 continue
 
-            # Özel sayfaları atla
-            if page_name.startswith(excluded_prefixes):
-                continue
-
-            # Aynı linki tekrar ekleme (duplicate kontrolü)
-            if page_name not in wiki_links:
-                wiki_links.append(page_name)
+            wiki_links.append(page_name)
 
         return wiki_links
