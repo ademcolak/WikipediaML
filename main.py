@@ -1,297 +1,153 @@
-from src.pathfinder import PathFinder
+#!/usr/bin/env python3
+"""
+Wikipedia PathFinder
+--------------------
+Bir Wikipedia sayfasından diğerine en kısa yolu bulur.
+
+Hybrid sistem:
+- Semantic embeddings (anlam bazlı link seçimi)
+- Knowledge Graph (öğrenme ve hatırlama)
+- Beam Search (multi-path exploration)
+- Claude Reasoning (akıllı karar verme) [OPSIYONEL]
+
+Kullanım:
+    python main.py <başlangıç> <hedef> [--claude]
+
+Örnek:
+    python main.py Albert_Einstein Physics
+    python main.py Potato Pizza --claude
+    python main.py Python_(programming_language) Machine_learning
+"""
+
+import sys
 from src.semantic_navigator import SemanticNavigator
 
 
-def test_bfs():
-    """
-    BFS algoritmasını test et.
-
-    Farklı zorluk seviyelerinde testler:
-    1. Kolay: Yakın sayfalar (Potato -> Vegetable)
-    2. Orta: Biraz uzak (Potato -> United_States)
-    3. Zor: Çok farklı konular (Potato -> Barack_Obama)
-    """
-    print("\n" + "=" * 60)
-    print("🧪 BFS ALGORİTMASI TESTLERİ")
-    print("=" * 60)
-
-    pathfinder = PathFinder(verbose=True)
-
-    # Test senaryoları
-    tests = [
-        {
-            "name": "Kolay Test",
-            "start": "Potato",
-            "target": "Vegetable",
-            "description": "Potato ve Vegetable çok yakın sayfalar, muhtemelen 1-2 adımda bulur"
-        },
-        {
-            "name": "Orta Test",
-            "start": "Potato",
-            "target": "United_States",
-            "description": "Biraz daha uzak ama ulaşılabilir olmalı"
-        },
-        {
-            "name": "Zor Test",
-            "start": "Potato",
-            "target": "Barack_Obama",
-            "description": "Çok farklı konular, birkaç adım gerekebilir"
-        }
-    ]
-
-    results = []
-
-    for i, test in enumerate(tests, 1):
-        print(f"\n{'#' * 60}")
-        print(f"TEST {i}/{len(tests)}: {test['name']}")
-        print(f"{'#' * 60}")
-        print(f"📝 Açıklama: {test['description']}\n")
-
-        result = pathfinder.bfs_search(
-            start=test['start'],
-            target=test['target'],
-            max_depth=6  # 6 derece of separation
-        )
-
-        results.append({
-            'test_name': test['name'],
-            'result': result
-        })
-
-        # Testler arası bekleme (Wikipedia'yı spam'lememek için)
-        if i < len(tests):
-            print(f"\n⏳ Sonraki test için 2 saniye bekleniyor...")
-            import time
-            time.sleep(2)
-
-    # Özet rapor
-    print(f"\n{'=' * 60}")
-    print(f"📊 ÖZET RAPOR")
-    print(f"{'=' * 60}")
-
-    for item in results:
-        test_name = item['test_name']
-        result = item['result']
-
-        print(f"\n{test_name}:")
-        if result['found']:
-            print(f"  ✅ Başarılı")
-            print(f"  📏 Adım sayısı: {result['steps']}")
-            print(f"  🔍 Taranan sayfa: {result['pages_explored']}")
-            print(f"  ⏱️ Süre: {result['time']:.2f}s")
-        else:
-            print(f"  ❌ Başarısız")
-            print(f"  🔍 Taranan sayfa: {result['pages_explored']}")
-            print(f"  ⏱️ Süre: {result['time']:.2f}s")
-
-
-def compare_bfs_algorithms():
-    """
-    Normal BFS vs Bidirectional BFS karşılaştırması.
-
-    Her iki algoritmayı aynı test senaryolarında çalıştırıp
-    performance karşılaştırması yapar.
-    """
-    print("\n" + "=" * 60)
-    print("⚔️ BFS vs BIDIRECTIONAL BFS KARŞILAŞTIRMASI")
-    print("=" * 60)
-
-    # Test senaryoları
-    tests = [
-        {
-            "name": "Test 1: Yakın Sayfalar",
-            "start": "Potato",
-            "target": "Vegetable",
-        },
-        {
-            "name": "Test 2: Orta Mesafe",
-            "start": "Python_(programming_language)",
-            "target": "Computer",
-        },
-        {
-            "name": "Test 3: Uzak Sayfalar",
-            "start": "Albert_Einstein",
-            "target": "Pizza",
-        }
-    ]
-
-    results = []
-
-    for i, test in enumerate(tests, 1):
-        print(f"\n{'#' * 60}")
-        print(f"{test['name']}")
-        print(f"{'#' * 60}")
-        print(f"📍 {test['start']} → 🎯 {test['target']}\n")
-
-        # PathFinder objesi (verbose=False ile sadece sonuçları göster)
-        pathfinder = PathFinder(verbose=False)
-
-        # Normal BFS
-        print("🔵 Normal BFS çalışıyor...")
-        bfs_result = pathfinder.bfs_search(
-            start=test['start'],
-            target=test['target'],
-            max_depth=5
-        )
-
-        import time
-        time.sleep(1)  # Wikipedia rate limiting
-
-        # Bidirectional BFS
-        print("🔴 Bidirectional BFS çalışıyor...")
-        bi_result = pathfinder.bidirectional_bfs_search(
-            start=test['start'],
-            target=test['target'],
-            max_depth=5
-        )
-
-        # Sonuçları kaydet (artık SearchResult dataclass)
-        results.append({
-            'test_name': test['name'],
-            'bfs': bfs_result,
-            'bidirectional': bi_result
-        })
-
-        # Performance özeti yazdır
-        print(f"\n📈 Kısa Özet:")
-        print(f"  BFS: {bfs_result.pages_explored} sayfa, {bfs_result.time_seconds:.2f}s")
-        print(f"  Bidirectional: {bi_result.pages_explored} sayfa, {bi_result.time_seconds:.2f}s")
-
-        # Test arası bekleme
-        if i < len(tests):
-            print(f"\n⏳ Sonraki test için 2 saniye bekleniyor...")
-            time.sleep(2)
-
-    # KARŞILAŞTIRMA RAPORU
-    print(f"\n{'=' * 60}")
-    print(f"📊 KARŞILAŞTIRMA RAPORU")
-    print(f"{'=' * 60}")
-
-    for item in results:
-        test_name = item['test_name']
-        bfs = item['bfs']
-        bi = item['bidirectional']
-
-        print(f"\n{test_name}:")
-        print(f"  {'─' * 56}")
-
-        if bfs.found and bi.found:
-            # İkisi de buldu - karşılaştır
-            print(f"  {'Metrik':<25} {'Normal BFS':<15} {'Bidirectional':<15}")
-            print(f"  {'─' * 56}")
-            print(f"  {'✅ Sonuç':<25} {'Bulundu':<15} {'Bulundu':<15}")
-            print(f"  {'📏 Adım sayısı':<25} {bfs.steps:<15} {bi.steps:<15}")
-            print(f"  {'🔍 Taranan sayfa':<25} {bfs.pages_explored:<15} {bi.pages_explored:<15}")
-            print(f"  {'⏱️ Süre (s)':<25} {bfs.time_seconds:<15.2f} {bi.time_seconds:<15.2f}")
-            print(f"  {'💾 Max queue':<25} {bfs.max_queue_size:<15} {bi.max_queue_size:<15}")
-
-            # Kazanç hesapla
-            page_improvement = ((bfs.pages_explored - bi.pages_explored) / bfs.pages_explored * 100)
-            time_improvement = ((bfs.time_seconds - bi.time_seconds) / bfs.time_seconds * 100)
-
-            print(f"\n  🎯 Bidirectional Kazancı:")
-            if page_improvement > 0:
-                print(f"    • %{page_improvement:.1f} daha az sayfa taradı")
-            else:
-                print(f"    • %{-page_improvement:.1f} daha fazla sayfa taradı")
-
-            if time_improvement > 0:
-                print(f"    • %{time_improvement:.1f} daha hızlı buldu")
-            else:
-                print(f"    • %{-time_improvement:.1f} daha yavaş buldu")
-
-        elif not bfs.found and not bi.found:
-            print(f"  ❌ Her iki algoritma da hedefi bulamadı")
-        else:
-            print(f"  ⚠️ Sadece {'Normal BFS' if bfs.found else 'Bidirectional BFS'} buldu")
-
-    print(f"\n{'=' * 60}")
-
-
-def test_semantic_search():
-    """Semantic Search testleri - Akıllı link seçimi!"""
-    print("\n" + "=" * 60)
-    print("🤖 SEMANTIC SEARCH TESTLERİ")
-    print("=" * 60)
-
-    navigator = SemanticNavigator(verbose=True)
-
-    tests = [
-        {
-            "name": "Test 1: Potato → Pizza",
-            "start": "Potato",
-            "target": "Pizza",
-            "description": "İkisi de yemek - semantic olarak yakın"
-        },
-        {
-            "name": "Test 2: Einstein → Physics",
-            "start": "Albert_Einstein",
-            "target": "Physics",
-            "description": "Einstein fizikçi - direkt bağlantı"
-        }
-    ]
-
-    results = []
-
-    for i, test in enumerate(tests, 1):
-        print(f"\n{'#'*60}")
-        print(f"{test['name']}")
-        print(f"{'#'*60}")
-        print(f"📝 {test['description']}")
-        print(f"📍 {test['start']} → 🎯 {test['target']}")
-
-        result = navigator.greedy_semantic_search(
-            start=test['start'],
-            target=test['target'],
-            max_steps=10
-        )
-
-        results.append({
-            'test_name': test['name'],
-            'result': result
-        })
-
-        if i < len(tests):
-            print(f"\n⏳ Sonraki test için 3 saniye bekleniyor...")
-            import time
-            time.sleep(3)
-
-    # Özet
-    print(f"\n{'='*60}")
-    print(f"📊 ÖZET")
-    print(f"{'='*60}")
-
-    for item in results:
-        test_name = item['test_name']
-        result = item['result']
-
-        print(f"\n{test_name}:")
-        if result.found:
-            print(f"  ✅ Başarılı - {result.steps} adımda bulundu")
-            print(f"  🛤️ Path: {' → '.join(result.path)}")
-            if result.similarity_scores:
-                avg_sim = sum(result.similarity_scores) / len(result.similarity_scores)
-                print(f"  📊 Avg similarity: {avg_sim:.3f}")
-        else:
-            print(f"  ❌ Bulunamadı - {result.steps} adım atıldı")
+def print_usage():
+    """Kullanım bilgisini göster."""
+    print("=" * 70)
+    print("🌐 WIKIPEDIA PATHFINDER")
+    print("=" * 70)
+    print("\nKullanım:")
+    print("  python main.py <başlangıç> <hedef> [--claude]")
+    print("\nÖrnekler:")
+    print("  python main.py Albert_Einstein Physics")
+    print("  python main.py Potato Pizza")
+    print("  python main.py Python_(programming_language) Machine_learning")
+    print("  python main.py Porsche Serik_Akhmetov_Government --claude")
+    print("\nOpsiyonel:")
+    print("  --claude    Claude reasoning kullan (daha akıllı, ANTHROPIC_API_KEY gerekli)")
+    print("\nNot:")
+    print("  • Sayfa isimleri Wikipedia URL'indeki /wiki/ sonrası kısım")
+    print("  • Boşluklar yerine _ kullanın")
+    print("  • Parantez içeren isimler: Python_(programming_language)")
+    print("=" * 70)
 
 
 def main():
-    """
-    Ana fonksiyon - Wikipedia ML testleri.
-    """
-    print("=" * 60)
-    print("Wikipedia ML - Semantic Path Finder")
-    print("=" * 60)
-    print()
-    print("Mevcut testler:")
-    print("  1. test_semantic_search() - Semantic search (GÜNCEL!)")
-    print("  2. compare_bfs_algorithms() - BFS karşılaştırma (eski)")
-    print()
+    """Ana fonksiyon."""
+    # Argüman kontrolü
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        print_usage()
+        sys.exit(1)
 
-    # Semantic search'ü çalıştır
-    test_semantic_search()
+    start_page = sys.argv[1]
+    target_page = sys.argv[2]
+    use_claude = "--claude" in sys.argv
+
+    # Başlık
+    print("\n" + "=" * 70)
+    print("🌐 WIKIPEDIA PATHFINDER")
+    print("=" * 70)
+    print(f"\n📍 Başlangıç: {start_page}")
+    print(f"🎯 Hedef: {target_page}")
+    if use_claude:
+        print(f"🧠 Mode: Claude-Enhanced (Reasoning aktif)")
+    else:
+        print(f"🔮 Mode: Beam Search")
+    print("\n" + "=" * 70)
+
+    # Navigator oluştur (Hybrid Search: Graph + Semantic/Claude)
+    try:
+        navigator = SemanticNavigator(
+            verbose=True,
+            use_graph=True,
+            use_claude=use_claude
+        )
+    except ValueError as e:
+        print(f"\n❌ Hata: {e}")
+        print("\nClaude mode için:")
+        print("  export ANTHROPIC_API_KEY='your-api-key'")
+        sys.exit(1)
+
+    # Hybrid search yap
+    result = navigator.hybrid_search(
+        start=start_page,
+        target=target_page,
+        max_steps=20  # Uzak path'ler için artırıldı
+    )
+
+    # Sonuç özeti
+    print("\n" + "=" * 70)
+    print("📊 SONUÇ ÖZETİ")
+    print("=" * 70)
+
+    if result.found:
+        print(f"\n✅ Path bulundu!")
+        print(f"\n🛤️  Path:")
+        print(f"   {' → '.join(result.path)}")
+        print(f"\n📏 Adım sayısı: {result.steps}")
+        print(f"⏱️  Süre: {result.time_seconds:.2f}s")
+        print(f"🔍 Taranan sayfa: {result.pages_explored}")
+        print(f"🤖 Algoritma: {result.algorithm}")
+
+        # Graph'tan mı geldi?
+        if "Graph Reused" in result.algorithm:
+            print(f"⚡ Öğrenilmiş path kullanıldı (anında!)")
+    else:
+        print(f"\n❌ Path bulunamadı")
+        print(f"   {result.steps} adım denendi")
+        if result.path:
+            last_pages = result.path[-3:] if len(result.path) >= 3 else result.path
+            print(f"   Son path: {' → '.join(last_pages)}")
+
+    # Sistem istatistikleri
+    stats = navigator.get_stats()
+
+    print(f"\n{'─' * 70}")
+    print("💾 SİSTEM İSTATİSTİKLERİ")
+    print(f"{'─' * 70}")
+
+    print(f"\nScraper Cache:")
+    print(f"  Hit rate: {stats['scraper']['hit_rate']:.1f}%")
+    print(f"  Cached pages: {stats['scraper']['size']}/{stats['scraper']['max_size']}")
+
+    print(f"\nEmbedder Cache:")
+    print(f"  Hit rate: {stats['embedder']['hit_rate']:.1f}%")
+    print(f"  Total embeddings: {stats['embedder']['total_embeddings_computed']}")
+
+    if 'graph' in stats:
+        print(f"\nKnowledge Graph:")
+        print(f"  Nodes: {stats['graph']['nodes']}")
+        print(f"  Edges: {stats['graph']['edges']}")
+        print(f"  Paths learned: {stats['graph']['paths_learned']}")
+        print(f"  Paths reused: {stats['graph']['paths_reused']}")
+
+    if 'claude' in stats:
+        print(f"\nClaude Reasoning:")
+        print(f"  API calls: {stats['claude']['total_calls']}")
+        print(f"  Total tokens: {stats['claude']['total_tokens']}")
+        print(f"  Avg tokens/call: {stats['claude']['avg_tokens_per_call']:.0f}")
+
+    print("\n" + "=" * 70)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n⚠️  İşlem kullanıcı tarafından durduruldu.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n\n❌ Hata: {e}")
+        sys.exit(1)
