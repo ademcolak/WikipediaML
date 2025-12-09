@@ -6,7 +6,7 @@ Caching ile performans optimizasyonu yapılmıştır.
 """
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from functools import lru_cache
 
 
@@ -169,7 +169,7 @@ class WikipediaScraper:
 
         # Ana içerik alanını bul (menü/footer hariç)
         content_div = soup.find('div', id='mw-content-text')
-        if not content_div:
+        if not content_div or not isinstance(content_div, Tag):
             return []
 
         # Tüm linkleri bul ve filtrele

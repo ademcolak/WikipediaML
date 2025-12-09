@@ -31,7 +31,7 @@ class WikiEmbedder:
     - Good balance: speed vs accuracy
     """
 
-    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', cache_size: int = 512):
+    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', cache_size: int = 512, cache_file: str = 'embeddings_cache.pkl'):
         """
         WikiEmbedder'ı başlat ve model yükle.
 
@@ -40,6 +40,8 @@ class WikiEmbedder:
                              Default: 'all-MiniLM-L6-v2' (hızlı ve küçük)
             cache_size (int): Cache'lenecek maksimum embedding sayısı
                              Default: 512
+            cache_file (str): Persistent cache dosyası
+                             Default: 'embeddings_cache.pkl'
         """
         print(f"🤖 Loading embedding model: {model_name}...")
         print(f"   (İlk seferinde ~80MB indirilecek, sonra cache'den yüklenir)")
@@ -52,13 +54,16 @@ class WikiEmbedder:
 
         # Embedding cache (LRU)
         from collections import OrderedDict
-        self._embedding_cache = OrderedDict()
         self._cache_size = cache_size
+        self._cache_file = cache_file
 
         # Statistics
         self.cache_hits = 0
         self.cache_misses = 0
         self.total_embeddings_computed = 0
+        
+        # Load persistent cache from disk
+        self._load_cache_from_disk()
 
     def get_embedding(self, text: str) -> np.ndarray:
         """
@@ -92,6 +97,10 @@ class WikiEmbedder:
             convert_to_tensor=False,  # NumPy array döndür
             show_progress_bar=False    # Progress bar gösterme
         )
+
+        # Ensure it's a numpy array (convert if needed)
+        if not isinstance(embedding, np.ndarray):
+            embedding = np.array(embedding)
 
         # Cache'e ekle
         self._add_to_cache(text, embedding)
@@ -147,6 +156,10 @@ class WikiEmbedder:
                 show_progress_bar=False,
                 batch_size=32
             )
+
+            # Ensure it's a numpy array (convert if needed)
+            if not isinstance(uncached_embeddings, np.ndarray):
+                uncached_embeddings = np.array(uncached_embeddings)
 
             # Cache'e ekle
             for text, emb in zip(uncached_texts, uncached_embeddings):
@@ -263,6 +276,44 @@ class WikiEmbedder:
         self._embedding_cache.clear()
         self.cache_hits = 0
         self.cache_misses = 0
+
+    def _load_cache_from_disk(self):
+        """Persistent cache'i disk'ten yükle."""
+        import os
+        import pickle
+        from collections import OrderedDict
+        
+        if os.path.exists(self._cache_file):
+            try:
+                print(f"📦 Loading embedding cache from {self._cache_file}...")
+                with open(self._cache_file, 'rb') as f:
+                    self._embedding_cache = pickle.load(f)
+                
+                # Cache size limit kontrolü
+                if len(self._embedding_cache) > self._cache_size:
+                    # En eski entry'leri sil
+                    while len(self._embedding_cache) > self._cache_size:
+                        self._embedding_cache.popitem(last=False)
+                
+                print(f"✅ Loaded {len(self._embedding_cache)} cached embeddings")
+            except Exception as e:
+                print(f"⚠️  Cache load failed: {e}")
+                print(f"   Starting with empty cache...")
+                self._embedding_cache = OrderedDict()
+        else:
+            print(f"📝 No cache file found, starting fresh...")
+            self._embedding_cache = OrderedDict()
+
+    def save_cache_to_disk(self):
+        """Cache'i disk'e kaydet."""
+        import pickle
+        
+        try:
+            with open(self._cache_file, 'wb') as f:
+                pickle.dump(self._embedding_cache, f)
+            print(f"💾 Saved {len(self._embedding_cache)} embeddings to {self._cache_file}")
+        except Exception as e:
+            print(f"⚠️  Cache save failed: {e}")
 
     def get_cache_stats(self) -> dict:
         """

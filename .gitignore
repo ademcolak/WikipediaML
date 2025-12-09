@@ -19,8 +19,9 @@ ENV/
 # Environment Variables
 .env
 
-# Project specific
+# Project specific - Cache files
 wiki_graph.pkl
+embeddings_cache.pkl
 *.pkl
 
 # Logs
@@ -29,3 +30,12 @@ wiki_graph.pkl
 # OS
 .DS_Store
 Thumbs.db
+
+# Test outputs
+test_results/
+*.html
+
+# Temporary files
+*.tmp
+*.bak
+*~

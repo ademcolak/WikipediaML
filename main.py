@@ -84,7 +84,7 @@ def main():
     result = navigator.hybrid_search(
         start=start_page,
         target=target_page,
-        max_steps=20  # Uzak path'ler için artırıldı
+        max_steps=25  # Kompleks path'ler için artırıldı
     )
 
     # Sonuç özeti
