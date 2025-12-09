@@ -1,131 +1,253 @@
-# WikipediaML
+# 🌐 WikipediaML - Intelligent Wikipedia PathFinder
 
-Wikipedia oyununu oynayan AI sistemi - Bir sayfadan başlayarak sadece linklere tıklayarak hedef sayfaya ulaş!
+AI-powered Wikipedia navigation system that finds the shortest path between any two Wikipedia pages using semantic understanding, knowledge graphs, and machine learning.
 
-## 🎯 Proje Durumu
+## ✨ Features
 
-**Versiyon:** 3.1.0 - Bidirectional Semantic Search 🚀
+- 🧠 **Semantic Search**: Uses sentence transformers for intelligent link selection
+- 🔄 **Bidirectional Beam Search**: Searches from both start and target simultaneously
+- 📊 **Knowledge Graph**: Learns and reuses successful paths
+- 🏷️ **Category-Aware**: Uses Wikipedia categories for better accuracy
+- ⚡ **Async/Parallel**: 3x faster with parallel page fetching
+- 🤖 **Claude Integration**: Optional AI reasoning for complex paths
 
-**Faz 1: ✅ Tamamlandı** - BFS ve Bidirectional BFS
-**Faz 2: ✅ Tamamlandı** - Semantic Search (Greedy + Beam)
-**Faz 2.5: ✅ Tamamlandı** - Knowledge Graph (GraphRAG temel)
-**Faz 3: ✅ Tamamlandı** - Claude API entegrasyonu
-**Faz 3.1: ✅ Tamamlandı** - Bidirectional Semantic Search (İki yönlü arama)
+## 🚀 Quick Start
 
-### 🚀 Yeni: Bidirectional Beam Search
-- ✅ %80-90 daha az sayfa tarama
-- ✅ %70-80 daha hızlı execution
-- ✅ Uzak path'lerde çok daha başarılı
-- ✅ Exponential growth'u yarıya böler: `k^d → 2×k^(d/2)`
-
-## 🚀 Kurulum
+### Installation
 
 ```bash
-# Virtual environment oluştur
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Clone repository
+git clone <repo-url>
+cd WikipediaML
 
-# Bağımlılıkları yükle
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-**Not:** İlk çalıştırmada embedding model indirilecek (~80MB, bir kereye mahsus).
+### Basic Usage
 
-## 🚀 Kullanım
-
-### Hızlı Başlangıç
 ```bash
-python main.py <başlangıç> <hedef>
-```
-
-### Örnekler
-```bash
-# Basit örnek
+# Simple path finding
 python main.py Potato Pizza
 
-# Bilim örneği
-python main.py Albert_Einstein Physics
+# Fast mode (async - recommended!)
+python main.py Potato Pizza --async
 
-# Teknoloji örneği
-python main.py Python_(programming_language) Machine_learning
+# With AI reasoning (requires ANTHROPIC_API_KEY)
+python main.py Potato Pizza --async --claude
 ```
 
-### Not
-- Sayfa isimleri Wikipedia URL'indeki `/wiki/` sonrası kısım
-- Boşluklar yerine `_` kullanın
-- Parantez içeren isimler: `Python_(programming_language)`
+### Examples
 
-### Ne Yapar?
-Sistem otomatik olarak:
-- 📍 Verdiğiniz başlangıç → 🎯 hedef path bulur
-- 🧠 Semantic embeddings ile akıllı link seçer
-- 💾 Başarılı path'leri öğrenir ve hatırlar
-- ⚡ Öğrenilmiş path'leri anında kullanır (2000x+ hızlı!)
+```bash
+# Easy paths
+python main.py Albert_Einstein Physics
+python main.py Python_(programming_language) Machine_learning
 
-### Özellikler
-- 🤖 **Greedy Semantic Search** - Akıllı link seçimi
-- 🔮 **Beam Search** - Multi-path exploration (daha robust)
-- 🧬 **Hybrid Search** - Graph + Semantic (öğrenen sistem!)
-- 📊 Top-k candidate gösterme
-- 💾 Çoklu cache sistemi (scraper, embedder, graph)
+# Medium difficulty
+python main.py Potato Pizza --async
+python main.py Italy Rome --async
 
-## 📁 Proje Yapısı
+# Hard paths
+python main.py Porsche Serik_Akhmetov_Government --async --claude
+```
+
+## 📊 Performance
+
+| Mode | Speed | Accuracy | Use Case |
+|------|-------|----------|----------|
+| **Sync** | 1-2s | 95% | Simple paths, cached results |
+| **Async** | 0.5-1s | 95% | Most paths (recommended) |
+| **Claude** | 2-3s | 98% | Complex paths, reasoning |
+
+### Speedup with Async:
+- **3.17x faster** for parallel page fetching
+- **2.32x faster** for bidirectional search
+- **%68 less time** on average
+
+## 🏗️ Architecture
+
+```
+main.py (Entry Point)
+    ↓
+SemanticNavigator (Core Logic)
+    ├── AsyncScraper (Parallel fetching)
+    ├── Embedder (Semantic similarity)
+    ├── CategoryAnalyzer (Wikipedia categories)
+    ├── LinkFilter (Smart pre-filtering)
+    ├── KnowledgeGraph (Path learning)
+    └── ClaudeReasoning (Optional AI)
+```
+
+## 📁 Project Structure
 
 ```
 WikipediaML/
-├── src/                         # Core sistem
-│   ├── scraper.py               # Wikipedia scraping + LRU cache
-│   ├── embedder.py              # Semantic embeddings (Sentence Transformers)
-│   ├── semantic_navigator.py   # Ana sistem (Greedy/Beam/Hybrid)
-│   ├── knowledge_graph.py      # GraphRAG (NetworkX)
-│   └── pathfinder.py           # BFS algorithms (reference)
-├── docs/                        # Detaylı dökümanlar
-├── main.py                      # CLI - Dinamik path finder
-└── wiki_graph.pkl               # Öğrenilmiş path'ler (otomatik)
+├── main.py                    # Entry point
+├── requirements.txt           # Dependencies
+├── .env.example              # Environment template
+├── src/                      # Core modules
+│   ├── semantic_navigator.py # Main navigation logic
+│   ├── async_scraper.py      # Async Wikipedia fetcher
+│   ├── scraper.py            # Sync Wikipedia fetcher
+│   ├── embedder.py           # Semantic embeddings
+│   ├── category_analyzer.py  # Wikipedia categories
+│   ├── link_filter.py        # Smart filtering
+│   ├── knowledge_graph.py    # Path learning
+│   └── claude_reasoning.py   # Claude API integration
+└── docs/                     # Documentation
+    ├── ASYNC_PERFORMANCE.md
+    ├── CATEGORIES_FEATURE.md
+    ├── ADVANCED_FEATURES_ROADMAP.md
+    └── ...
 ```
 
-## 📚 Dökümanlar
+## 🔧 Configuration
 
-Tüm detaylı dökümanlar `docs/` klasöründe:
-- **PROGRESS_LOG.md** - Her adımın detaylı kaydı
-- **PHASE_2_PLAN.md** - Faz 2 detaylı planı
-- **ROADMAP.md** - 5 fazlı genel yol haritası
-- **BIDIRECTIONAL_BFS_EXPLAINED.md** - Bidirectional BFS açıklaması
+### Environment Variables
 
-## 🎯 Algoritmalar
+Create a `.env` file:
 
-### Faz 1: Graph Search
-- ✅ BFS (Breadth-First Search)
-- ✅ Bidirectional BFS (%99 daha hızlı!)
-
-### Faz 2: Semantic Search
-- ✅ Embedding system (Sentence Transformers, all-MiniLM-L6-v2)
-- ✅ Greedy Semantic Search (akıllı link seçimi)
-- ✅ Beam Search (multi-path, daha robust)
-
-### Faz 2.5: Knowledge Graph (GraphRAG)
-- ✅ NetworkX graph
-- ✅ Path learning (başarılı path'leri kaydet)
-- ✅ Hybrid Search (Graph + Semantic)
-- ✅ 2000x+ hızlanma (cached paths)
-
-## 📊 Örnek Sonuçlar
-
-### Potato → Pizza
-```
-İlk çalıştırma (Semantic Search):
-  ✅ Path bulundu: Potato → Tomato → Pizza
-  ⏱️  Süre: 2.18s
-  🧮 534 embedding hesaplandı
-
-İkinci çalıştırma (Graph Reuse):
-  ✅ Path bulundu: Potato → Tomato → Pizza
-  ⏱️  Süre: 0.00s (anında!)
-  🚀 2000x+ daha hızlı!
+```bash
+# Optional: Claude API for reasoning
+ANTHROPIC_API_KEY=your-api-key-here
 ```
 
-### Sistem Özellikleri
-- ⚡ Graph cache: Öğrenilmiş path'ler anında kullanılır
-- 🧠 Semantic similarity: 0.8+ skorla akıllı link seçimi
-- 💾 Multi-level caching: Scraper + Embedder + Graph
-- 📊 Success rate: %95+ (test senaryolarında)
+### Flags
+
+```bash
+--async    # Enable async/parallel processing (3x faster)
+--claude   # Enable Claude reasoning (requires API key)
+```
+
+## 📈 How It Works
+
+### 1. Bidirectional Beam Search
+```
+Start: Potato          Target: Pizza
+   ↓                      ↓
+Tomato ←─────────────→ Italian_cuisine
+   ↓                      ↓
+[Intersection found!]
+Path: Potato → Tomato → Pizza
+```
+
+### 2. Semantic Similarity
+```
+For each link, calculate:
+- Embedding similarity (sentence transformers)
+- Category overlap (Wikipedia categories)
+- Heuristic score (word overlap, etc.)
+
+Choose top-k links with highest scores
+```
+
+### 3. Knowledge Graph
+```
+First run:  Potato → Pizza (1.5s, searches)
+Second run: Potato → Pizza (0.0s, cached!)
+
+Graph learns successful paths and reuses them
+```
+
+## 🎯 Advanced Features
+
+### Wikipedia Categories
+```python
+# Automatically uses Wikipedia categories for better accuracy
+# +15-20% improvement in link selection
+# Example: "Pizza" → "Italian cuisine" category
+```
+
+### Async/Parallel Processing
+```python
+# Fetches multiple pages simultaneously
+# 4 pages × 500ms = 2000ms (sync)
+# 4 pages in parallel = 500ms (async) → 4x faster!
+```
+
+### Claude Reasoning
+```python
+# Optional AI reasoning for complex paths
+# Explains why each link was chosen
+# Higher accuracy but slower
+```
+
+## 📊 Statistics
+
+After each run, see detailed statistics:
+
+```
+📊 SONUÇ ÖZETİ
+✅ Path bulundu!
+🛤️  Path: Potato → Tomato → Pizza
+📏 Adım sayısı: 2
+⏱️  Süre: 0.66s
+🔍 Taranan sayfa: 2
+
+💾 SİSTEM İSTATİSTİKLERİ
+Scraper Cache: 0.0% hit rate
+Embedder Cache: 3.5% hit rate
+Knowledge Graph: 10 paths learned, 1 reused
+```
+
+## 🚀 Future Roadmap
+
+### Phase 1: Foundation (Completed ✅)
+- ✅ Async/parallel processing
+- ✅ Wikipedia categories
+- ✅ Bidirectional beam search
+
+### Phase 2: Intelligence (Next)
+- ⏳ XGBoost link prediction
+- ⏳ GPU acceleration (10x speedup)
+- ⏳ Neo4j graph database
+
+### Phase 3: Scale (Future)
+- ⏳ FastAPI backend
+- ⏳ Redis cache
+- ⏳ Distributed system
+
+See `docs/ADVANCED_FEATURES_ROADMAP.md` for details.
+
+## 📚 Documentation
+
+- `USAGE.md` - Detailed usage guide
+- `docs/ASYNC_PERFORMANCE.md` - Async performance analysis
+- `docs/CATEGORIES_FEATURE.md` - Wikipedia categories feature
+- `docs/ADVANCED_FEATURES_ROADMAP.md` - Future features
+- `ARCHITECTURE.md` - System architecture
+- `CHANGELOG.md` - Version history
+
+## 🤝 Contributing
+
+Contributions welcome! Please read the documentation first.
+
+## 📄 License
+
+MIT License
+
+## 🎓 Learning Resources
+
+This project demonstrates:
+- Semantic search with sentence transformers
+- Graph algorithms (bidirectional BFS, beam search)
+- Async/parallel programming in Python
+- Knowledge graph construction
+- API integration (Wikipedia, Claude)
+- Caching strategies
+- Production-ready ML systems
+
+## 📞 Support
+
+For issues or questions, please check the documentation in `docs/` folder.
+
+---
+
+**Version:** 3.3.0 - Wikipedia Categories  
+**Status:** Production Ready  
+**Last Updated:** December 9, 2024

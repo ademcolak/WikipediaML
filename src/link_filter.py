@@ -4,9 +4,11 @@ link_filter.py
 Link'leri hızlı heuristic'lerle filtrele (embedding'den önce).
 
 Amaç: 500+ link → 50-100 link (embedding computation %80-90 azalma)
+
+v3.3.0: Wikipedia Categories integration
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import re
 
 
@@ -19,10 +21,23 @@ class LinkFilter:
     2. Edit distance (benzer kelimeler)
     3. Length similarity (benzer uzunluk)
     4. Common prefixes/suffixes
+    5. Category similarity (NEW!)
     """
     
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, use_categories: bool = True):
         self.verbose = verbose
+        self.use_categories = use_categories
+        
+        # Category analyzer (lazy loading)
+        self._category_analyzer = None
+    
+    @property
+    def category_analyzer(self):
+        """Lazy load category analyzer."""
+        if self._category_analyzer is None and self.use_categories:
+            from src.category_analyzer import WikipediaCategoryAnalyzer
+            self._category_analyzer = WikipediaCategoryAnalyzer(verbose=False)
+        return self._category_analyzer
     
     def quick_filter(
         self,
@@ -144,12 +159,13 @@ class LinkFilter:
         max_links: int = 100
     ) -> List[str]:
         """
-        Daha akıllı filtreleme (context-aware).
+        Daha akıllı filtreleme (context-aware + categories).
         
         Ek faktörler:
         - Current page ile target arasındaki ilişki
         - Hub sayfaları önceliklendir
         - Kategori sayfalarını filtrele
+        - Category similarity (NEW!)
         """
         # Önce quick filter uygula
         filtered = self.quick_filter(links, target, max_links * 2)
@@ -162,7 +178,7 @@ class LinkFilter:
             'Biology', 'Technology', 'Internet', 'Language'
         }
         
-        # Score'ları yeniden hesapla (hub bonus ile)
+        # Score'ları yeniden hesapla (hub + category bonus ile)
         scored_links = []
         for link in filtered:
             base_score = self._calculate_score(link, target, set(self._normalize(target).split('_')))
@@ -170,6 +186,15 @@ class LinkFilter:
             # Hub bonus
             if link in hub_pages:
                 base_score *= 1.5
+            
+            # Category bonus (NEW!)
+            if self.use_categories and self.category_analyzer:
+                try:
+                    category_sim = self.category_analyzer.category_similarity(link, target)
+                    # Category bonus: 0.0-0.3 ek puan
+                    base_score += category_sim * 0.3
+                except:
+                    pass  # Category fetch hatası, devam et
             
             # Kategori/template sayfalarını cezalandır
             if link.startswith(('Category:', 'Template:', 'Wikipedia:', 'Help:')):
