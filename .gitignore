@@ -20,9 +20,10 @@ ENV/
 .env
 
 # Project specific - Cache files
-wiki_graph.pkl
-embeddings_cache.pkl
+cache/
 *.pkl
+ml_model.pkl
+ml_scaler.pkl
 
 # Logs
 *.log

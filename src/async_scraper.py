@@ -8,6 +8,12 @@ performansı 4-5x artırır.
 Performance Comparison:
     Sync (Sequential):  4 pages × 500ms = 2000ms
     Async (Parallel):   4 pages in parallel = 500ms (4x faster!)
+
+Optimizations (Phase 1):
+    - Adaptive batch sizing (network speed'e göre)
+    - Persistent connection pooling
+    - Smart rate limiting
+    - Performance tracking
 """
 
 import asyncio
@@ -16,6 +22,7 @@ from bs4 import BeautifulSoup, Tag
 from collections import OrderedDict
 from typing import Optional, List, Dict, Tuple
 import time
+import statistics
 
 
 class AsyncWikipediaScraper:
@@ -40,7 +47,13 @@ class AsyncWikipediaScraper:
         soups = await scraper.get_pages_batch(["Potato", "Pizza", "Italy"])
     """
     
-    def __init__(self, cache_size: int = 128, timeout: int = 10, max_concurrent: int = 10):
+    def __init__(
+        self,
+        cache_size: int = 128,
+        timeout: int = 10,
+        max_concurrent: int = 10,
+        adaptive_batching: bool = True
+    ):
         """
         Initialize AsyncWikipediaScraper.
         
@@ -48,6 +61,7 @@ class AsyncWikipediaScraper:
             cache_size: Maximum number of pages to cache (LRU)
             timeout: HTTP request timeout in seconds
             max_concurrent: Maximum concurrent requests (default: 10)
+            adaptive_batching: Enable adaptive batch sizing (default: True)
         """
         self.base_url = "https://en.wikipedia.org/wiki/"
         self.headers = {
@@ -55,6 +69,7 @@ class AsyncWikipediaScraper:
         }
         self.timeout = aiohttp.ClientTimeout(total=timeout)
         self.max_concurrent = max_concurrent
+        self.adaptive_batching = adaptive_batching
         
         # Cache (same as sync version)
         self._cache = OrderedDict()
@@ -66,8 +81,15 @@ class AsyncWikipediaScraper:
         self.total_fetch_time = 0.0
         self.total_fetches = 0
         
+        # Adaptive batching metrics
+        self.fetch_times = []  # Track recent fetch times
+        self.optimal_batch_size = max_concurrent
+        
         # Semaphore for limiting concurrent requests
         self._semaphore = asyncio.Semaphore(max_concurrent)
+        
+        # Persistent session (connection pooling)
+        self._session: Optional[aiohttp.ClientSession] = None
     
     async def get_page_html(self, page_title: str) -> Optional[BeautifulSoup]:
         """
@@ -148,11 +170,34 @@ class AsyncWikipediaScraper:
         
         return cached_pages
     
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """
+        Get or create persistent session (connection pooling).
+        
+        Connection pooling benefits:
+        - Reuse TCP connections
+        - Faster subsequent requests
+        - Lower overhead
+        """
+        if self._session is None or self._session.closed:
+            connector = aiohttp.TCPConnector(
+                limit=self.max_concurrent,
+                limit_per_host=self.max_concurrent,
+                ttl_dns_cache=300  # Cache DNS for 5 minutes
+            )
+            self._session = aiohttp.ClientSession(
+                timeout=self.timeout,
+                connector=connector,
+                headers=self.headers
+            )
+        return self._session
+    
     async def _fetch_from_wikipedia(self, page_title: str) -> Optional[BeautifulSoup]:
         """
         Fetch a single page from Wikipedia (async network call).
         
         This method is only called on cache miss.
+        Uses persistent session for connection pooling.
         """
         url = self.base_url + page_title
         
@@ -160,16 +205,22 @@ class AsyncWikipediaScraper:
             try:
                 start_time = time.time()
                 
-                async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                    async with session.get(url, headers=self.headers) as response:
-                        response.raise_for_status()
-                        html = await response.text()
-                        soup = BeautifulSoup(html, 'html.parser')
+                session = await self._get_session()
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
                 
                 # Track performance
                 fetch_time = time.time() - start_time
                 self.total_fetch_time += fetch_time
                 self.total_fetches += 1
+                
+                # Track for adaptive batching
+                if self.adaptive_batching:
+                    self.fetch_times.append(fetch_time)
+                    if len(self.fetch_times) > 20:
+                        self.fetch_times.pop(0)  # Keep last 20
                 
                 return soup
                 
@@ -177,33 +228,85 @@ class AsyncWikipediaScraper:
                 print(f"❌ Error fetching {page_title}: {e}")
                 return None
     
+    def _calculate_optimal_batch_size(self) -> int:
+        """
+        Calculate optimal batch size based on recent performance.
+        
+        Logic:
+        - Fast network (avg < 0.3s): Increase batch size
+        - Slow network (avg > 0.8s): Decrease batch size
+        - Medium network: Keep current size
+        """
+        if not self.adaptive_batching or len(self.fetch_times) < 5:
+            return self.optimal_batch_size
+        
+        avg_time = statistics.mean(self.fetch_times)
+        
+        if avg_time < 0.3:
+            # Fast network: increase batch size
+            self.optimal_batch_size = min(self.optimal_batch_size + 2, self.max_concurrent * 2)
+        elif avg_time > 0.8:
+            # Slow network: decrease batch size
+            self.optimal_batch_size = max(self.optimal_batch_size - 2, 5)
+        
+        return self.optimal_batch_size
+    
     async def _fetch_pages_parallel(self, page_titles: List[str]) -> Dict[str, Optional[BeautifulSoup]]:
         """
         Fetch multiple pages in parallel (CORE PERFORMANCE OPTIMIZATION).
         
         Uses asyncio.gather() to run all fetches concurrently.
+        Now with adaptive batching for optimal performance.
         """
         start_time = time.time()
         
-        # Create tasks for all pages
-        tasks = [self._fetch_from_wikipedia(title) for title in page_titles]
-        
-        # Run all tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # Map results back to page titles
-        pages = {}
-        for title, result in zip(page_titles, results):
-            if isinstance(result, Exception):
-                print(f"❌ Error fetching {title}: {result}")
-                pages[title] = None
-            else:
-                pages[title] = result
-        
-        elapsed = time.time() - start_time
-        print(f"⚡ Fetched {len(page_titles)} pages in {elapsed:.2f}s (parallel)")
-        
-        return pages
+        # Adaptive batching: Split into optimal-sized chunks
+        if self.adaptive_batching and len(page_titles) > self.max_concurrent:
+            optimal_size = self._calculate_optimal_batch_size()
+            
+            # Process in chunks
+            all_pages = {}
+            for i in range(0, len(page_titles), optimal_size):
+                chunk = page_titles[i:i + optimal_size]
+                
+                # Create tasks for chunk
+                tasks = [self._fetch_from_wikipedia(title) for title in chunk]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                # Map results
+                for title, result in zip(chunk, results):
+                    if isinstance(result, Exception):
+                        print(f"❌ Error fetching {title}: {result}")
+                        all_pages[title] = None
+                    else:
+                        all_pages[title] = result
+                
+                # Small delay between chunks (rate limiting)
+                if i + optimal_size < len(page_titles):
+                    await asyncio.sleep(0.1)
+            
+            elapsed = time.time() - start_time
+            print(f"⚡ Fetched {len(page_titles)} pages in {elapsed:.2f}s (adaptive batching: {optimal_size})")
+            
+            return all_pages
+        else:
+            # Standard parallel fetch (small batch)
+            tasks = [self._fetch_from_wikipedia(title) for title in page_titles]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Map results back to page titles
+            pages = {}
+            for title, result in zip(page_titles, results):
+                if isinstance(result, Exception):
+                    print(f"❌ Error fetching {title}: {result}")
+                    pages[title] = None
+                else:
+                    pages[title] = result
+            
+            elapsed = time.time() - start_time
+            print(f"⚡ Fetched {len(page_titles)} pages in {elapsed:.2f}s (parallel)")
+            
+            return pages
     
     def _add_to_cache(self, page_title: str, soup: BeautifulSoup):
         """
@@ -351,6 +454,23 @@ class AsyncWikipediaScraper:
             'avg_time': avg_time,
             'pages_per_second': pages_per_sec
         }
+    
+    async def close(self):
+        """
+        Close persistent session (cleanup).
+        
+        Call this when done with scraper to properly close connections.
+        """
+        if self._session and not self._session.closed:
+            await self._session.close()
+    
+    async def __aenter__(self):
+        """Context manager support."""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager cleanup."""
+        await self.close()
 
 
 # Convenience function for sync-like usage

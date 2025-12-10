@@ -31,7 +31,7 @@ class WikiEmbedder:
     - Good balance: speed vs accuracy
     """
 
-    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', cache_size: int = 512, cache_file: str = 'embeddings_cache.pkl'):
+    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', cache_size: int = 512, cache_file: str = 'cache/embeddings_cache.pkl'):
         """
         WikiEmbedder'ı başlat ve model yükle.
 
@@ -41,7 +41,7 @@ class WikiEmbedder:
             cache_size (int): Cache'lenecek maksimum embedding sayısı
                              Default: 512
             cache_file (str): Persistent cache dosyası
-                             Default: 'embeddings_cache.pkl'
+                             Default: 'cache/embeddings_cache.pkl'
         """
         print(f"🤖 Loading embedding model: {model_name}...")
         print(f"   (İlk seferinde ~80MB indirilecek, sonra cache'den yüklenir)")

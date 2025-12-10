@@ -1,294 +1,386 @@
-# 🗺️ Wikipedia ML - Detaylı Yol Haritası
+# 🗺️ WikipediaML Project Roadmap
 
-## 📍 FAZ 1: BASIC PATHFINDING (Model Kullanmadan)
+**Last Updated**: December 10, 2024  
+**Version**: 4.0.0
 
-### 1.1 BFS (Breadth-First Search) İmplementasyonu
-**Amaç**: En kısa path'i garantili bir şekilde bulmak (adım sayısı açısından).
-
-**Yapılacaklar**:
-- [ ] `PathFinder` sınıfı oluştur (`src/pathfinder.py`)
-- [ ] BFS algoritması implementasyonu
-- [ ] Verbose mode: Her explore edilen sayfayı logla
-- [ ] Path reconstruction: Hedefe nasıl ulaştığını göster
-- [ ] Performance metrics:
-  - Kaç sayfa tarandı
-  - Kaç adımda buldu
-  - Toplam süre
-  - Memory kullanımı
-
-**Öğrenilecekler**:
-- Queue veri yapısı ve BFS mantığı
-- Visited tracking (döngülerden kaçınma)
-- Parent tracking (path'i geri oluşturma)
-
-**Test Senaryosu**:
-```
-Başlangıç: "Potato" → Hedef: "Barack_Obama"
-Beklenen: Çalışır bir path bulmalı ve adımları göstermeli
-```
-
-### 1.2 Bidirectional BFS (İki Yönlü Arama)
-**Amaç**: Performance optimization - hem baştan hem sondan ara.
-
-**Yapılacaklar**:
-- [ ] Bidirectional BFS implementasyonu
-- [ ] İki aramanın kesişme noktasını bulma
-- [ ] Performance karşılaştırması (normal BFS vs bidirectional)
-
-**Öğrenilecekler**:
-- İki yönlü arama mantığı
-- Intersection detection
-- Time/space complexity analizi
-
-### 1.3 Heuristic-Based Search (A*)
-**Amaç**: Daha akıllı arama - hedefe daha yakın sayfaları önceliklendir.
-
-**Yapılacaklar**:
-- [ ] Basit heuristic'ler:
-  - Link count similarity (kaç ortak link var)
-  - Page title similarity (kelime benzerliği)
-  - Category overlap (ortak kategoriler)
-- [ ] A* algoritması implementasyonu
-- [ ] Priority queue kullanımı
-- [ ] Heuristic effectiveness analizi
-
-**Öğrenilecekler**:
-- A* ve informed search
-- Heuristic tasarımı
-- Priority queue veri yapısı
+## 📋 Table of Contents
+1. [Overview](#overview)
+2. [Completed Phases](#completed-phases)
+3. [Current Phase](#current-phase)
+4. [Future Phases](#future-phases)
+5. [Performance Goals](#performance-goals)
+6. [Technical Priorities](#technical-priorities)
 
 ---
 
-## 📍 FAZ 2: EMBEDDED MODEL İLE AKILLI SEÇİM
+## 🎯 Overview
 
-### 2.1 Sentence Transformers Kurulumu
-**Amaç**: Sayfa ve link'lerin semantic meaning'ini anlamak.
+WikipediaML is evolving from a basic pathfinding tool to an intelligent, scalable, and production-ready system. This roadmap outlines our journey from foundation to enterprise-grade solution.
 
-**Yapılacaklar**:
-- [ ] `sentence-transformers` kurulumu
-- [ ] Model yükle (örn: `all-MiniLM-L6-v2` - hızlı ve küçük)
-- [ ] Embedding generation fonksiyonları
-- [ ] `src/embedder.py` oluştur
+### Vision
+Build the fastest, most accurate, and most intelligent Wikipedia navigation system using cutting-edge ML and optimization techniques.
 
-**Öğrenilecekler**:
-- Sentence embeddings nedir
-- Cosine similarity
-- Vector space'de semantic search
+### Mission
+- **Speed**: Sub-second response times for 95% of queries
+- **Accuracy**: >98% success rate in finding optimal paths
+- **Scale**: Handle 1000+ concurrent users
+- **Intelligence**: Learn and improve continuously
 
-**Test**:
+---
+
+## ✅ Completed Phases
+
+### Phase 1: Foundation (v1.0 - v2.0) ✅
+**Timeline**: Completed  
+**Status**: Production Ready
+
+#### Achievements
+- ✅ Basic Wikipedia scraping
+- ✅ Semantic search with sentence transformers
+- ✅ Bidirectional BFS algorithm
+- ✅ Simple caching system
+- ✅ Command-line interface
+
+#### Key Metrics
+- **Speed**: 2-5s per path
+- **Accuracy**: 85-90%
+- **Cache Hit Rate**: 10-20%
+
+---
+
+### Phase 2: Intelligence (v3.0 - v3.3) ✅
+**Timeline**: Completed  
+**Status**: Production Ready
+
+#### Achievements
+- ✅ Wikipedia categories integration
+- ✅ Advanced caching (embeddings, graph, categories)
+- ✅ Knowledge graph learning
+- ✅ Bidirectional beam search
+- ✅ Link filtering and pre-processing
+- ✅ Claude AI integration (optional)
+
+#### Key Metrics
+- **Speed**: 0.5-2s per path
+- **Accuracy**: 95%+
+- **Cache Hit Rate**: 30-40%
+
+---
+
+### Phase 3: Machine Learning (v4.0) 🔄
+**Timeline**: In Progress  
+**Status**: Active Development
+
+#### Completed ✅
+- ✅ ML-based link scoring (10 features)
+- ✅ Self-learning trainer system
+- ✅ 3D graph visualization
+- ✅ Training data collection
+- ✅ Model persistence (PKL files)
+- ✅ Performance monitoring
+
+#### In Progress 🔄
+- 🔄 Performance optimization
+- 🔄 Feature engineering improvements
+- 🔄 Model accuracy tuning
+- 🔄 Training pipeline automation
+
+#### Pending ⏳
+- ⏳ Advanced ML models (XGBoost, LightGBM)
+- ⏳ Hyperparameter optimization
+- ⏳ Cross-validation framework
+- ⏳ A/B testing system
+
+#### Current Metrics
+- **Speed**: 0.5-2s per path
+- **Accuracy**: 95%+ (baseline), targeting 98%+
+- **ML Model**: 10 features, basic classifier
+- **Training Data**: Growing continuously
+
+---
+
+## 🎯 Current Phase: Performance & Scale (v5.0)
+
+**Timeline**: Q1 2025  
+**Status**: Planning
+
+### Goals
+Transform WikipediaML into a high-performance, scalable system capable of handling production workloads.
+
+### Priority 1: GPU Acceleration 🔥
+**Impact**: 10-50x speedup  
+**Effort**: Medium
+
+#### Tasks
+- [ ] Install CUDA/cuDNN
+- [ ] Port embedder to GPU
+- [ ] Benchmark GPU vs CPU
+- [ ] Implement fallback to CPU
+- [ ] Optimize batch sizes
+
+#### Expected Results
 ```python
-"Potato" ile "Vegetable" daha yakın mı, yoksa "Computer" mı?
+# Before (CPU)
+100 embeddings × 100ms = 10s
+
+# After (GPU)
+100 embeddings in batch = 200ms
+# 50x speedup!
 ```
 
-### 2.2 Semantic Link Selection
-**Amaç**: Hedef sayfaya semantically en yakın link'i seç.
+---
 
-**Yapılacaklar**:
-- [ ] Hedef sayfa embedding'i
-- [ ] Her link'in embedding'i (link text + kısa açıklama)
-- [ ] Cosine similarity hesapla
-- [ ] En yüksek similarity'ye sahip link'i seç
-- [ ] `SemanticNavigator` sınıfı (`src/semantic_navigator.py`)
+### Priority 2: Batch Processing 🔥
+**Impact**: 5-10x speedup  
+**Effort**: Medium
 
-**Öğrenilecekler**:
-- Greedy semantic search
-- Embedding caching (performans)
-- Batch processing
+#### Tasks
+- [ ] Refactor embedder for batch processing
+- [ ] Implement batch link scoring
+- [ ] Optimize batch sizes
+- [ ] Add batch caching
+- [ ] Benchmark improvements
 
-**Karşılaştırma**:
-- Random walk vs Semantic selection
-- Success rate, adım sayısı, süre
+#### Expected Results
+```python
+# Before (Sequential)
+for link in 100_links:
+    score = score_link(link)  # 200ms each = 20s
 
-### 2.3 Beam Search ile Çoklu Path Exploration
-**Amaç**: Sadece en iyi değil, top-k linkleri paralel explore et.
-
-**Yapılacaklar**:
-- [ ] Beam search implementasyonu
-- [ ] Beam width parametresi (kaç alternatif path)
-- [ ] Her path için score tracking
-- [ ] Visualization (hangi path'ler explore edildi)
-
-**Öğrenilecekler**:
-- Beam search algoritması
-- Trade-off: exploration vs exploitation
-- Parallel thinking
+# After (Batch)
+scores = score_links_batch(100_links)  # 2s total
+# 10x speedup!
+```
 
 ---
 
-## 📍 FAZ 3: REINFORCEMENT LEARNING YAKLAŞIMI (Opsiyonel ama öğretici)
+### Priority 3: Advanced Caching 📊
+**Impact**: 2-3x speedup  
+**Effort**: High
 
-### 3.1 Q-Learning Basics
-**Amaç**: Agent'ın deneme-yanılma ile öğrenmesi.
+#### Tasks
+- [ ] Install and configure Redis
+- [ ] Migrate embeddings cache to Redis
+- [ ] Implement distributed cache
+- [ ] Add cache warming
+- [ ] Monitor cache performance
 
-**Yapılacaklar**:
-- [ ] State representation (current page + target page)
-- [ ] Action space (hangi linke tıkla)
-- [ ] Reward function:
-  - Hedefe ulaştı: +100
-  - Hedefe yaklaştı: +10
-  - Uzaklaştı: -5
-  - Her adım: -1
-- [ ] Q-table veya Q-network
-- [ ] Training loop
-
-**Öğrenilecekler**:
-- RL basics: state, action, reward
-- Exploration vs exploitation (epsilon-greedy)
-- Q-learning update rule
-
-### 3.2 Policy Gradient / Actor-Critic (İleri seviye)
-**Amaç**: Daha sofistike RL yaklaşımı.
-
-**Yapılacaklar**:
-- [ ] Policy network (hangi linke tıklama olasılığı)
-- [ ] Value network (bu state ne kadar iyi)
-- [ ] Training loop
-- [ ] Experience replay
+#### Expected Results
+- **Local PKL**: 50ms read time
+- **Redis**: 5-10ms read time
+- **Distributed**: Multiple workers share cache
+- **Cache Hit Rate**: 60-80%
 
 ---
 
-## 📍 FAZ 4: CLAUDE API ENTEGRASYONU
+### Priority 4: Graph Database 📊
+**Impact**: 5-10x speedup for large graphs  
+**Effort**: High
 
-### 4.1 Claude API Setup
-**Amaç**: Claude'un reasoning yeteneğini kullanmak.
+#### Tasks
+- [ ] Install Neo4j
+- [ ] Design graph schema
+- [ ] Migrate NetworkX to Neo4j
+- [ ] Implement Cypher queries
+- [ ] Benchmark performance
 
-**Yapılacaklar**:
-- [ ] `anthropic` library kurulumu
-- [ ] API key yönetimi (.env)
-- [ ] `src/claude_navigator.py` oluştur
-- [ ] Rate limiting ve cost tracking
-
-### 4.2 Prompt Engineering
-**Amaç**: Claude'a görevi en iyi şekilde açıklamak.
-
-**Yapılacaklar**:
-- [ ] System prompt tasarla:
-  ```
-  Sen bir Wikipedia navigator'sın. Amacın [START] sayfasından
-  [TARGET] sayfasına en az adımda ulaşmak. Mevcut sayfadaki
-  linklerden en uygun olanını seç ve nedenini açıkla.
-  ```
-- [ ] Few-shot examples (örnek path'ler)
-- [ ] Chain-of-thought reasoning
-- [ ] Link'leri context ile ver (sadece başlık değil, açıklama da)
-
-**Öğrenilecekler**:
-- Prompt engineering best practices
-- Chain-of-thought reasoning
-- Few-shot learning
-
-### 4.3 Hybrid Approach
-**Amaç**: Embedded model + Claude'u birlikte kullan.
-
-**Yapılacaklar**:
-- [ ] Embedded model ile top-10 link bul
-- [ ] Bu 10 link'i Claude'a ver (cost reduction)
-- [ ] Claude en iyisini seçsin ve açıklasın
+#### Expected Results
+```cypher
+// Neo4j query (optimized)
+MATCH path=shortestPath(
+  (start:Page {title: 'Potato'})-[*]-(end:Page {title: 'Pizza'})
+)
+RETURN path
+// 10-100ms for millions of nodes
+```
 
 ---
 
-## 📍 FAZ 5: KNOWLEDGE GRAPH
+### Priority 5: Model Optimization 🔧
+**Impact**: 2-4x speedup  
+**Effort**: Low
 
-### 5.1 Graph Construction
-**Amaç**: Öğrenilen path'leri ve ilişkileri sakla.
+#### Tasks
+- [ ] Implement model quantization (int8)
+- [ ] Test model pruning
+- [ ] Evaluate distillation
+- [ ] Benchmark accuracy vs speed
+- [ ] Deploy optimized model
 
-**Yapılacaklar**:
-- [ ] NetworkX ile basit graph
-- [ ] Her başarılı path'i graph'a ekle
-- [ ] Node properties: page title, categories, link count
-- [ ] Edge properties: traversal count, success rate
-- [ ] Graph serialization (pickle/JSON)
-
-**Öğrenilecekler**:
-- Graph veri yapısı
-- NetworkX kullanımı
-- Graph persistence
-
-### 5.2 Graph-Based Pathfinding
-**Amaç**: Daha önce öğrenilen path'leri kullan.
-
-**Yapılacaklar**:
-- [ ] Graph'ta path var mı kontrol et
-- [ ] Partial match (A→B→? ve ?→C→D varsa, birleştir)
-- [ ] Graph-based heuristics (bu node'dan genellikle nereye gidilir)
-- [ ] Confidence scores
-
-### 5.3 Neo4j Integration (Production-ready)
-**Amaç**: Büyük graph'lar için production database.
-
-**Yapılacaklar**:
-- [ ] Neo4j kurulumu (Docker)
-- [ ] Cypher query'leri
-- [ ] Graph algorithms (shortest path, PageRank)
-- [ ] Visualization (Neo4j Browser)
+#### Expected Results
+- **Size**: 90MB → 23MB (4x smaller)
+- **Speed**: 100ms → 25ms (4x faster)
+- **Accuracy**: 95% → 94% (minimal loss)
 
 ---
 
-## 📍 BONUS: ADVANCED FEATURES
+## 🔮 Future Phases
 
-### B.1 Multi-Language Support
-- [ ] Farklı dillerde Wikipedia (tr.wikipedia.org)
-- [ ] Cross-language path finding
+### Phase 4: Advanced Intelligence (v6.0)
+**Timeline**: Q2 2025  
+**Status**: Planning
 
-### B.2 Web Interface
-- [ ] Flask/FastAPI backend
-- [ ] React frontend
-- [ ] Real-time visualization
-- [ ] Interactive mode
+#### Goals
+- 🔮 Advanced ML models (XGBoost, LightGBM, Neural Networks)
+- 🔮 Reinforcement learning from user feedback
+- 🔮 Multi-modal learning (images, infoboxes, structured data)
+- 🔮 Transfer learning with pre-trained models
+- 🔮 Ensemble methods for higher accuracy
 
-### B.3 Competitive Mode
-- [ ] Farklı algoritmalar yarışsın
-- [ ] Leaderboard
-- [ ] Different metrics (speed, accuracy, cost)
+#### Expected Metrics
+- **Accuracy**: 98%+
+- **Speed**: <500ms per path
+- **Intelligence**: Self-improving system
 
 ---
 
-## 🎯 ŞU ANKİ DURUM
+### Phase 5: Production Deployment (v7.0)
+**Timeline**: Q3 2025  
+**Status**: Planning
 
-**Versiyon:** 3.1.0 - Bidirectional Semantic Search
-**Durum:** Production Ready (Faz 3.1 tamamlandı)
+#### Goals
+- 🚀 FastAPI backend with RESTful API
+- 🚀 React frontend with modern UI
+- 🚀 Docker containerization
+- 🚀 Kubernetes orchestration
+- 🚀 Monitoring (Prometheus, Grafana)
+- 🚀 CI/CD pipeline
+- 🚀 Load balancing and auto-scaling
 
-### Son Tamamlananlar (9 Aralık 2025):
-- ✅ **Bidirectional Beam Search** implementasyonu
-- ✅ İki yönlü semantic search (forward + backward)
-- ✅ Kesişme noktası tespiti (intersection detection)
-- ✅ Path merging algoritması
-- ✅ %80-90 daha az sayfa tarama
-- ✅ %70-80 daha hızlı execution
-- ✅ Uzak path'ler artık başarılı (Porsche → Serik_Akhmetov ✅)
+#### Expected Metrics
+- **Throughput**: 1000+ requests/second
+- **Latency**: <100ms (p95)
+- **Uptime**: 99.9%
+- **Scalability**: Horizontal scaling
 
-### Önceki Tamamlananlar (4 Aralık 2025):
-- ✅ Claude API entegrasyonu (`src/claude_reasoning.py`)
-- ✅ Claude-Enhanced Search (semantic + reasoning)
-- ✅ Hybrid Search: Graph → Bidirectional Beam/Claude fallback
-- ✅ .env support (API key yönetimi)
-- ✅ Haiku 3.5 model (hızlı ve ucuz)
-- ✅ CLI: `--claude` flag
-- ✅ Statistics tracking (API calls, tokens)
+---
 
-### Çözülen Sorunlar:
-- ✅ Uzak path'lerde başarı oranı artırıldı (bidirectional search ile)
-- ✅ Taranan sayfa sayısı %80-90 azaltıldı
-- ✅ Execution time %70-80 iyileştirildi
+### Phase 6: Enterprise Features (v8.0)
+**Timeline**: Q4 2025  
+**Status**: Future
 
-**Sonraki adım**: Wikipedia categories entegrasyonu veya Faz 5 (Neo4j)
+#### Goals
+- 🏢 Multi-language support
+- 🏢 Custom knowledge graphs
+- 🏢 API rate limiting and authentication
+- 🏢 Analytics dashboard
+- 🏢 Admin panel
+- 🏢 User accounts and history
+- 🏢 Premium features
 
-## 📊 İLERLEME TAKİBİ
+---
 
-- [x] Faz 1: Basic Pathfinding ✅
-  - [x] 1.1 BFS ✅
-  - [x] 1.2 Bidirectional BFS ✅
-  - [ ] 1.3 A* with Heuristics (atlandı)
-- [x] Faz 2: Embedded Model ✅
-  - [x] 2.1 Setup (all-MiniLM-L6-v2) ✅
-  - [x] 2.2 Semantic Selection (Greedy) ✅
-  - [x] 2.3 Beam Search ✅
-- [ ] Faz 3: RL (Atlandı - Claude kullanıyoruz)
-- [x] Faz 4: Claude API ✅
-  - [x] 4.1 Setup (.env, anthropic) ✅
-  - [x] 4.2 Prompt Engineering ✅
-  - [x] 4.3 Hybrid (Semantic pre-filter + Claude) ✅
-- [x] Faz 5: Knowledge Graph (NetworkX) ✅
-  - [x] 5.1 Construction (wiki_graph.pkl) ✅
-  - [x] 5.2 Graph-based Search (path reuse) ✅
-  - [ ] 5.3 Neo4j (gelecek)
+## 📊 Performance Goals
+
+### Current Performance (v4.0)
+```
+Path Finding:        0.5-2s per path
+Embedding:           ~100ms per page
+Category Analysis:   ~500ms per page
+ML Feature Extract:  ~200ms per link
+Cache Hit Rate:      30-40%
+Accuracy:            95%+
+```
+
+### Target Performance (v5.0)
+```
+Path Finding:        <500ms per path (4x faster)
+Embedding:           ~10ms per page (10x faster, GPU)
+Category Analysis:   ~50ms per page (10x faster, cache)
+ML Feature Extract:  ~20ms per link (10x faster, batch)
+Cache Hit Rate:      60-80% (2x better)
+Accuracy:            98%+ (3% improvement)
+```
+
+### Ultimate Performance (v7.0)
+```
+Path Finding:        <100ms per path (20x faster)
+Embedding:           ~1ms per page (100x faster, GPU batch)
+Category Analysis:   ~5ms per page (100x faster, Redis)
+ML Feature Extract:  ~2ms per link (100x faster, optimized)
+Cache Hit Rate:      90%+ (3x better)
+Accuracy:            99%+ (4% improvement)
+Throughput:          1000+ req/s
+```
+
+---
+
+## 🎯 Technical Priorities
+
+### High Priority 🔥
+1. **GPU Acceleration** - 10-50x speedup
+2. **Batch Processing** - 5-10x speedup
+3. **ML Model Improvements** - 3-5% accuracy gain
+
+### Medium Priority 📊
+4. **Redis Caching** - 2-3x speedup
+5. **Neo4j Graph DB** - 5-10x speedup for large graphs
+6. **Model Optimization** - 2-4x speedup
+
+### Low Priority 🔧
+7. **API Development** - Production readiness
+8. **Frontend Development** - User experience
+9. **Monitoring** - Observability
+
+---
+
+## 📈 Success Metrics
+
+### Technical Metrics
+- **Speed**: Response time (p50, p95, p99)
+- **Accuracy**: Path quality and success rate
+- **Scalability**: Concurrent users supported
+- **Reliability**: Uptime and error rate
+
+### Business Metrics
+- **User Satisfaction**: Feedback and ratings
+- **Usage**: Daily/monthly active users
+- **Growth**: User acquisition rate
+- **Retention**: User return rate
+
+### Development Metrics
+- **Code Quality**: Test coverage, linting
+- **Documentation**: Completeness and clarity
+- **Velocity**: Features shipped per sprint
+- **Technical Debt**: Refactoring needs
+
+---
+
+## 🚀 Next Steps
+
+### Immediate (This Week)
+1. ✅ Complete project refactoring
+2. ✅ Update documentation
+3. ⏳ Benchmark current performance
+4. ⏳ Plan GPU acceleration
+
+### Short Term (This Month)
+1. Implement GPU acceleration
+2. Add batch processing
+3. Optimize ML features
+4. Improve training pipeline
+
+### Medium Term (Next Quarter)
+1. Deploy Redis caching
+2. Integrate Neo4j
+3. Optimize models
+4. Build API backend
+
+### Long Term (Next Year)
+1. Production deployment
+2. Frontend development
+3. Enterprise features
+4. Global scaling
+
+---
+
+## 📞 Feedback
+
+This roadmap is a living document. Feedback and suggestions are welcome!
+
+**Contact**: Open an issue or submit a PR
+
+---
+
+**Last Updated**: December 10, 2024  
+**Next Review**: January 10, 2025

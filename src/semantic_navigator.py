@@ -943,16 +943,38 @@ class SemanticNavigator:
             print(f"📍 Başlangıç: {start}")
             print(f"🎯 Hedef: {target}\n")
 
-        # 1. Graph'ta path var mı?
+        # 1. Graph'ta path var mı? (A* search ile heuristic kullan)
         if self.knowledge_graph:
             if self.verbose:
                 print(f"🔍 Knowledge Graph kontrol ediliyor...")
 
-            graph_path = self.knowledge_graph.find_path(start, target)
+            # A* heuristic: Semantic similarity to target
+            target_emb = self.embedder.get_embedding(target)
+            
+            def semantic_heuristic(node: str, target_node: str) -> float:
+                """
+                A* heuristic: Node'dan target'a semantic distance.
+                Düşük değer = daha yakın (A* minimize eder)
+                """
+                try:
+                    node_emb = self.embedder.get_embedding(node)
+                    similarity = self.embedder.cosine_similarity(node_emb, target_emb)
+                    # Similarity'yi distance'a çevir (1 - similarity)
+                    # Yüksek similarity = düşük distance
+                    return 1.0 - similarity
+                except:
+                    return 1.0  # Unknown node, max distance
+            
+            # A* search with semantic heuristic
+            graph_path = self.knowledge_graph.find_path(
+                start,
+                target,
+                heuristic=semantic_heuristic
+            )
 
             if graph_path:
                 if self.verbose:
-                    print(f"✅ Graph'ta path bulundu!")
+                    print(f"✅ Graph'ta path bulundu! (A* search)")
                     print(f"   Path: {' → '.join(graph_path)}")
                     print(f"   🎯 Öğrenilmiş bilgi kullanılıyor!\n")
 
@@ -960,7 +982,7 @@ class SemanticNavigator:
                     True,
                     graph_path,
                     [],  # Graph'tan geldi, similarity yok
-                    "Hybrid (Graph Reused)"
+                    "Hybrid (Graph A* Reused)"
                 )
                 self._print_result(result)
                 return result
@@ -1009,13 +1031,22 @@ class SemanticNavigator:
                 )
                 result.algorithm = "Hybrid (Beam Search Fallback)"
 
-        # 3. Başarılıysa graph'a kaydet
+        # 3. Başarılıysa graph'a kaydet (path quality ile)
         if result.found and self.knowledge_graph:
-            self.knowledge_graph.add_path(result.path, success=True)
+            # Path quality: Kısa path = yüksek quality
+            # 2 adım = 1.0, 3 adım = 0.8, 4 adım = 0.6, vs.
+            path_length = len(result.path) - 1
+            path_quality = max(0.2, 1.0 - (path_length - 2) * 0.2)
+            
+            self.knowledge_graph.add_path(
+                result.path,
+                success=True,
+                path_quality=path_quality
+            )
             self.knowledge_graph.save()
 
             if self.verbose:
-                print(f"\n💾 Path graph'a kaydedildi!")
+                print(f"\n💾 Path graph'a kaydedildi! (quality: {path_quality:.2f})")
         
         # 4. Embedding cache'i kaydet (persistent)
         self.embedder.save_cache_to_disk()

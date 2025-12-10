@@ -6,6 +6,7 @@ Link'leri hızlı heuristic'lerle filtrele (embedding'den önce).
 Amaç: 500+ link → 50-100 link (embedding computation %80-90 azalma)
 
 v3.3.0: Wikipedia Categories integration
+v3.3.1: Hierarchical category scoring (Phase 1)
 """
 
 from typing import List, Tuple, Optional
@@ -24,9 +25,15 @@ class LinkFilter:
     5. Category similarity (NEW!)
     """
     
-    def __init__(self, verbose: bool = False, use_categories: bool = True):
+    def __init__(
+        self,
+        verbose: bool = False,
+        use_categories: bool = True,
+        use_hierarchy: bool = True
+    ):
         self.verbose = verbose
         self.use_categories = use_categories
+        self.use_hierarchy = use_hierarchy
         
         # Category analyzer (lazy loading)
         self._category_analyzer = None
@@ -187,12 +194,28 @@ class LinkFilter:
             if link in hub_pages:
                 base_score *= 1.5
             
-            # Category bonus (NEW!)
+            # Category bonus (with hierarchy!)
             if self.use_categories and self.category_analyzer:
                 try:
-                    category_sim = self.category_analyzer.category_similarity(link, target)
-                    # Category bonus: 0.0-0.3 ek puan
-                    base_score += category_sim * 0.3
+                    if self.use_hierarchy:
+                        # Hierarchical similarity (includes parent categories)
+                        hier_sim = self.category_analyzer.hierarchical_similarity(
+                            link, target,
+                            depth=1,  # 1 level of parents
+                            weight_direct=0.7,
+                            weight_parent=0.3
+                        )
+                        # Depth-based scoring
+                        depth_score = self.category_analyzer.category_depth_score(link, target)
+                        
+                        # Combined category score
+                        category_score = (hier_sim * 0.6 + depth_score * 0.4)
+                        # Category bonus: 0.0-0.4 ek puan (increased from 0.3)
+                        base_score += category_score * 0.4
+                    else:
+                        # Simple category similarity (backward compatible)
+                        category_sim = self.category_analyzer.category_similarity(link, target)
+                        base_score += category_sim * 0.3
                 except:
                     pass  # Category fetch hatası, devam et
             
