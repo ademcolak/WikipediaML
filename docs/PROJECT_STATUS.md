@@ -1,8 +1,8 @@
 # 📊 WikipediaML - Proje Durumu ve Özet
 
-**Son Güncelleme:** 10 Aralık 2024  
-**Versiyon:** 3.4.0 (ML Integration)  
-**Durum:** 🟢 Aktif Geliştirme
+**Son Güncelleme:** 11 Aralık 2024
+**Versiyon:** 4.1.0 (Neo4j Integration Planning)
+**Durum:** 🚀 Neo4j Entegrasyonu Başlıyor
 
 ---
 
@@ -20,6 +20,7 @@ WikipediaML/
 ├── train_ml_model.py                ✅ ML model training script
 ├── requirements.txt                 ✅ Bağımlılıklar
 ├── .env.example                     ✅ Environment template
+├── TODO.md                          ✅ Yapılacaklar listesi (YENİ!)
 │
 ├── src/                             ✅ Core modüller
 │   ├── semantic_navigator.py        ✅ Ana navigasyon logic
@@ -28,21 +29,33 @@ WikipediaML/
 │   ├── embedder.py                  ✅ Semantic embeddings
 │   ├── category_analyzer.py         ✅ Wikipedia categories
 │   ├── link_filter.py               ✅ Smart filtering
-│   ├── knowledge_graph.py           ✅ Path learning
+│   ├── knowledge_graph.py           ✅ Path learning (NetworkX)
 │   ├── claude_reasoning.py          ✅ Claude API integration
-│   ├── ml_link_scorer.py            ✅ ML-based link scoring (YENİ!)
-│   └── self_learning_trainer.py     ✅ Self-supervised learning (YENİ!)
+│   ├── ml_link_scorer.py            ✅ ML-based link scoring
+│   ├── self_learning_trainer.py     ✅ Self-supervised learning
+│   ├── neo4j_graph.py               ⏳ Neo4j driver (PLANLI)
+│   └── hybrid_knowledge_graph.py    ⏳ Hybrid system (PLANLI)
+│
+├── scripts/                         ⏳ Utility scripts (PLANLI)
+│   ├── migrate_to_neo4j.py          ⏳ NetworkX → Neo4j migration
+│   ├── sync_graphs.py               ⏳ Graph synchronization
+│   └── benchmark.py                 ⏳ Performance benchmarking
 │
 ├── docs/                            ✅ Dokümantasyon
+│   ├── NEO4J_INTEGRATION_ROADMAP.md ✅ Neo4j entegrasyon planı (YENİ!)
+│   ├── ROADMAP.md                   ✅ Ana roadmap
+│   ├── PROJECT_STATUS.md            ✅ Bu dosya
+│   ├── TRAINING_GUIDE.md            ✅ ML training rehberi
 │   ├── FUTURE_GOALS_AND_OPTIMIZATION.md  ✅ Gelecek hedefler
-│   ├── QUICK_WINS.md                     ✅ Hızlı iyileştirmeler
-│   ├── KG_OPTIMIZATION_STRATEGIES.md     ✅ KG optimizasyonları
-│   ├── PHASE1_*.md                       ✅ Phase 1 dökümanları
-│   ├── PHASE2_*.md                       ✅ Phase 2 dökümanları
-│   └── ...                               ✅ Diğer dökümanlar
+│   ├── QUICK_WINS.md                ✅ Hızlı iyileştirmeler
+│   ├── KG_OPTIMIZATION_STRATEGIES.md ✅ KG optimizasyonları
+│   ├── PHASE1_*.md                  ✅ Phase 1 dökümanları
+│   ├── PHASE2_*.md                  ✅ Phase 2 dökümanları
+│   └── ...                          ✅ Diğer dökümanlar
 │
+├── docker-compose.yml               ⏳ Docker services (PLANLI)
+├── Makefile                         ⏳ Build & run commands (PLANLI)
 ├── COMMANDS.md                      ✅ Kullanılabilir komutlar
-├── PROJECT_STATUS.md                ✅ Bu dosya
 ├── README.md                        ✅ Genel bilgi
 ├── QUICKSTART.md                    ✅ Hızlı başlangıç
 ├── USAGE.md                         ✅ Detaylı kullanım
@@ -153,14 +166,21 @@ Phase 1 Optimizations:
 
 ## 🔄 Devam Eden Çalışmalar
 
-### Phase 2: ML Integration (Devam Ediyor 🔄)
+### Phase 2: ML Integration (Son Aşama 🔄)
 - ✅ ML Link Scorer oluşturuldu
 - ✅ Self-supervised learning implementasyonu
 - ✅ Training script hazır
-- 🔄 LinkFilter ML scoring integration
-- ⏳ SemanticNavigator ML mode
+- 🔄 **LinkFilter ML scoring integration** (Bu Hafta!)
+- 🔄 **SemanticNavigator ML mode** (Bu Hafta!)
 - ⏳ ML vs Heuristic comparison
 - ⏳ Performance benchmarking
+
+### Phase 3A: Neo4j Setup (Başlıyor 🚀)
+- ⏳ **Docker Compose setup** (Sonraki Hafta)
+- ⏳ **Hybrid Knowledge Graph** (Sonraki Hafta)
+- ⏳ **Neo4j driver implementation** (Sonraki Hafta)
+- ⏳ Environment configuration
+- ⏳ Testing & validation
 
 ---
 
@@ -204,19 +224,34 @@ Phase 1 Optimizations:
 
 ## 🎯 Öncelikli Adımlar (Kısa Vadeli)
 
-### Bu Hafta (1-2 gün)
+### Bu Hafta (1-2 gün) - Phase 2 Tamamlama 🔥
 1. ✅ ML Link Scorer bug fixes (TAMAMLANDI)
 2. ✅ Dokümantasyon güncellemesi (TAMAMLANDI)
-3. 🔄 LinkFilter ML integration
-4. ⏳ SemanticNavigator ML mode
+3. ✅ TODO.md oluşturuldu (TAMAMLANDI)
+4. ✅ NEO4J_INTEGRATION_ROADMAP.md oluşturuldu (TAMAMLANDI)
+5. 🔄 **LinkFilter ML integration** (Başlıyor!)
+6. 🔄 **SemanticNavigator ML mode** (Başlıyor!)
+7. ⏳ ML vs Heuristic benchmark
 
-### Bu Ay (1-2 hafta)
-1. ⏳ Embedding Cache implementation
-2. ⏳ Batch Link Processing
-3. ⏳ Smart Link Filtering
-4. ⏳ ML vs Heuristic benchmark
+### Sonraki Hafta (5-7 gün) - Phase 3A: Neo4j Setup 🐳
+1. ⏳ Docker Compose (Neo4j + Redis)
+2. ⏳ Makefile oluştur
+3. ⏳ Environment variables setup
+4. ⏳ Neo4j driver implementation
+5. ⏳ Hybrid Knowledge Graph
+6. ⏳ Testing & validation
 
-**Beklenen Sonuç**: %60-70 hız artışı
+### 2-3 Hafta Sonra - Phase 3B-C: Migration & Performance ⚡
+1. ⏳ NetworkX → Neo4j migration
+2. ⏳ Cypher queries implementation
+3. ⏳ GPU acceleration
+4. ⏳ Redis cache integration
+5. ⏳ Batch processing optimization
+
+**Beklenen Sonuç**:
+- Phase 2: ML integration tamamlanacak
+- Phase 3A: Neo4j hybrid sistem kurulacak
+- Phase 3B-C: 100-500x hız artışı (GPU + Neo4j + Redis)
 
 ---
 
@@ -390,9 +425,36 @@ Optimization Phases: 2 (tamamlandı), 4 (planlandı)
 
 ---
 
-**Son Güncelleme:** 10 Aralık 2024  
-**Versiyon:** 3.4.0  
-**Durum:** 🟢 Production Ready (ML Integration devam ediyor)  
-**Sonraki Hedef:** Phase 3 - Performance Optimization
+**Son Güncelleme:** 11 Aralık 2024
+**Versiyon:** 4.1.0
+**Durum:** 🚀 Neo4j Integration Planning
+**Sonraki Hedef:** Phase 2 Tamamlama → Phase 3A Neo4j Setup
 
-🚀 **Proje aktif olarak geliştirilmektedir!**
+---
+
+## 📋 Yeni Dökümanlar
+
+- ✅ **TODO.md** - Detaylı yapılacaklar listesi
+- ✅ **docs/NEO4J_INTEGRATION_ROADMAP.md** - Neo4j entegrasyon planı (673 satır)
+- 📊 Tüm fazlar ve timeline detaylandırıldı
+- 🎯 Her hafta için net hedefler belirlendi
+
+---
+
+## 🚀 Başlangıç Komutları
+
+```bash
+# Mevcut durumu kontrol et
+cat TODO.md
+
+# ML integration test
+python main.py "Potato" "Pizza" --async
+
+# ML model training
+python train_ml_model.py --quick
+
+# Dokümantasyonu oku
+cat docs/NEO4J_INTEGRATION_ROADMAP.md
+```
+
+🚀 **Proje Neo4j entegrasyonu için hazır! Adım adım ilerliyoruz!**

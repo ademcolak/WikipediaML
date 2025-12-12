@@ -1,0 +1,2999 @@
+{
+  "description": "Large curated Wikipedia dataset - 500 page pairs",
+  "total_pairs": 496,
+  "categories": [
+    "science",
+    "technology",
+    "geography",
+    "history",
+    "culture",
+    "sports",
+    "food",
+    "animals",
+    "politics",
+    "nature"
+  ],
+  "difficulty_distribution": {
+    "easy": 220,
+    "medium": 110,
+    "hard": 166
+  },
+  "pairs": [
+    {
+      "start": "Ancient_history",
+      "target": "Revolution",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "President",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Lake",
+      "target": "Monarchy",
+      "difficulty": "hard",
+      "category": "nature-politics"
+    },
+    {
+      "start": "Continent",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "History",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Physics",
+      "target": "Biology",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "Industrial_Revolution",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "United_Kingdom",
+      "target": "French_cuisine",
+      "difficulty": "hard",
+      "category": "geography-food"
+    },
+    {
+      "start": "Elvis_Presley",
+      "target": "Mozart",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Politics",
+      "target": "Democracy",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Cristiano_Ronaldo",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Industrial_Revolution",
+      "target": "La_Liga",
+      "difficulty": "hard",
+      "category": "history-sports"
+    },
+    {
+      "start": "Programming",
+      "target": "Software",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Snow",
+      "target": "Mountain",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Cooking",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Premier_League",
+      "target": "Cinema",
+      "difficulty": "hard",
+      "category": "sports-culture"
+    },
+    {
+      "start": "Election",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Architecture",
+      "target": "Film",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Theory_of_relativity",
+      "target": "Ecosystem",
+      "difficulty": "hard",
+      "category": "science-nature"
+    },
+    {
+      "start": "Cricket",
+      "target": "Socialism",
+      "difficulty": "hard",
+      "category": "sports-politics"
+    },
+    {
+      "start": "Italian_cuisine",
+      "target": "Weather",
+      "difficulty": "hard",
+      "category": "food-nature"
+    },
+    {
+      "start": "Wine",
+      "target": "Football",
+      "difficulty": "hard",
+      "category": "food-sports"
+    },
+    {
+      "start": "Elephant",
+      "target": "Shark",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Tiger_Woods",
+      "target": "Art",
+      "difficulty": "hard",
+      "category": "sports-culture"
+    },
+    {
+      "start": "Geography",
+      "target": "Continent",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Art",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Sport",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Chemistry",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Vegetarianism",
+      "target": "Restaurant",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Pizza",
+      "target": "Ocean",
+      "difficulty": "hard",
+      "category": "food-nature"
+    },
+    {
+      "start": "Rome",
+      "target": "Ecosystem",
+      "difficulty": "hard",
+      "category": "geography-nature"
+    },
+    {
+      "start": "Ancient_Rome",
+      "target": "Elvis_Presley",
+      "difficulty": "hard",
+      "category": "history-culture"
+    },
+    {
+      "start": "Paris",
+      "target": "Baseball",
+      "difficulty": "hard",
+      "category": "geography-sports"
+    },
+    {
+      "start": "Music",
+      "target": "Brazil",
+      "difficulty": "hard",
+      "category": "culture-geography"
+    },
+    {
+      "start": "Tokyo",
+      "target": "Geography",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Politics",
+      "target": "Monarchy",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Chocolate",
+      "target": "Hamburger",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Animal",
+      "target": "Reptile",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Chocolate",
+      "target": "Basketball",
+      "difficulty": "hard",
+      "category": "food-sports"
+    },
+    {
+      "start": "Linux",
+      "target": "Programming",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Cinema",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Lionel_Messi",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Baseball",
+      "target": "Endangered_species",
+      "difficulty": "hard",
+      "category": "sports-nature"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Thermodynamics",
+      "target": "Nuclear_physics",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Ecosystem",
+      "target": "Nature",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Napoleon",
+      "target": "French_Revolution",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Python_(programming_language)",
+      "target": "Algorithm",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "President",
+      "target": "Government",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Hollywood",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Muhammad_Ali",
+      "target": "Environment",
+      "difficulty": "hard",
+      "category": "sports-nature"
+    },
+    {
+      "start": "Alexander_the_Great",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Biodiversity",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Conservation",
+      "target": "Environment",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Democracy",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "NATO",
+      "target": "Prime_minister",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Film",
+      "target": "Culture",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Climate_change",
+      "target": "Ocean",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Cuisine",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Madrid",
+      "target": "Muhammad_Ali",
+      "difficulty": "hard",
+      "category": "geography-sports"
+    },
+    {
+      "start": "United_States",
+      "target": "MacOS",
+      "difficulty": "hard",
+      "category": "geography-technology"
+    },
+    {
+      "start": "Whale",
+      "target": "French_cuisine",
+      "difficulty": "hard",
+      "category": "animals-food"
+    },
+    {
+      "start": "UEFA_Champions_League",
+      "target": "Politics",
+      "difficulty": "hard",
+      "category": "sports-politics"
+    },
+    {
+      "start": "Microsoft_Windows",
+      "target": "Facebook",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Michael_Jordan",
+      "target": "London",
+      "difficulty": "hard",
+      "category": "sports-geography"
+    },
+    {
+      "start": "City",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Science",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Mexican_cuisine",
+      "target": "Sushi",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "MacOS",
+      "target": "Microsoft",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Human_rights",
+      "target": "Republic",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Genetics",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Artificial_intelligence",
+      "target": "Marie_Curie",
+      "difficulty": "hard",
+      "category": "technology-science"
+    },
+    {
+      "start": "European_Union",
+      "target": "Turtle",
+      "difficulty": "hard",
+      "category": "politics-animals"
+    },
+    {
+      "start": "Conservation",
+      "target": "Climate_change",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "President",
+      "target": "NATO",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Los_Angeles",
+      "target": "Country",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "New_York_City",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "United_Nations",
+      "target": "Spain",
+      "difficulty": "hard",
+      "category": "politics-geography"
+    },
+    {
+      "start": "Owl",
+      "target": "Sheep",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Literature",
+      "target": "Culture",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Politics",
+      "target": "Government",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Bach",
+      "target": "Culture",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Coffee",
+      "target": "Environment",
+      "difficulty": "hard",
+      "category": "food-nature"
+    },
+    {
+      "start": "Olympic_Games",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Sydney",
+      "target": "New_York_City",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "History",
+      "target": "Revolution",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Moscow",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Pig",
+      "target": "Fish",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Russia",
+      "target": "Country",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Mexican_cuisine",
+      "target": "Penguin",
+      "difficulty": "hard",
+      "category": "food-animals"
+    },
+    {
+      "start": "Berlin",
+      "target": "Canada",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Revolution",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Beverage",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Cell_(biology)",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "War",
+      "target": "Revolution",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Coffee",
+      "target": "Cheese",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Election",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "War",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Blockchain",
+      "target": "Smartphone",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Beethoven",
+      "target": "Eagle",
+      "difficulty": "hard",
+      "category": "culture-animals"
+    },
+    {
+      "start": "Hamburger",
+      "target": "Mexican_cuisine",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Database",
+      "target": "Architecture",
+      "difficulty": "hard",
+      "category": "technology-culture"
+    },
+    {
+      "start": "China",
+      "target": "Canada",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Sheep",
+      "target": "Wolf",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Isaac_Newton",
+      "target": "Mathematics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Fast_food",
+      "target": "Pasta",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Isaac_Newton",
+      "target": "South_America",
+      "difficulty": "hard",
+      "category": "science-geography"
+    },
+    {
+      "start": "Pablo_Picasso",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Cat",
+      "target": "Bird",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "UEFA_Champions_League",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "United_States",
+      "target": "Country",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Beethoven",
+      "target": "Restaurant",
+      "difficulty": "hard",
+      "category": "culture-food"
+    },
+    {
+      "start": "Ancient_Rome",
+      "target": "Elephant",
+      "difficulty": "hard",
+      "category": "history-animals"
+    },
+    {
+      "start": "Chemistry",
+      "target": "Biology",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Architecture",
+      "target": "Film",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Theatre",
+      "target": "Mozart",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Diplomacy",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "UEFA_Champions_League",
+      "target": "Rice",
+      "difficulty": "hard",
+      "category": "sports-food"
+    },
+    {
+      "start": "Country",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Usain_Bolt",
+      "target": "Japan",
+      "difficulty": "hard",
+      "category": "sports-geography"
+    },
+    {
+      "start": "Constitution",
+      "target": "Elvis_Presley",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "Owl",
+      "target": "Beijing",
+      "difficulty": "hard",
+      "category": "animals-geography"
+    },
+    {
+      "start": "Shark",
+      "target": "Cell_(biology)",
+      "difficulty": "hard",
+      "category": "animals-science"
+    },
+    {
+      "start": "Capitalism",
+      "target": "Election",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "DNA",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Cinema",
+      "target": "Industrial_Revolution",
+      "difficulty": "hard",
+      "category": "culture-history"
+    },
+    {
+      "start": "Olympic_Games",
+      "target": "Sport",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "History",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Cooking",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Operating_system",
+      "target": "Brazil",
+      "difficulty": "hard",
+      "category": "technology-geography"
+    },
+    {
+      "start": "Olympic_Games",
+      "target": "Republic",
+      "difficulty": "hard",
+      "category": "sports-politics"
+    },
+    {
+      "start": "Serena_Williams",
+      "target": "Literature",
+      "difficulty": "hard",
+      "category": "sports-culture"
+    },
+    {
+      "start": "Programming",
+      "target": "Internet",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Mountain",
+      "target": "Cloud_computing",
+      "difficulty": "hard",
+      "category": "nature-technology"
+    },
+    {
+      "start": "Serie_A",
+      "target": "Pasta",
+      "difficulty": "hard",
+      "category": "sports-food"
+    },
+    {
+      "start": "Isaac_Newton",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Baseball",
+      "target": "Serie_A",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Fast_food",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Communism",
+      "target": "Shark",
+      "difficulty": "hard",
+      "category": "politics-animals"
+    },
+    {
+      "start": "Literature",
+      "target": "Music",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Prime_minister",
+      "target": "Monarchy",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Stephen_Hawking",
+      "target": "Apple_Inc.",
+      "difficulty": "hard",
+      "category": "science-technology"
+    },
+    {
+      "start": "Adolf_Hitler",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Hollywood",
+      "target": "Hamburger",
+      "difficulty": "hard",
+      "category": "culture-food"
+    },
+    {
+      "start": "Bundesliga",
+      "target": "Sculpture",
+      "difficulty": "hard",
+      "category": "sports-culture"
+    },
+    {
+      "start": "Japanese_cuisine",
+      "target": "Beijing",
+      "difficulty": "hard",
+      "category": "food-geography"
+    },
+    {
+      "start": "Prime_minister",
+      "target": "Python_(programming_language)",
+      "difficulty": "hard",
+      "category": "politics-technology"
+    },
+    {
+      "start": "JavaScript",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Culture",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Ancient_history",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Sushi",
+      "target": "President",
+      "difficulty": "hard",
+      "category": "food-politics"
+    },
+    {
+      "start": "Mexican_cuisine",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "UEFA_Champions_League",
+      "target": "iPhone",
+      "difficulty": "hard",
+      "category": "sports-technology"
+    },
+    {
+      "start": "Rainforest",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Restaurant",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Atom",
+      "target": "Coffee",
+      "difficulty": "hard",
+      "category": "science-food"
+    },
+    {
+      "start": "Football",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Beer",
+      "target": "Beverage",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Ottoman_Empire",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Leonardo_da_Vinci",
+      "target": "William_Shakespeare",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Tiger_Woods",
+      "target": "Republic",
+      "difficulty": "hard",
+      "category": "sports-politics"
+    },
+    {
+      "start": "Reptile",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Ocean",
+      "target": "Country",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Particle_physics",
+      "target": "Cosmology",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "President",
+      "target": "Baseball",
+      "difficulty": "hard",
+      "category": "politics-sports"
+    },
+    {
+      "start": "Lake",
+      "target": "Photosynthesis",
+      "difficulty": "hard",
+      "category": "nature-science"
+    },
+    {
+      "start": "Industrial_Revolution",
+      "target": "Richard_Feynman",
+      "difficulty": "hard",
+      "category": "history-science"
+    },
+    {
+      "start": "Genetics",
+      "target": "Mathematics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Apple_Inc.",
+      "target": "Restaurant",
+      "difficulty": "hard",
+      "category": "technology-food"
+    },
+    {
+      "start": "Marie_Curie",
+      "target": "Gravity",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Gravity",
+      "target": "Moscow",
+      "difficulty": "hard",
+      "category": "science-geography"
+    },
+    {
+      "start": "Democracy",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Periodic_table",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Football",
+      "target": "Olympic_Games",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Country",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Wind",
+      "target": "Artificial_intelligence",
+      "difficulty": "hard",
+      "category": "nature-technology"
+    },
+    {
+      "start": "Internet",
+      "target": "Literature",
+      "difficulty": "hard",
+      "category": "technology-culture"
+    },
+    {
+      "start": "Physics",
+      "target": "Biology",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "London",
+      "target": "India",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Software",
+      "target": "Internet",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Geography",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "President",
+      "target": "Government",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Technology",
+      "target": "Programming",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Pizza",
+      "target": "Art",
+      "difficulty": "hard",
+      "category": "food-culture"
+    },
+    {
+      "start": "Roger_Federer",
+      "target": "Football",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Russia",
+      "target": "Stephen_Hawking",
+      "difficulty": "hard",
+      "category": "geography-science"
+    },
+    {
+      "start": "Isaac_Newton",
+      "target": "William_Shakespeare",
+      "difficulty": "hard",
+      "category": "science-culture"
+    },
+    {
+      "start": "Ecosystem",
+      "target": "Nature",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Shark",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Horse",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Prime_minister",
+      "target": "Painting",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "La_Liga",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Berlin",
+      "target": "Asia",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Renaissance",
+      "target": "Berlin",
+      "difficulty": "hard",
+      "category": "history-geography"
+    },
+    {
+      "start": "Winston_Churchill",
+      "target": "Julius_Caesar",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "William_Shakespeare",
+      "target": "Vincent_van_Gogh",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Baseball",
+      "target": "Olympic_Games",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Climate",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Biodiversity",
+      "target": "Facebook",
+      "difficulty": "hard",
+      "category": "nature-technology"
+    },
+    {
+      "start": "Theatre",
+      "target": "Cristiano_Ronaldo",
+      "difficulty": "hard",
+      "category": "culture-sports"
+    },
+    {
+      "start": "Empire",
+      "target": "Revolution",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Football",
+      "target": "Olympic_Games",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Nobel_Prize",
+      "target": "Napoleon",
+      "difficulty": "hard",
+      "category": "culture-history"
+    },
+    {
+      "start": "Fox",
+      "target": "Reptile",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Season",
+      "target": "Chocolate",
+      "difficulty": "hard",
+      "category": "nature-food"
+    },
+    {
+      "start": "Golf",
+      "target": "Cristiano_Ronaldo",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Painting",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Conservation",
+      "target": "Mountain",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Forest",
+      "target": "Moscow",
+      "difficulty": "hard",
+      "category": "nature-geography"
+    },
+    {
+      "start": "Amazon_(company)",
+      "target": "Internet",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "iPhone",
+      "target": "Muhammad_Ali",
+      "difficulty": "hard",
+      "category": "technology-sports"
+    },
+    {
+      "start": "Roger_Federer",
+      "target": "Premier_League",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Bach",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Dog",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Photosynthesis",
+      "target": "Wolf",
+      "difficulty": "hard",
+      "category": "science-animals"
+    },
+    {
+      "start": "Dolphin",
+      "target": "Wolf",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Beer",
+      "target": "Muhammad_Ali",
+      "difficulty": "hard",
+      "category": "food-sports"
+    },
+    {
+      "start": "Sushi",
+      "target": "Wine",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Sport",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "William_Shakespeare",
+      "difficulty": "hard",
+      "category": "history-culture"
+    },
+    {
+      "start": "Microsoft",
+      "target": "Amazon_(company)",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Film",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Animal",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Database",
+      "target": "Artificial_intelligence",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Beijing",
+      "target": "Data_structure",
+      "difficulty": "hard",
+      "category": "geography-technology"
+    },
+    {
+      "start": "American_Revolution",
+      "target": "Painting",
+      "difficulty": "hard",
+      "category": "history-culture"
+    },
+    {
+      "start": "Hollywood",
+      "target": "Elvis_Presley",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Los_Angeles",
+      "target": "Rome",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Country",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Film",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Atom",
+      "target": "Molecule",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Conservation",
+      "target": "Weather",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Roman_Empire",
+      "target": "Tea",
+      "difficulty": "hard",
+      "category": "history-food"
+    },
+    {
+      "start": "Programming",
+      "target": "Software",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "Shark",
+      "difficulty": "hard",
+      "category": "history-animals"
+    },
+    {
+      "start": "Olympic_Games",
+      "target": "Smartphone",
+      "difficulty": "hard",
+      "category": "sports-technology"
+    },
+    {
+      "start": "Lake",
+      "target": "Forest",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Government",
+      "target": "Democracy",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Football",
+      "target": "Football",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Mozart",
+      "target": "Political_party",
+      "difficulty": "hard",
+      "category": "culture-politics"
+    },
+    {
+      "start": "Internet",
+      "target": "Computer",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "United_Nations",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Continent",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Diplomacy",
+      "target": "Brazil",
+      "difficulty": "hard",
+      "category": "politics-geography"
+    },
+    {
+      "start": "Earthquake",
+      "target": "Machine_learning",
+      "difficulty": "hard",
+      "category": "nature-technology"
+    },
+    {
+      "start": "Rainforest",
+      "target": "Mountain",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Beijing",
+      "target": "Ancient_Egypt",
+      "difficulty": "hard",
+      "category": "geography-history"
+    },
+    {
+      "start": "French_Revolution",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Vincent_van_Gogh",
+      "target": "Literature",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Moscow",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Quantum_mechanics",
+      "target": "Sheep",
+      "difficulty": "hard",
+      "category": "science-animals"
+    },
+    {
+      "start": "Monarchy",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "French_cuisine",
+      "target": "Restaurant",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Film",
+      "target": "Music",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "World_War_II",
+      "target": "Theory_of_relativity",
+      "difficulty": "hard",
+      "category": "history-science"
+    },
+    {
+      "start": "Bird",
+      "target": "Fish",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Middle_Ages",
+      "target": "Film",
+      "difficulty": "hard",
+      "category": "history-culture"
+    },
+    {
+      "start": "Thermodynamics",
+      "target": "Stephen_Hawking",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Government",
+      "target": "JavaScript",
+      "difficulty": "hard",
+      "category": "politics-technology"
+    },
+    {
+      "start": "Madrid",
+      "target": "Russia",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Smartphone",
+      "target": "Democracy",
+      "difficulty": "hard",
+      "category": "technology-politics"
+    },
+    {
+      "start": "Cat",
+      "target": "Environment",
+      "difficulty": "hard",
+      "category": "animals-nature"
+    },
+    {
+      "start": "Conservation",
+      "target": "Environment",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Molecule",
+      "target": "Olympic_Games",
+      "difficulty": "hard",
+      "category": "science-sports"
+    },
+    {
+      "start": "Bundesliga",
+      "target": "Olympic_Games",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Music",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Molecule",
+      "target": "Periodic_table",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Los_Angeles",
+      "target": "Tennis",
+      "difficulty": "hard",
+      "category": "geography-sports"
+    },
+    {
+      "start": "Mountain",
+      "target": "Dolphin",
+      "difficulty": "hard",
+      "category": "nature-animals"
+    },
+    {
+      "start": "Linux",
+      "target": "Database",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Human_rights",
+      "target": "NATO",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "iPhone",
+      "target": "Evolution",
+      "difficulty": "hard",
+      "category": "technology-science"
+    },
+    {
+      "start": "Sheep",
+      "target": "Roman_Empire",
+      "difficulty": "hard",
+      "category": "animals-history"
+    },
+    {
+      "start": "Bread",
+      "target": "Niels_Bohr",
+      "difficulty": "hard",
+      "category": "food-science"
+    },
+    {
+      "start": "Environment",
+      "target": "Nature",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Industrial_Revolution",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Leonardo_da_Vinci",
+      "target": "Academy_Awards",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Particle_physics",
+      "target": "Muhammad_Ali",
+      "difficulty": "hard",
+      "category": "science-sports"
+    },
+    {
+      "start": "Nobel_Prize",
+      "target": "Renaissance",
+      "difficulty": "hard",
+      "category": "culture-history"
+    },
+    {
+      "start": "Penguin",
+      "target": "Winston_Churchill",
+      "difficulty": "hard",
+      "category": "animals-history"
+    },
+    {
+      "start": "Eagle",
+      "target": "Communism",
+      "difficulty": "hard",
+      "category": "animals-politics"
+    },
+    {
+      "start": "Europe",
+      "target": "Golf",
+      "difficulty": "hard",
+      "category": "geography-sports"
+    },
+    {
+      "start": "Cell_(biology)",
+      "target": "Owl",
+      "difficulty": "hard",
+      "category": "science-animals"
+    },
+    {
+      "start": "Socialism",
+      "target": "United_Nations",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Restaurant",
+      "target": "Cuisine",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Horse",
+      "target": "Serena_Williams",
+      "difficulty": "hard",
+      "category": "animals-sports"
+    },
+    {
+      "start": "Democracy",
+      "target": "Democracy",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Prime_minister",
+      "target": "Evolution",
+      "difficulty": "hard",
+      "category": "politics-science"
+    },
+    {
+      "start": "Spain",
+      "target": "New_York_City",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Byzantine_Empire",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Continent",
+      "target": "Country",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Adolf_Hitler",
+      "target": "Cold_War",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Algorithm",
+      "target": "Software",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Communism",
+      "target": "Julius_Caesar",
+      "difficulty": "hard",
+      "category": "politics-history"
+    },
+    {
+      "start": "Art",
+      "target": "Film",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Academy_Awards",
+      "target": "Renaissance",
+      "difficulty": "hard",
+      "category": "culture-history"
+    },
+    {
+      "start": "Prime_minister",
+      "target": "Parliament",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Physics",
+      "target": "Chemistry",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Literature",
+      "target": "Serie_A",
+      "difficulty": "hard",
+      "category": "culture-sports"
+    },
+    {
+      "start": "Parliament",
+      "target": "Desert",
+      "difficulty": "hard",
+      "category": "politics-nature"
+    },
+    {
+      "start": "DNA",
+      "target": "Biology",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Python_(programming_language)",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Nature",
+      "target": "Environment",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Elvis_Presley",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Tennis",
+      "target": "FIFA_World_Cup",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Restaurant",
+      "target": "Cuisine",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Italian_cuisine",
+      "target": "United_Nations",
+      "difficulty": "hard",
+      "category": "food-politics"
+    },
+    {
+      "start": "FIFA_World_Cup",
+      "target": "Golf",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "William_Shakespeare",
+      "target": "Music",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Smartphone",
+      "target": "Computer",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Fish",
+      "target": "Bird",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Bird",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Italian_cuisine",
+      "target": "Tea",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Beethoven",
+      "target": "Cow",
+      "difficulty": "hard",
+      "category": "culture-animals"
+    },
+    {
+      "start": "Nuclear_physics",
+      "target": "Napoleon",
+      "difficulty": "hard",
+      "category": "science-history"
+    },
+    {
+      "start": "Literature",
+      "target": "Film",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Election",
+      "target": "Diplomacy",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Forest",
+      "target": "Climate_change",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Chicken",
+      "target": "Gravity",
+      "difficulty": "hard",
+      "category": "animals-science"
+    },
+    {
+      "start": "MacOS",
+      "target": "Literature",
+      "difficulty": "hard",
+      "category": "technology-culture"
+    },
+    {
+      "start": "Bird",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Europe",
+      "target": "Ancient_Greece",
+      "difficulty": "hard",
+      "category": "geography-history"
+    },
+    {
+      "start": "Amazon_(company)",
+      "target": "Google",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Winston_Churchill",
+      "target": "Brazil",
+      "difficulty": "hard",
+      "category": "history-geography"
+    },
+    {
+      "start": "Renaissance",
+      "target": "Cosmology",
+      "difficulty": "hard",
+      "category": "history-science"
+    },
+    {
+      "start": "Python_(programming_language)",
+      "target": "Programming",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Nature",
+      "target": "Lake",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Crocodile",
+      "target": "Shark",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Muhammad_Ali",
+      "target": "Ancient_Rome",
+      "difficulty": "hard",
+      "category": "sports-history"
+    },
+    {
+      "start": "Ocean",
+      "target": "Climate",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Vegetarianism",
+      "target": "World_War_II",
+      "difficulty": "hard",
+      "category": "food-history"
+    },
+    {
+      "start": "Australia",
+      "target": "Continent",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Biology",
+      "target": "Mathematics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Ancient_Rome",
+      "target": "Revolution",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Ancient_Egypt",
+      "target": "French_Revolution",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Season",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "River",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Computer_science",
+      "target": "Molecule",
+      "difficulty": "hard",
+      "category": "technology-science"
+    },
+    {
+      "start": "Serena_Williams",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Beverage",
+      "target": "Cuisine",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Computer_science",
+      "target": "Election",
+      "difficulty": "hard",
+      "category": "technology-politics"
+    },
+    {
+      "start": "Lake",
+      "target": "Chicken",
+      "difficulty": "hard",
+      "category": "nature-animals"
+    },
+    {
+      "start": "Forest",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Marie_Curie",
+      "target": "Mathematics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "World_War_I",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Roger_Federer",
+      "target": "Chinese_cuisine",
+      "difficulty": "hard",
+      "category": "sports-food"
+    },
+    {
+      "start": "Nature",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Painting",
+      "target": "Literature",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Industrial_Revolution",
+      "target": "World_War_II",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Shark",
+      "target": "Fox",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Turtle",
+      "target": "Chocolate",
+      "difficulty": "hard",
+      "category": "animals-food"
+    },
+    {
+      "start": "Tennis",
+      "target": "Sport",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "War",
+      "target": "History",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Germany",
+      "target": "China",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Ottoman_Empire",
+      "target": "World_War_I",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Dolphin",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Asia",
+      "target": "Industrial_Revolution",
+      "difficulty": "hard",
+      "category": "geography-history"
+    },
+    {
+      "start": "Election",
+      "target": "Painting",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "Lion",
+      "target": "Marie_Curie",
+      "difficulty": "hard",
+      "category": "animals-science"
+    },
+    {
+      "start": "Global_warming",
+      "target": "Climate",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Android_(operating_system)",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Amazon_(company)",
+      "target": "Bitcoin",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Roger_Federer",
+      "target": "Cinema",
+      "difficulty": "hard",
+      "category": "sports-culture"
+    },
+    {
+      "start": "Penguin",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Football",
+      "target": "Sport",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Frog",
+      "target": "Wolf",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "William_Shakespeare",
+      "target": "Mozart",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "New_York_City",
+      "target": "Sheep",
+      "difficulty": "hard",
+      "category": "geography-animals"
+    },
+    {
+      "start": "Science",
+      "target": "Biology",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Volcano",
+      "target": "Climate",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Technology",
+      "target": "Computer",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Animal",
+      "target": "Reptile",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Thermodynamics",
+      "target": "DNA",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Lake",
+      "target": "Climate",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Rice",
+      "target": "Restaurant",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Google",
+      "target": "Internet",
+      "difficulty": "medium",
+      "category": "technology"
+    },
+    {
+      "start": "Elvis_Presley",
+      "target": "Democracy",
+      "difficulty": "hard",
+      "category": "culture-politics"
+    },
+    {
+      "start": "Elephant",
+      "target": "Chocolate",
+      "difficulty": "hard",
+      "category": "animals-food"
+    },
+    {
+      "start": "Olympic_Games",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Rome",
+      "target": "Michael_Jackson",
+      "difficulty": "hard",
+      "category": "geography-culture"
+    },
+    {
+      "start": "Penguin",
+      "target": "New_York_City",
+      "difficulty": "hard",
+      "category": "animals-geography"
+    },
+    {
+      "start": "Chinese_cuisine",
+      "target": "Beverage",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Parliament",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Bear",
+      "target": "Socialism",
+      "difficulty": "hard",
+      "category": "animals-politics"
+    },
+    {
+      "start": "Brazil",
+      "target": "Ocean",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Technology",
+      "target": "Internet",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "NBA",
+      "target": "Tiger_Woods",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Basketball",
+      "target": "Michael_Jordan",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Wind",
+      "target": "Mountain",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Sport",
+      "target": "Basketball",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Politics",
+      "target": "Bach",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "Cow",
+      "target": "Dolphin",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Fox",
+      "target": "Animal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "NBA",
+      "target": "La_Liga",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "Indian_cuisine",
+      "target": "Ice_cream",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Nuclear_physics",
+      "target": "Cell_(biology)",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Madrid",
+      "target": "Dance",
+      "difficulty": "hard",
+      "category": "geography-culture"
+    },
+    {
+      "start": "Hamburger",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "iPhone",
+      "target": "Socialism",
+      "difficulty": "hard",
+      "category": "technology-politics"
+    },
+    {
+      "start": "Republic",
+      "target": "William_Shakespeare",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "Ancient_Egypt",
+      "target": "French_Revolution",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Constitution",
+      "target": "Government",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Quantum_mechanics",
+      "target": "Blockchain",
+      "difficulty": "hard",
+      "category": "science-technology"
+    },
+    {
+      "start": "Astronomy",
+      "target": "Film",
+      "difficulty": "hard",
+      "category": "science-culture"
+    },
+    {
+      "start": "Chemistry",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Tennis",
+      "target": "River",
+      "difficulty": "hard",
+      "category": "sports-nature"
+    },
+    {
+      "start": "Indian_cuisine",
+      "target": "Theory_of_relativity",
+      "difficulty": "hard",
+      "category": "food-science"
+    },
+    {
+      "start": "Thermodynamics",
+      "target": "Music",
+      "difficulty": "hard",
+      "category": "science-culture"
+    },
+    {
+      "start": "Parliament",
+      "target": "Fox",
+      "difficulty": "hard",
+      "category": "politics-animals"
+    },
+    {
+      "start": "Bird",
+      "target": "Reptile",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Internet",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Particle_physics",
+      "target": "Conservation",
+      "difficulty": "hard",
+      "category": "science-nature"
+    },
+    {
+      "start": "Galileo_Galilei",
+      "target": "Cosmology",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Beer",
+      "target": "Cheese",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Michael_Jordan",
+      "target": "Bundesliga",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "History",
+      "target": "War",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Democracy",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Google",
+      "target": "Software",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Particle_physics",
+      "target": "Genetics",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "Climate",
+      "target": "Conservation",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Dance",
+      "target": "Sculpture",
+      "difficulty": "medium",
+      "category": "culture"
+    },
+    {
+      "start": "Wind",
+      "target": "Michelangelo",
+      "difficulty": "hard",
+      "category": "nature-culture"
+    },
+    {
+      "start": "President",
+      "target": "Government",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Football",
+      "target": "Olympic_Games",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Art",
+      "target": "Spain",
+      "difficulty": "hard",
+      "category": "culture-geography"
+    },
+    {
+      "start": "Machine_learning",
+      "target": "Shark",
+      "difficulty": "hard",
+      "category": "technology-animals"
+    },
+    {
+      "start": "Ancient_Egypt",
+      "target": "Empire",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Cooking",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Food",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Monarchy",
+      "target": "India",
+      "difficulty": "hard",
+      "category": "politics-geography"
+    },
+    {
+      "start": "Dog",
+      "target": "Penguin",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Communism",
+      "target": "President",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Parliament",
+      "target": "Coffee",
+      "difficulty": "hard",
+      "category": "politics-food"
+    },
+    {
+      "start": "Monarchy",
+      "target": "Cryptocurrency",
+      "difficulty": "hard",
+      "category": "politics-technology"
+    },
+    {
+      "start": "Alexander_the_Great",
+      "target": "Genghis_Khan",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Artificial_intelligence",
+      "target": "Internet",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "India",
+      "target": "Diplomacy",
+      "difficulty": "hard",
+      "category": "geography-politics"
+    },
+    {
+      "start": "Mammal",
+      "target": "Fish",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Restaurant",
+      "target": "Cuisine",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "President",
+      "target": "Politics",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Marie_Curie",
+      "target": "Cosmology",
+      "difficulty": "medium",
+      "category": "science"
+    },
+    {
+      "start": "World_War_I",
+      "target": "History",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Microsoft_Windows",
+      "target": "Middle_Ages",
+      "difficulty": "hard",
+      "category": "technology-history"
+    },
+    {
+      "start": "Facebook",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Restaurant",
+      "target": "Cooking",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "North_America",
+      "target": "Spain",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Computer",
+      "target": "Software",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Vegetarianism",
+      "target": "Biodiversity",
+      "difficulty": "hard",
+      "category": "food-nature"
+    },
+    {
+      "start": "Climate",
+      "target": "Ecosystem",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Ancient_Greece",
+      "target": "Napoleon",
+      "difficulty": "medium",
+      "category": "history"
+    },
+    {
+      "start": "Evolution",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Niels_Bohr",
+      "target": "Climate_change",
+      "difficulty": "hard",
+      "category": "science-nature"
+    },
+    {
+      "start": "National_park",
+      "target": "Conservation",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Parliament",
+      "target": "Dance",
+      "difficulty": "hard",
+      "category": "politics-culture"
+    },
+    {
+      "start": "Cooking",
+      "target": "Cuisine",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "French_cuisine",
+      "target": "Food",
+      "difficulty": "easy",
+      "category": "food"
+    },
+    {
+      "start": "Michael_Jackson",
+      "target": "Biodiversity",
+      "difficulty": "hard",
+      "category": "culture-nature"
+    },
+    {
+      "start": "Art",
+      "target": "Culture",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Industrial_Revolution",
+      "target": "Ancient_history",
+      "difficulty": "easy",
+      "category": "history"
+    },
+    {
+      "start": "Cat",
+      "target": "Turtle",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Microsoft_Windows",
+      "target": "Quantum_mechanics",
+      "difficulty": "hard",
+      "category": "technology-science"
+    },
+    {
+      "start": "Government",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Conservation",
+      "target": "Rain",
+      "difficulty": "medium",
+      "category": "nature"
+    },
+    {
+      "start": "Technology",
+      "target": "Internet",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Pasta",
+      "target": "Artificial_intelligence",
+      "difficulty": "hard",
+      "category": "food-technology"
+    },
+    {
+      "start": "Paris",
+      "target": "United_States",
+      "difficulty": "medium",
+      "category": "geography"
+    },
+    {
+      "start": "Tennis",
+      "target": "Basketball",
+      "difficulty": "medium",
+      "category": "sports"
+    },
+    {
+      "start": "UEFA_Champions_League",
+      "target": "Football",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Indian_cuisine",
+      "target": "Cheese",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Global_warming",
+      "target": "Frog",
+      "difficulty": "hard",
+      "category": "nature-animals"
+    },
+    {
+      "start": "Michael_Jordan",
+      "target": "Tennis",
+      "difficulty": "easy",
+      "category": "sports"
+    },
+    {
+      "start": "Mathematics",
+      "target": "Science",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "DNA",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Frog",
+      "target": "Mammal",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Rome",
+      "target": "Painting",
+      "difficulty": "hard",
+      "category": "geography-culture"
+    },
+    {
+      "start": "Beijing",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Fish",
+      "target": "Reptile",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Eagle",
+      "target": "Bird",
+      "difficulty": "easy",
+      "category": "animals"
+    },
+    {
+      "start": "Ecosystem",
+      "target": "Nature",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Biodiversity",
+      "target": "Cake",
+      "difficulty": "hard",
+      "category": "nature-food"
+    },
+    {
+      "start": "European_Union",
+      "target": "Cricket",
+      "difficulty": "hard",
+      "category": "politics-sports"
+    },
+    {
+      "start": "Democracy",
+      "target": "Politics",
+      "difficulty": "medium",
+      "category": "politics"
+    },
+    {
+      "start": "Ecosystem",
+      "target": "Conservation",
+      "difficulty": "easy",
+      "category": "nature"
+    },
+    {
+      "start": "Linux",
+      "target": "Technology",
+      "difficulty": "easy",
+      "category": "technology"
+    },
+    {
+      "start": "Beethoven",
+      "target": "Art",
+      "difficulty": "easy",
+      "category": "culture"
+    },
+    {
+      "start": "Mathematics",
+      "target": "Physics",
+      "difficulty": "easy",
+      "category": "science"
+    },
+    {
+      "start": "Gravity",
+      "target": "Ancient_Greece",
+      "difficulty": "hard",
+      "category": "science-history"
+    },
+    {
+      "start": "Country",
+      "target": "Geography",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Africa",
+      "target": "City",
+      "difficulty": "easy",
+      "category": "geography"
+    },
+    {
+      "start": "Dance",
+      "target": "Renaissance",
+      "difficulty": "hard",
+      "category": "culture-history"
+    },
+    {
+      "start": "NATO",
+      "target": "Tennis",
+      "difficulty": "hard",
+      "category": "politics-sports"
+    },
+    {
+      "start": "Parliament",
+      "target": "President",
+      "difficulty": "easy",
+      "category": "politics"
+    },
+    {
+      "start": "Horse",
+      "target": "Chicken",
+      "difficulty": "medium",
+      "category": "animals"
+    },
+    {
+      "start": "Italian_cuisine",
+      "target": "Mexican_cuisine",
+      "difficulty": "medium",
+      "category": "food"
+    },
+    {
+      "start": "Mountain",
+      "target": "Chicken",
+      "difficulty": "hard",
+      "category": "nature-animals"
+    },
+    {
+      "start": "Italian_cuisine",
+      "target": "Artificial_intelligence",
+      "difficulty": "hard",
+      "category": "food-technology"
+    }
+  ]
+}

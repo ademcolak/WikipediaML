@@ -28,23 +28,25 @@ from src.semantic_navigator import SemanticNavigator
 def print_usage():
     """Kullanım bilgisini göster."""
     print("=" * 70)
-    print("🌐 WIKIPEDIA PATHFINDER v3.2.0")
+    print("🌐 WIKIPEDIA PATHFINDER v4.1.0 (ML Integration)")
     print("=" * 70)
     print("\nKullanım:")
-    print("  python main.py <başlangıç> <hedef> [--async] [--claude]")
+    print("  python main.py <başlangıç> <hedef> [--async] [--claude] [--ml]")
     print("\nÖrnekler:")
     print("  python main.py Albert_Einstein Physics")
     print("  python main.py Potato Pizza --async")
-    print("  python main.py Python_(programming_language) Machine_learning --async")
-    print("  python main.py Porsche Serik_Akhmetov_Government --async --claude")
+    print("  python main.py Python_(programming_language) Machine_learning --async --ml")
+    print("  python main.py Porsche Serik_Akhmetov_Government --async --claude --ml")
     print("\nOpsiyonel Flagler:")
     print("  --async     Async/parallel processing (3x daha hızlı!) [ÖNERİLİR]")
     print("  --claude    Claude reasoning kullan (daha akıllı, ANTHROPIC_API_KEY gerekli)")
+    print("  --ml        ML-based link scoring (Phase 2, model gerekli) [YENİ!]")
     print("\nNot:")
     print("  • Sayfa isimleri Wikipedia URL'indeki /wiki/ sonrası kısım")
     print("  • Boşluklar yerine _ kullanın")
     print("  • Parantez içeren isimler: Python_(programming_language)")
     print("  • --async flag'i beam search'te 2-3x hızlanma sağlar")
+    print("  • --ml flag'i için önce model train edin: python train_ml_model.py --quick")
     print("=" * 70)
 
 
@@ -59,10 +61,11 @@ async def async_main():
     target_page = sys.argv[2]
     use_async = "--async" in sys.argv
     use_claude = "--claude" in sys.argv
+    use_ml = "--ml" in sys.argv
 
     # Başlık
     print("\n" + "=" * 70)
-    print("🌐 WIKIPEDIA PATHFINDER v3.2.0")
+    print("🌐 WIKIPEDIA PATHFINDER v4.1.0 (ML Integration)")
     print("=" * 70)
     print(f"\n📍 Başlangıç: {start_page}")
     print(f"🎯 Hedef: {target_page}")
@@ -73,6 +76,8 @@ async def async_main():
         mode_parts.append("⚡ Async")
     if use_claude:
         mode_parts.append("🧠 Claude")
+    if use_ml:
+        mode_parts.append("🤖 ML")
     if not mode_parts:
         mode_parts.append("🔮 Beam Search")
     
@@ -85,12 +90,15 @@ async def async_main():
             verbose=True,
             use_graph=True,
             use_claude=use_claude,
-            use_async=use_async
+            use_async=use_async,
+            use_ml=use_ml
         )
     except ValueError as e:
         print(f"\n❌ Hata: {e}")
         print("\nClaude mode için:")
         print("  export ANTHROPIC_API_KEY='your-api-key'")
+        print("\nML mode için:")
+        print("  python train_ml_model.py --quick")
         sys.exit(1)
 
     # Async mode ise async bidirectional beam search kullan
@@ -101,6 +109,9 @@ async def async_main():
             beam_width=4,
             max_depth=6
         )
+        # Close async scraper properly
+        if navigator.async_scraper:
+            await navigator.async_scraper.close()
     else:
         # Sync mode: Hybrid search (Graph + Beam/Claude)
         result = navigator.hybrid_search(

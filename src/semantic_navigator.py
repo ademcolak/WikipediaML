@@ -51,7 +51,8 @@ class SemanticNavigator:
         use_graph: bool = True,
         use_claude: bool = False,
         claude_api_key: Optional[str] = None,
-        use_async: bool = False
+        use_async: bool = False,
+        use_ml: bool = False
     ):
         """
         SemanticNavigator'ı başlat.
@@ -62,17 +63,19 @@ class SemanticNavigator:
             use_claude (bool): Claude reasoning kullan (default: False)
             claude_api_key (str): Anthropic API key (None ise env'den alınır)
             use_async (bool): Async scraper kullan (3-4x daha hızlı, default: False)
+            use_ml (bool): ML-based link scoring kullan (Phase 2, default: False)
         """
         self.scraper = WikipediaScraper(cache_size=256)
         self.async_scraper = AsyncWikipediaScraper(cache_size=256) if use_async else None
         self.embedder = WikiEmbedder(cache_size=2048)  # Büyük cache (bazı sayfalarda 500+ link var)
-        self.link_filter = LinkFilter(verbose=verbose)  # Pre-filtering için
+        self.link_filter = LinkFilter(verbose=verbose, use_ml=use_ml)  # Pre-filtering + ML scoring
         self.knowledge_graph = WikiKnowledgeGraph() if use_graph else None
         self.claude_reasoning = ClaudeReasoning(api_key=claude_api_key) if use_claude else None
         self.verbose = verbose
         self.use_graph = use_graph
         self.use_claude = use_claude
         self.use_async = use_async
+        self.use_ml = use_ml
 
         # Metrics
         self.pages_explored = 0
@@ -398,16 +401,33 @@ class SemanticNavigator:
                 if self.verbose:
                     print(f"      {len(unvisited)} yeni link bulundu")
 
-                # Çok fazla link varsa pre-filter yap (performans)
-                if len(unvisited) > 100:
-                    unvisited = unvisited[:100]  # İlk 100 link yeterli
+                # ML-based filtering (Phase 2!)
+                if self.use_ml:
+                    # Hybrid filter: ML + heuristic
+                    filtered_links = self.link_filter.hybrid_filter(
+                        unvisited,
+                        target,
+                        current_page,
+                        self.embedder,
+                        self.link_filter.category_analyzer,
+                        self.knowledge_graph,
+                        max_links=beam_width * 10  # Get more candidates for beam
+                    )
+                else:
+                    # Smart filter: heuristic only
+                    filtered_links = self.link_filter.smart_filter(
+                        unvisited,
+                        target,
+                        current_page,
+                        max_links=100
+                    )
 
                 # Link'lerin similarity'lerini hesapla
-                link_embs = self.embedder.get_embeddings_batch(unvisited)
+                link_embs = self.embedder.get_embeddings_batch(filtered_links)
                 similarities = []
                 for i, link_emb in enumerate(link_embs):
                     sim = self.embedder.cosine_similarity(target_emb, link_emb)
-                    similarities.append((unvisited[i], sim))
+                    similarities.append((filtered_links[i], sim))
 
                 # En iyi top-k link'i al (her branch için)
                 similarities.sort(key=lambda x: x[1], reverse=True)
@@ -1180,17 +1200,26 @@ class SemanticNavigator:
                 if self.verbose:
                     print(f"\n   🔍 Forward: {current_page} ({len(unvisited)} yeni link)")
                 
-                # Smart pre-filter
-                if len(unvisited) > 100:
-                    unvisited = self.link_filter.smart_filter(
+                # FAST pre-filter (quick_filter only, no categories!)
+                if len(unvisited) > 30:
+                    unvisited = self.link_filter.quick_filter(
                         unvisited,
                         target,
-                        current_page,
-                        max_links=100
+                        max_links=30  # Reduced to 30 for speed
                     )
+                    if self.verbose:
+                        print(f"   🔍 Pre-filter: {len(links)} → {len(unvisited)} links")
                 
-                # Similarity hesapla
-                link_embs = self.embedder.get_embeddings_batch(unvisited)
+                if self.verbose:
+                    print(f"      🧮 Computing embeddings for {len(unvisited)} links...")
+                
+                # Similarity hesapla (max 30 links now)
+                emb_start = time.time()
+                link_embs = self.embedder.get_embeddings_batch(unvisited, verbose=self.verbose)
+                emb_time = time.time() - emb_start
+                
+                if self.verbose:
+                    print(f"      ✅ Embeddings done in {emb_time:.2f}s")
                 similarities = []
                 for i, link_emb in enumerate(link_embs):
                     sim = self.embedder.cosine_similarity(target_emb, link_emb)
@@ -1262,17 +1291,26 @@ class SemanticNavigator:
                 if self.verbose:
                     print(f"\n   🔍 Backward: {current_page} ({len(unvisited)} yeni link)")
                 
-                # Smart pre-filter
-                if len(unvisited) > 100:
-                    unvisited = self.link_filter.smart_filter(
+                # FAST pre-filter (quick_filter only, no categories!)
+                if len(unvisited) > 30:
+                    unvisited = self.link_filter.quick_filter(
                         unvisited,
                         start,
-                        current_page,
-                        max_links=100
+                        max_links=30  # Reduced to 30 for speed
                     )
+                    if self.verbose:
+                        print(f"   🔍 Pre-filter: {len(links)} → {len(unvisited)} links")
                 
-                # Similarity hesapla (start'a göre)
-                link_embs = self.embedder.get_embeddings_batch(unvisited)
+                if self.verbose:
+                    print(f"      🧮 Computing embeddings for {len(unvisited)} links...")
+                
+                # Similarity hesapla (start'a göre, max 30 links now)
+                emb_start = time.time()
+                link_embs = self.embedder.get_embeddings_batch(unvisited, verbose=self.verbose)
+                emb_time = time.time() - emb_start
+                
+                if self.verbose:
+                    print(f"      ✅ Embeddings done in {emb_time:.2f}s")
                 similarities = []
                 for i, link_emb in enumerate(link_embs):
                     sim = self.embedder.cosine_similarity(start_emb, link_emb)

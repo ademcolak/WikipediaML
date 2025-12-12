@@ -107,12 +107,13 @@ class WikiEmbedder:
 
         return embedding
 
-    def get_embeddings_batch(self, texts: list[str]) -> np.ndarray:
+    def get_embeddings_batch(self, texts: list[str], verbose: bool = False) -> np.ndarray:
         """
         Birden fazla text'in embedding'lerini al (batch - daha hızlı!).
 
         Parametreler:
             texts (list[str]): Embedding'e çevrilecek text'ler
+            verbose (bool): Progress göster
 
         Dönüş:
             np.ndarray: Embeddings (n×384 matrix)
@@ -150,12 +151,22 @@ class WikiEmbedder:
 
         # Uncached text'leri batch olarak hesapla
         if uncached_texts:
+            if verbose:
+                print(f"      🧮 Computing embeddings: {len(uncached_texts)} links (cached: {len(texts) - len(uncached_texts)})...")
+            
+            import time
+            start_time = time.time()
+            
             uncached_embeddings = self.model.encode(
                 uncached_texts,
                 convert_to_tensor=False,
                 show_progress_bar=False,
                 batch_size=32
             )
+            
+            elapsed = time.time() - start_time
+            if verbose:
+                print(f"      ✅ Embeddings computed in {elapsed:.2f}s ({len(uncached_texts)/elapsed:.1f} emb/sec)")
 
             # Ensure it's a numpy array (convert if needed)
             if not isinstance(uncached_embeddings, np.ndarray):

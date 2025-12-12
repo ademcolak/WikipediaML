@@ -22,21 +22,27 @@ class LinkFilter:
     2. Edit distance (benzer kelimeler)
     3. Length similarity (benzer uzunluk)
     4. Common prefixes/suffixes
-    5. Category similarity (NEW!)
+    5. Category similarity
+    6. ML-based scoring (NEW - Phase 2!)
     """
     
     def __init__(
         self,
         verbose: bool = False,
         use_categories: bool = True,
-        use_hierarchy: bool = True
+        use_hierarchy: bool = True,
+        use_ml: bool = False
     ):
         self.verbose = verbose
         self.use_categories = use_categories
         self.use_hierarchy = use_hierarchy
+        self.use_ml = use_ml
         
         # Category analyzer (lazy loading)
         self._category_analyzer = None
+        
+        # ML scorer (lazy loading)
+        self._ml_scorer = None
     
     @property
     def category_analyzer(self):
@@ -45,6 +51,28 @@ class LinkFilter:
             from src.category_analyzer import WikipediaCategoryAnalyzer
             self._category_analyzer = WikipediaCategoryAnalyzer(verbose=False)
         return self._category_analyzer
+    
+    @property
+    def ml_scorer(self):
+        """Lazy load ML scorer."""
+        if self._ml_scorer is None and self.use_ml:
+            try:
+                from src.ml_link_scorer import MLLinkScorer
+                scorer = MLLinkScorer(verbose=False)
+                # Check if model is trained
+                if scorer.model is None:
+                    if self.verbose:
+                        print("⚠️  ML model not trained. Run: python train_ml_model.py --quick")
+                    self._ml_scorer = None
+                else:
+                    self._ml_scorer = scorer
+                    if self.verbose:
+                        print("✅ ML scorer loaded successfully")
+            except Exception as e:
+                if self.verbose:
+                    print(f"⚠️  ML scorer failed to load: {e}")
+                self._ml_scorer = None
+        return self._ml_scorer
     
     def quick_filter(
         self,
@@ -233,6 +261,176 @@ class LinkFilter:
         
         if self.verbose:
             print(f"   🧠 Smart filter: {len(filtered)} → {len(result)} links")
+        
+        return result
+    
+    def ml_filter(
+        self,
+        links: List[str],
+        target: str,
+        current_page: str,
+        embedder,
+        category_analyzer,
+        knowledge_graph,
+        max_links: int = 100
+    ) -> List[str]:
+        """
+        ML-based filtering (Phase 2 - NEW!).
+        
+        Uses trained ML model to score and filter links.
+        Falls back to smart_filter if ML not available.
+        
+        Args:
+            links: All candidate links
+            target: Target page
+            current_page: Current page
+            embedder: WikiEmbedder instance
+            category_analyzer: WikipediaCategoryAnalyzer instance
+            knowledge_graph: WikiKnowledgeGraph instance
+            max_links: Maximum links to return
+            
+        Returns:
+            Filtered links (best max_links)
+        """
+        # Fallback to smart filter if ML not available
+        if not self.use_ml or self.ml_scorer is None:
+            if self.verbose:
+                print("   ⚠️  ML not available, using smart filter")
+            return self.smart_filter(links, target, current_page, max_links)
+        
+        # Check if model is trained
+        if self.ml_scorer.model is None:
+            if self.verbose:
+                print("   ⚠️  ML model not trained, using smart filter")
+            return self.smart_filter(links, target, current_page, max_links)
+        
+        # Pre-filter with heuristics (reduce from 500+ to 200)
+        pre_filtered = self.quick_filter(links, target, max_links * 2)
+        
+        if self.verbose:
+            print(f"   🤖 ML filter: {len(links)} → {len(pre_filtered)} (pre-filter)")
+        
+        # Score with ML model
+        try:
+            scored_links = self.ml_scorer.score_links(
+                pre_filtered,
+                target,
+                current_page,
+                embedder,
+                category_analyzer,
+                knowledge_graph
+            )
+            
+            # Take top max_links
+            result = [link for link, score in scored_links[:max_links]]
+            
+            if self.verbose:
+                print(f"   🤖 ML filter: {len(pre_filtered)} → {len(result)} (ML scoring)")
+                if scored_links:
+                    print(f"      Top ML score: {scored_links[0][1]:.3f} ({scored_links[0][0]})")
+            
+            return result
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"   ⚠️  ML scoring failed: {e}")
+                print("   ⚠️  Falling back to smart filter")
+            return self.smart_filter(links, target, current_page, max_links)
+    
+    def hybrid_filter(
+        self,
+        links: List[str],
+        target: str,
+        current_page: str,
+        embedder=None,
+        category_analyzer=None,
+        knowledge_graph=None,
+        max_links: int = 100,
+        ml_weight: float = 0.7
+    ) -> List[str]:
+        """
+        Hybrid filtering: Combine heuristic + ML scores.
+        
+        Best of both worlds:
+        - Heuristic: Fast, always works
+        - ML: Accurate, learns from data
+        
+        Args:
+            links: All candidate links
+            target: Target page
+            current_page: Current page
+            embedder: WikiEmbedder instance (optional for ML)
+            category_analyzer: WikipediaCategoryAnalyzer instance (optional)
+            knowledge_graph: WikiKnowledgeGraph instance (optional)
+            max_links: Maximum links to return
+            ml_weight: Weight for ML scores (0-1), heuristic gets (1-ml_weight)
+            
+        Returns:
+            Filtered links (best max_links)
+        """
+        # Pre-filter with heuristics (limit to reasonable size)
+        pre_filter_size = min(max_links * 2, 200)  # Max 200 links for ML
+        pre_filtered = self.quick_filter(links, target, pre_filter_size)
+        
+        if self.verbose:
+            print(f"   🔀 Hybrid filter: {len(links)} → {len(pre_filtered)} (pre-filter)")
+        
+        # Get heuristic scores
+        target_words = set(self._normalize(target).split('_'))
+        heuristic_scores = {}
+        for link in pre_filtered:
+            score = self._calculate_score(link, target, target_words)
+            heuristic_scores[link] = score
+        
+        # Get ML scores if available
+        ml_scores = {}
+        if self.use_ml and self.ml_scorer and self.ml_scorer.model and embedder:
+            try:
+                scored_links = self.ml_scorer.score_links(
+                    pre_filtered,
+                    target,
+                    current_page,
+                    embedder,
+                    category_analyzer or self.category_analyzer,
+                    knowledge_graph
+                )
+                ml_scores = {link: score for link, score in scored_links}
+                
+                if self.verbose:
+                    print(f"   🔀 Hybrid filter: Using ML (weight={ml_weight:.2f})")
+            except Exception as e:
+                if self.verbose:
+                    print(f"   ⚠️  ML scoring failed: {e}, using heuristic only")
+                ml_weight = 0.0  # Fall back to heuristic only
+        else:
+            if self.verbose and self.use_ml:
+                print(f"   ⚠️  ML not available (model not trained?), using heuristic only")
+            ml_weight = 0.0  # No ML available
+        
+        # Combine scores
+        combined_scores = []
+        for link in pre_filtered:
+            heur_score = heuristic_scores.get(link, 0.0)
+            ml_score = ml_scores.get(link, 0.0)
+            
+            # Weighted combination
+            if ml_weight > 0 and link in ml_scores:
+                combined = ml_weight * ml_score + (1 - ml_weight) * heur_score
+            else:
+                combined = heur_score  # Heuristic only
+            
+            combined_scores.append((link, combined))
+        
+        # Sort by combined score
+        combined_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        # Take top max_links
+        result = [link for link, score in combined_scores[:max_links]]
+        
+        if self.verbose:
+            print(f"   🔀 Hybrid filter: {len(pre_filtered)} → {len(result)} links")
+            if combined_scores:
+                print(f"      Top hybrid score: {combined_scores[0][1]:.3f} ({combined_scores[0][0]})")
         
         return result
 
