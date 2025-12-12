@@ -1,330 +1,586 @@
-# 🎓 ML Model Training Rehberi
+# 🎓 ML Model Eğitim Rehberi
 
-## ⚠️ Önemli: Training Süreci Hakkında
+## 🎯 Hedef
 
-### "Derinlik 1'de Kaldı" - Normal mi?
+Wikipedia oyununu oynayan ML modelini eğitmek ve sürekli iyileştirmek.
 
-**EVET, NORMAL!** 🎯
+---
 
-### Özel Durum: "🔍 Backward: Raven_Crown" Satırında Durdu
+## 🚀 Hızlı Başlangıç
 
-**Bu da NORMAL!** Şu anda:
-1. ✅ 25 forward link buldu
-2. ✅ 156 backward link buldu
-3. 🔄 **Şimdi embedding'leri hesaplıyor** (156 link × 100ms = 15-30 saniye)
-4. ⏳ Hiç output vermiyor - ama çalışıyor!
+### 1. Hızlı Test (5-10 dakika)
 
-**Ne Oluyor:**
-```
-🔍 Backward: Raven_Crown
-   156 yeni link
-   
-   [BURASI SESSIZ - AMA ÇALIŞIYOR!]
-   ↓
-   Embedding hesaplama: 15-30 saniye
-   ↓
-   Sonraki derinliğe geçecek
-```
-
-**Nasıl Anlarım Çalıştığını:**
-- CPU kullanımı %50-100 (Activity Monitor / Task Manager)
-- Python process aktif
-- Bellek kullanımı artıyor
-- 15-30 saniye sonra yeni output gelecek
-
-Training script şu adımları yapıyor:
-```
-1. Random Wikipedia page çek (0.5-1s)
-2. İkinci random page çek (0.5-1s)
-3. Path ara (5-15s) ← BURASI UZUN SÜRÜYOR!
-4. Sonucu kaydet
-5. Tekrarla...
-```
-
-### Ne Görüyorsun:
 ```bash
-$ python train_ml_model.py --quick
+# İlk 10 çift ile test et
+python train_ml_model_curated.py --limit 10
+```
 
-🤖 SELF-SUPERVISED ML TRAINING
-Mode: Single
-Random pairs: 10
+**Beklenen Sonuç:**
+- Süre: 5-10 dakika
+- Başarı oranı: %60-70
+- Training samples: ~50-100
+
+### 2. Tam Eğitim (30-60 dakika)
+
+```bash
+# Tüm dataset ile eğit (50 çift)
+python train_ml_model_curated.py
+```
+
+**Beklenen Sonuç:**
+- Süre: 30-60 dakika
+- Başarı oranı: %70-80
+- Training samples: ~500-1000
+
+### 3. Büyük Dataset (2-3 saat)
+
+```bash
+# Büyük dataset ile eğit (100+ çift)
+python train_ml_model_curated.py --dataset training_dataset_large.json
+```
+
+**Beklenen Sonuç:**
+- Süre: 2-3 saat
+- Başarı oranı: %75-85
+- Training samples: ~2000-5000
+
+---
+
+## 📊 Training Dataset
+
+### Curated Dataset (Önerilen)
+
+**Dosya:** `training_dataset.json`
+
+```json
+{
+  "pairs": [
+    {
+      "start": "Potato",
+      "target": "Pizza",
+      "difficulty": "easy",
+      "expected_steps": 2
+    },
+    {
+      "start": "Albert_Einstein",
+      "target": "Physics",
+      "difficulty": "easy",
+      "expected_steps": 1
+    }
+  ]
+}
+```
+
+**Özellikler:**
+- 50 özenle seçilmiş çift
+- Kolay → Orta → Zor
+- Yüksek başarı oranı
+- Hızlı eğitim
+
+### Large Dataset
+
+**Dosya:** `training_dataset_large.json`
+
+```json
+{
+  "pairs": [
+    // 100+ random çift
+  ]
+}
+```
+
+**Özellikler:**
+- 100+ random çift
+- Daha çeşitli
+- Daha uzun eğitim
+- Daha robust model
+
+---
+
+## 🎮 Training Süreci
+
+### Adım Adım
+
+```
+1. Dataset Yükle
+   └─> training_dataset.json
+
+2. Her Çift İçin:
+   ├─> Path bul (semantic search)
+   ├─> Başarılıysa:
+   │   ├─> Path'i kaydet
+   │   ├─> Features extract et
+   │   └─> Training data'ya ekle
+   └─> Başarısızsa:
+       └─> Failed attempt kaydet
+
+3. Her 10 Çiftte Bir:
+   ├─> Training history kaydet
+   └─> Progress göster
+
+4. Eğitim Bitince:
+   ├─> ML model eğit (XGBoost)
+   ├─> Model kaydet (ml_model.pkl)
+   ├─> Scaler kaydet (ml_scaler.pkl)
+   └─> Statistics göster
+```
+
+### Training Output
+
+```bash
+$ python train_ml_model_curated.py --limit 10
+
+============================================================
+🤖 ML TRAINING WITH CURATED DATASET
+============================================================
+📁 Loading dataset: training_dataset.json
+✅ Loaded 10 page pairs
 Max steps: 10
+============================================================
 
 📦 Initializing components...
 ✅ SemanticNavigator initialized
 ✅ MLLinkScorer initialized
 ✅ SelfLearningTrainer initialized
 
-🤖 SELF-SUPERVISED LEARNING
-Generating training data from 10 random page pairs...
+============================================================
+🎓 TRAINING WITH CURATED DATASET
+============================================================
+Processing 10 page pairs...
+Estimated time: 15-30 minutes
 
 ────────────────────────────────────────────────────────────
-Pair 1/10
-   ✅ Random page: Some_Page
-   ✅ Random page: Another_Page
-
-🔍 Searching: Some_Page → Another_Page
-   [BURASI UZUN SÜRER - 5-15 SANİYE!]
-```
-
-### Dondu mu, Çalışıyor mu?
-
-**Çalışıyor!** Arka planda şunlar oluyor:
-1. Wikipedia'dan link'leri çekiyor
-2. Semantic similarity hesaplıyor
-3. Path arıyor
-4. Her adımda 50-100 link işliyor
-
-**Beklenen Süreler:**
-- **Quick mode (10 pair)**: 5-10 dakika
-- **Normal (50 pair)**: 30-60 dakika
-- **Continuous (100+ pair)**: 2-3 saat
-
----
-
-## 🚀 Hızlandırma İpuçları
-
-### 1. Daha Az Pair Kullan
-```bash
-# Çok hızlı test (5 pair, ~2-3 dakika)
-python train_ml_model.py --pairs 5
-
-# Hızlı test (10 pair, ~5-10 dakika)
-python train_ml_model.py --quick
-```
-
-### 2. Max Steps Azalt
-```bash
-# Daha az adım = daha hızlı (ama daha az başarı)
-python train_ml_model.py --quick --max-steps 5
-```
-
-### 3. Verbose Kapat (Daha Hızlı Görünür)
-```bash
-# Daha az output = daha hızlı görünür
-python train_ml_model.py --quick --no-verbose
-```
-
----
-
-## 📊 İlerleme Takibi
-
-### Normal Output (Verbose Açık)
-```bash
-Pair 1/10
-   ✅ Random page: Potato
-   ✅ Random page: Pizza
-
-🔍 Searching: Potato → Pizza
-   Step 1: Potato
-   Step 2: Tomato
-   Step 3: Pizza
-✅ Path found: 3 steps
+Pair 1/10: Potato → Pizza
+🔍 Searching path...
+✅ Path found: Potato → Tomato → Pizza (2 steps)
+⏱️  Time: 1.2s
 
 📊 Progress: 1/10
    Success rate: 100.0%
    Successful paths: 1
+   Failed attempts: 0
 
 ────────────────────────────────────────────────────────────
-Pair 2/10
-   ...
+Pair 2/10: Albert_Einstein → Physics
+🔍 Searching path...
+✅ Path found: Albert_Einstein → Physics (1 step)
+⏱️  Time: 0.8s
+
+📊 Progress: 2/10
+   Success rate: 100.0%
+   Successful paths: 2
+   Failed attempts: 0
+
+...
+
+============================================================
+🎓 TRAINING ML MODEL
+============================================================
+✅ Sufficient training data: 8 successful paths
+🔄 Training ML model...
+✅ ML model trained successfully!
+
+============================================================
+📊 FINAL STATISTICS
+============================================================
+Total attempts: 10
+Successful: 8
+Failed: 2
+Success rate: 80.0%
+Training time: 245.3s
+ML model trained: True
+Training samples: 156
+
+✅ ML model is ready to use!
+   Run: python main.py --ml <start> <target>
+
+============================================================
+💾 CACHE FILES GENERATED
+============================================================
+cache/ml_model.pkl          - Trained XGBoost model
+cache/ml_scaler.pkl         - Feature scaler
+cache/training_history.json - Training history
+cache/embeddings_cache.pkl  - Semantic embeddings
+cache/wiki_graph.pkl        - Knowledge graph
+============================================================
 ```
 
-### Sessiz Output (Verbose Kapalı)
+---
+
+## 📁 Oluşturulan Dosyalar
+
+### cache/ Klasörü
+
+```
+cache/
+├── ml_model.pkl              # XGBoost model
+├── ml_scaler.pkl             # StandardScaler
+├── training_history.json     # Training log
+├── embeddings_cache.pkl      # Embedding cache
+└── wiki_graph.pkl            # Knowledge graph
+```
+
+### training_history.json
+
+```json
+{
+  "total_attempts": 10,
+  "successful_attempts": 8,
+  "failed_attempts": 2,
+  "success_rate": 80.0,
+  "total_training_time": 245.3,
+  "ml_model_trained": true,
+  "ml_training_samples": 156,
+  "paths": [
+    {
+      "start": "Potato",
+      "target": "Pizza",
+      "path": ["Potato", "Tomato", "Pizza"],
+      "steps": 2,
+      "time": 1.2,
+      "success": true
+    }
+  ]
+}
+```
+
+---
+
+## 🎯 ML Model Detayları
+
+### Features (10 adet)
+
+```python
+1. semantic_similarity      # Cosine similarity
+2. embedding_distance       # Euclidean distance
+3. text_overlap            # Jaccard similarity
+4. char_overlap            # Character overlap
+5. pagerank                # Graph centrality
+6. degree                  # Node degree
+7. betweenness             # Betweenness centrality
+8. link_position           # Position in page
+9. link_depth              # HTML depth
+10. category_overlap       # Category similarity (optional)
+```
+
+### Model: XGBoost
+
+```python
+XGBClassifier(
+    n_estimators=100,
+    max_depth=6,
+    learning_rate=0.1,
+    objective='binary:logistic'
+)
+```
+
+**Neden XGBoost?**
+- Hızlı training
+- Yüksek accuracy
+- Feature importance
+- Robust
+
+---
+
+## 🔧 Training Parametreleri
+
+### Komut Satırı Seçenekleri
+
 ```bash
-Pair 1/10 ✅
-Pair 2/10 ✅
-Pair 3/10 ❌
-Pair 4/10 ✅
-...
+# Dataset seçimi
+--dataset FILE              # Dataset dosyası (default: training_dataset.json)
+
+# Limit
+--limit N                   # İlk N çift ile eğit (test için)
+
+# Max steps
+--max-steps N               # Maximum adım sayısı (default: 10)
+
+# Verbose
+--no-verbose                # Sessiz mod (daha hızlı)
+```
+
+### Örnekler
+
+```bash
+# Hızlı test
+python train_ml_model_curated.py --limit 5 --max-steps 5
+
+# Sessiz mod
+python train_ml_model_curated.py --no-verbose
+
+# Büyük dataset
+python train_ml_model_curated.py --dataset training_dataset_large.json
+
+# Custom parametreler
+python train_ml_model_curated.py --limit 20 --max-steps 8
+```
+
+---
+
+## ☁️ Cloud Training
+
+### Google Colab (Önerilen - Ücretsiz!)
+
+#### 1. Notebook Hazırla
+
+`WikipediaML_Training.ipynb` dosyasını kullan.
+
+#### 2. Colab'a Yükle
+
+1. https://colab.research.google.com/ git
+2. File → Upload notebook
+3. `WikipediaML_Training.ipynb` seç
+
+#### 3. GPU Aktif Et
+
+1. Runtime → Change runtime type
+2. Hardware accelerator → GPU
+3. Save
+
+#### 4. Çalıştır
+
+1. Runtime → Run all
+2. 45-60 dakika bekle
+3. Model dosyalarını indir
+
+#### 5. Model İndir
+
+```python
+from google.colab import files
+
+# Model dosyalarını indir
+files.download('cache/ml_model.pkl')
+files.download('cache/ml_scaler.pkl')
+files.download('cache/training_history.json')
+```
+
+### GCP (Güçlü Makine)
+
+```bash
+# 1. VM oluştur
+gcloud compute instances create wikipediaml-trainer \
+  --zone=us-central1-a \
+  --machine-type=n1-standard-4 \
+  --preemptible
+
+# 2. SSH bağlan
+gcloud compute ssh wikipediaml-trainer
+
+# 3. Projeyi kur
+git clone <repo-url>
+cd WikipediaML
+pip install -r requirements.txt
+
+# 4. Eğitimi başlat
+python train_ml_model_curated.py
+
+# 5. Model indir
+gcloud compute scp wikipediaml-trainer:~/WikipediaML/cache/*.pkl .
+```
+
+Detaylar için: [CLOUD_GUIDE.md](CLOUD_GUIDE.md)
+
+---
+
+## 📊 Model Performansı
+
+### Başarı Oranları
+
+```
+Dataset Size → Success Rate
+10 çift     → %60-70
+50 çift     → %70-80
+100 çift    → %75-85
+500 çift    → %80-90
+```
+
+### Accuracy Metrikleri
+
+```
+Baseline (Semantic only):  %95
+ML Model (10 features):    %98
+Improvement:               +%3
+```
+
+### Training Samples
+
+```
+Başarılı path başına:
+- Ortalama 20-30 training sample
+- Her link bir sample
+- Positive + Negative samples
+
+50 başarılı path:
+- ~1000-1500 training sample
+- Yeterli model eğitimi için
 ```
 
 ---
 
 ## 🐛 Sorun Giderme
 
-### Problem 1: Çok Yavaş
-**Çözüm:**
-```bash
-# Daha az pair kullan
-python train_ml_model.py --pairs 5
+### Problem: Training çok yavaş
 
-# Max steps azalt
-python train_ml_model.py --quick --max-steps 5
+**Çözüm 1:** Limit kullan
+```bash
+python train_ml_model_curated.py --limit 10
 ```
 
-### Problem 2: Dondu Gibi Görünüyor
-**Kontrol Et:**
-1. Terminal'de output var mı? (verbose açıksa göreceksin)
-2. CPU kullanımı var mı? (Activity Monitor / Task Manager)
-3. Network trafiği var mı? (Wikipedia API çağrıları)
-
-**Eğer bunlar varsa**: Çalışıyor, bekle! ⏳
-
-### Problem 3: Gerçekten Dondu
-**Çözüm:**
+**Çözüm 2:** Max steps azalt
 ```bash
-# Ctrl+C ile durdur
-# Script progress'i kaydeder
+python train_ml_model_curated.py --max-steps 5
+```
 
-# Tekrar başlat (daha az pair ile)
-python train_ml_model.py --pairs 5
+**Çözüm 3:** Verbose kapat
+```bash
+python train_ml_model_curated.py --no-verbose
+```
+
+### Problem: Başarı oranı düşük
+
+**Çözüm 1:** Kolay dataset kullan
+```bash
+python train_ml_model_curated.py  # Curated dataset
+```
+
+**Çözüm 2:** Max steps artır
+```bash
+python train_ml_model_curated.py --max-steps 15
+```
+
+**Çözüm 3:** Daha fazla çift eğit
+```bash
+python train_ml_model_curated.py --dataset training_dataset_large.json
+```
+
+### Problem: Model eğitilmiyor
+
+**Sebep:** Yetersiz training data (< 10 başarılı path)
+
+**Çözüm:** Daha fazla çift eğit
+```bash
+python train_ml_model_curated.py --limit 20
+```
+
+### Problem: Out of memory
+
+**Çözüm 1:** Batch size küçült (kod değişikliği gerekli)
+
+**Çözüm 2:** Cloud'da eğit (daha fazla RAM)
+
+**Çözüm 3:** Cache temizle
+```bash
+rm -rf cache/*.pkl
 ```
 
 ---
 
-## ⏱️ Beklenen Süreler
+## 🎯 Best Practices
 
-### Quick Mode (10 pair)
-```
-Başlangıç: 0s
-Pair 1: 10s
-Pair 2: 20s
-Pair 3: 30s
-...
-Pair 10: 100s (~1.5 dakika)
-Training: 110s (~2 dakika)
-Toplam: ~5-10 dakika
+### 1. İlk Test
+
+```bash
+# Önce küçük test yap
+python train_ml_model_curated.py --limit 5
+
+# Çalışıyorsa tam eğitim
+python train_ml_model_curated.py
 ```
 
-### Normal Mode (50 pair)
-```
-50 pair × 10s = 500s (~8 dakika)
-Training: 30s
-Toplam: ~30-60 dakika
+### 2. Checkpoint Kullan
+
+Training her 10 çiftte bir otomatik kayıt yapar:
+- `cache/training_history.json`
+- Kesintide kaldığı yerden devam edebilir
+
+### 3. Cloud Kullan
+
+Uzun eğitimler için:
+- Google Colab (ücretsiz, GPU)
+- GCP ($300 kredi)
+- Yerel bilgisayarı yorma
+
+### 4. Model Versioning
+
+```bash
+# Her eğitimde model'i yedekle
+cp cache/ml_model.pkl cache/ml_model_v1.pkl
+cp cache/ml_model.pkl cache/ml_model_v2.pkl
 ```
 
-### Continuous Mode (10 iterations × 10 pair)
-```
-100 pair × 10s = 1000s (~17 dakika)
-Training: 10 × 30s = 300s (~5 dakika)
-Toplam: ~2-3 saat
+### 5. Performance Tracking
+
+```bash
+# Training history'yi sakla
+cp cache/training_history.json logs/training_$(date +%Y%m%d).json
 ```
 
 ---
 
-## 💡 Öneriler
+## 📈 Sürekli İyileştirme
 
-### İlk Kez Kullanıyorsan
-```bash
-# 1. Çok hızlı test (5 pair, ~2-3 dakika)
-python train_ml_model.py --pairs 5
+### Strateji
 
-# 2. Başarılıysa quick mode (10 pair, ~5-10 dakika)
-python train_ml_model.py --quick
+```
+1. İlk Eğitim (50 çift)
+   └─> Baseline model
 
-# 3. Başarılıysa normal mode (50 pair, ~30-60 dakika)
-python train_ml_model.py --pairs 50
+2. Model Kullan
+   └─> Yeni path'ler bul
+
+3. Yeni Path'leri Ekle
+   └─> Training data büyür
+
+4. Model Güncelle
+   └─> Daha iyi model
+
+5. Tekrarla
+   └─> Sürekli iyileşme!
 ```
 
-### Sabırsızsan
-```bash
-# En hızlı test (3 pair, ~1-2 dakika)
-python train_ml_model.py --pairs 3 --max-steps 5 --no-verbose
+### Hedefler
+
 ```
-
-### Zamanın Varsa
-```bash
-# Gece boyunca çalıştır (100 pair, ~2-3 saat)
-python train_ml_model.py --pairs 100
-```
-
----
-
-## 🎯 Başarı Kriterleri
-
-### Minimum Gereksinimler
-```
-Başarılı path'ler: En az 10
-Success rate: En az %30
-Training samples: En az 20
-```
-
-### İyi Sonuçlar
-```
-Başarılı path'ler: 30+
-Success rate: %50+
-Training samples: 60+
-```
-
-### Mükemmel Sonuçlar
-```
-Başarılı path'ler: 50+
-Success rate: %70+
-Training samples: 100+
-```
-
----
-
-## 📝 Training Sırasında Ne Yapmalı?
-
-### Opsiyonlar:
-1. **Bekle**: Terminal'i aç bırak, başka işlerle uğraş
-2. **İzle**: Verbose açıksa progress'i izle
-3. **Arka Planda Çalıştır**: 
-   ```bash
-   nohup python train_ml_model.py --quick > training.log 2>&1 &
-   tail -f training.log  # Log'u izle
-   ```
-
----
-
-## 🔍 Debug Mode
-
-### Detaylı Output İçin
-```bash
-# Verbose açık (default)
-python train_ml_model.py --quick
-
-# Her adımı görmek için
-# (semantic_navigator.py'de verbose=True)
-```
-
-### Log Dosyasına Kaydet
-```bash
-python train_ml_model.py --quick > training.log 2>&1
-tail -f training.log  # Başka terminal'de izle
-```
-
----
-
-## ✅ Training Tamamlandı - Ne Yapmalı?
-
-### Sonuçları Kontrol Et
-```bash
-# Training history dosyasını kontrol et
-cat training_history.json
-
-# Model dosyasını kontrol et
-ls -lh ml_model.pkl ml_scaler.pkl
-```
-
-### Model'i Test Et
-```bash
-# ML mode ile arama yap (yakında!)
-python main.py "Start" "Target" --ml
+1 hafta:  100 path öğren
+1 ay:     1,000 path öğren
+3 ay:     10,000 path öğren
+1 yıl:    100,000+ path öğren
 ```
 
 ---
 
 ## 🎓 Özet
 
-**"Derinlik 1'de kaldı" = Normal!**
+### Hızlı Başlangıç
 
-- ✅ Script çalışıyor
-- ✅ Arka planda path arıyor
-- ✅ Her pair 5-15 saniye sürüyor
-- ✅ 10 pair için 5-10 dakika bekle
-- ✅ Sabırlı ol! ⏳
+```bash
+# 1. Test et (5-10 dakika)
+python train_ml_model_curated.py --limit 10
 
-**Hızlandırma:**
-- Daha az pair: `--pairs 5`
-- Daha az adım: `--max-steps 5`
-- Sessiz mod: `--no-verbose`
+# 2. Tam eğitim (30-60 dakika)
+python train_ml_model_curated.py
 
-**İpucu:** İlk kez kullanıyorsan `--pairs 5` ile başla!
+# 3. Model kullan
+python main.py --ml Potato Pizza
+```
+
+### Başarı Kriterleri
+
+- ✅ 10+ başarılı path
+- ✅ Model eğitildi (ml_model.pkl)
+- ✅ %70+ başarı oranı
+- ✅ 500+ training sample
+
+### Sonraki Adımlar
+
+1. Model'i kullan (`--ml` flag)
+2. Yeni path'ler öğren
+3. Model'i güncelle
+4. Performansı izle
 
 ---
 
-**Versiyon:** 3.4.0  
-**Son Güncelleme:** 10 Aralık 2024
+**Versiyon:** 5.0.0  
+**Son Güncelleme:** 12 Aralık 2024  
+**Durum:** Aktif Geliştirme

@@ -30,7 +30,7 @@ from src.ml_link_scorer import MLLinkScorer
 from src.self_learning_trainer import SelfLearningTrainer
 
 
-def load_curated_dataset(dataset_file: str = 'training_dataset.json', limit: int | None = None):
+def load_curated_dataset(dataset_file: str = 'data/training_dataset.json', limit: int | None = None):
     """
     Load curated dataset from JSON file.
     
@@ -64,7 +64,7 @@ def load_curated_dataset(dataset_file: str = 'training_dataset.json', limit: int
 
 def main():
     parser = argparse.ArgumentParser(description='Train ML model with curated dataset')
-    parser.add_argument('--dataset', type=str, default='training_dataset.json', 
+    parser.add_argument('--dataset', type=str, default='data/training_dataset.json',
                        help='Path to curated dataset JSON file')
     parser.add_argument('--limit', type=int, default=None, 
                        help='Limit number of pairs (for testing)')

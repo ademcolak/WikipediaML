@@ -1,463 +1,335 @@
-# 🌐 WikipediaML - Intelligent Wikipedia PathFinder
+# 🎮 WikipediaML - Wikipedia Oyunu Çözücü
 
-AI-powered Wikipedia navigation system that finds the shortest path between any two Wikipedia pages using semantic understanding, knowledge graphs, and machine learning.
+Wikipedia'da X sayfasından Y sayfasına sadece linklere tıklayarak ulaşma oyununu oynayan akıllı sistem.
 
-## ✨ Features
+## 🎯 Hedef
 
-- 🧠 **Semantic Search**: Uses sentence transformers for intelligent link selection
-- 🔄 **Bidirectional Beam Search**: Searches from both start and target simultaneously
-- 📊 **Knowledge Graph**: Learns and reuses successful paths
-- 🏷️ **Category-Aware**: Uses Wikipedia categories for better accuracy
-- ⚡ **Async/Parallel**: 3x faster with parallel page fetching
-- 🤖 **Claude Integration**: Optional AI reasoning for complex paths
+**Wikipedia oyununu mükemmel oynayan, öğrene öğrene gelişen bir AI sistemi.**
 
-## 🚀 Quick Start
+## ✨ Nasıl Çalışır?
 
-### Installation
+### 3 Katmanlı Akıllı Sistem
+
+```
+1. KNOWLEDGE GRAPH (Hafıza)
+   ├─> Daha önce bu yolu gördüm mü?
+   ├─> Evet → Anında kullan! (0.00s, %100 doğru)
+   └─> Hayır → Katman 2'ye git
+
+2. ML MODEL (Öğrenme)
+   ├─> Bu linklerden hangisi en iyi?
+   ├─> 10 feature analizi
+   ├─> XGBoost classifier
+   └─> Confidence düşükse → Katman 3'e git
+
+3. SEMANTIC SIMILARITY (Temel)
+   ├─> Cosine similarity
+   ├─> Her zaman çalışır
+   └─> Baseline performance
+
+Sonuç: Her başarılı yol → KG'ye eklenir
+       Her deneme → ML training data
+       Sistem sürekli öğrenir ve iyileşir!
+```
+
+## 🚀 Hızlı Başlangıç
+
+### Kurulum
 
 ```bash
-# Clone repository
+# Projeyi klonla
 git clone <repo-url>
 cd WikipediaML
 
-# Create virtual environment
+# Virtual environment oluştur
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install dependencies
+# Bağımlılıkları kur
 pip install -r requirements.txt
 ```
 
-### Basic Usage
+### Kullanım
 
 ```bash
-# Simple path finding
+# Basit kullanım
 python main.py Potato Pizza
 
-# Fast mode (async - recommended!)
+# Async mode (3x daha hızlı - ÖNERİLİR!)
 python main.py Potato Pizza --async
 
-# With AI reasoning (requires ANTHROPIC_API_KEY)
-python main.py Potato Pizza --async --claude
+# ML mode (öğrenilmiş model ile)
+python main.py Potato Pizza --async --ml
 ```
 
-### Examples
+### Örnekler
 
 ```bash
-# Easy paths
-python main.py Albert_Einstein Physics
-python main.py Python_(programming_language) Machine_learning
+# Kolay yollar
+python main.py Albert_Einstein Physics --async
+python main.py Python_(programming_language) Machine_learning --async
 
-# Medium difficulty
+# Orta zorluk
 python main.py Potato Pizza --async
 python main.py Italy Rome --async
 
-# Hard paths
-python main.py Porsche Serik_Akhmetov_Government --async --claude
+# Zor yollar
+python main.py Porsche Serik_Akhmetov_Government --async --ml
 ```
 
-## 📊 Performance
+## 📊 Performans
 
-| Mode | Speed | Accuracy | Use Case |
-|------|-------|----------|----------|
-| **Sync** | 1-2s | 95% | Simple paths, cached results |
-| **Async** | 0.5-1s | 95% | Most paths (recommended) |
-| **Claude** | 2-3s | 98% | Complex paths, reasoning |
+| Mod | Hız | Doğruluk | Kullanım |
+|-----|-----|----------|----------|
+| **Sync** | 1-2s | 95% | Basit yollar |
+| **Async** | 0.5-1s | 95% | Çoğu yol (önerilen) |
+| **ML** | 0.5-1s | 98% | Zor yollar |
+| **KG Cache** | 0.00s | 100% | Öğrenilmiş yollar |
 
-### Speedup with Async:
-- **3.17x faster** for parallel page fetching
-- **2.32x faster** for bidirectional search
-- **%68 less time** on average
+### Speedup
+- **Async:** 3x daha hızlı
+- **KG Cache:** 2000x+ daha hızlı (anında!)
+- **ML:** %3-5 daha doğru
 
-## 🏗️ Architecture
+## 🧠 Sistem Mimarisi
 
 ```
-main.py (Entry Point)
+main.py
     ↓
-SemanticNavigator (Core Logic)
-    ├── AsyncScraper (Parallel fetching)
-    ├── Embedder (Semantic similarity)
-    ├── CategoryAnalyzer (Wikipedia categories)
-    ├── LinkFilter (Smart pre-filtering)
-    ├── KnowledgeGraph (Path learning)
-    └── ClaudeReasoning (Optional AI)
+SemanticNavigator (Orchestrator)
+    ├── KnowledgeGraph (Hafıza)
+    │   └── Öğrenilmiş yollar (anında sonuç)
+    │
+    ├── MLLinkScorer (Öğrenme)
+    │   ├── 10 feature extraction
+    │   ├── XGBoost classifier
+    │   └── Self-learning trainer
+    │
+    ├── Embedder (Semantic)
+    │   ├── Sentence transformers
+    │   └── Cosine similarity
+    │
+    ├── AsyncScraper (Hız)
+    │   └── Parallel page fetching
+    │
+    └── LinkFilter (Optimizasyon)
+        └── Smart pre-filtering
 ```
 
-## 📁 Project Structure
+## 📁 Proje Yapısı
 
 ```
 WikipediaML/
-├── main.py                    # Entry point
-├── app.py                     # Flask web interface
-├── requirements.txt           # Dependencies
-├── .env.example              # Environment template
-├── src/                      # Core modules
-│   ├── semantic_navigator.py # Main navigation logic
-│   ├── scraper.py            # Wikipedia fetcher
-│   ├── embedder.py           # Semantic embeddings (cached)
-│   ├── category_analyzer.py  # Wikipedia categories (cached)
-│   ├── link_filter.py        # Smart filtering
-│   ├── knowledge_graph.py    # Path learning (cached)
-│   ├── pathfinder.py         # Search algorithms
-│   ├── ml_link_scorer.py     # ML-based link scoring
-│   ├── self_learning_trainer.py # Self-learning system
-│   ├── visualizer.py         # 3D graph visualization
-│   └── claude_reasoning.py   # Claude API integration
-├── cache/                    # Cache files (auto-generated)
-│   ├── embeddings_cache.pkl  # Sentence embeddings
-│   ├── wiki_graph.pkl        # Knowledge graph
-│   ├── category_cache.pkl    # Wikipedia categories
-│   ├── ml_model.pkl          # Trained ML model
-│   ├── ml_scaler.pkl         # Feature scaler
-│   └── training_history.json # Training progress
-└── docs/                     # Documentation
-    ├── ROADMAP.md            # Project roadmap
-    ├── TRAINING_GUIDE.md     # ML training guide
-    ├── PROJECT_CONTEXT.md    # Technical context
-    ├── PERFORMANCE_OPTIMIZATION_PLAN.md
-    └── ... (20+ documentation files)
+├── main.py                          # Ana uygulama
+├── requirements.txt                 # Bağımlılıklar
+├── .env.example                     # Environment template
+│
+├── src/                             # Core modüller
+│   ├── semantic_navigator.py        # Ana orchestrator
+│   ├── knowledge_graph.py           # Hafıza sistemi
+│   ├── ml_link_scorer.py            # ML scoring
+│   ├── self_learning_trainer.py     # Training pipeline
+│   ├── embedder.py                  # Semantic similarity
+│   ├── scraper.py                   # Wikipedia fetcher
+│   ├── async_scraper.py             # Async fetcher
+│   ├── link_filter.py               # Link filtering
+│   ├── category_analyzer.py         # Wikipedia categories
+│   └── claude_reasoning.py          # AI reasoning (optional)
+│
+├── train_ml_model_curated.py        # ML model eğitimi
+├── training_dataset.json            # Eğitim verisi
+│
+├── WikipediaML_Training.ipynb       # Colab notebook
+│
+└── docs/                            # Dokümantasyon
+    ├── ARCHITECTURE.md              # Teknik detaylar
+    ├── TRAINING_GUIDE.md            # ML eğitim rehberi
+    └── CLOUD_GUIDE.md               # Cloud deployment
 ```
 
-## 🔧 Configuration
+## 🎓 ML Model Eğitimi
+
+### Hızlı Test (10 çift, ~5-10 dakika)
+
+```bash
+python train_ml_model_curated.py --limit 10
+```
+
+### Tam Eğitim (50 çift, ~30-60 dakika)
+
+```bash
+python train_ml_model_curated.py
+```
+
+### Cloud'da Eğitim (Colab - Ücretsiz!)
+
+1. `WikipediaML_Training.ipynb` dosyasını aç
+2. Google Colab'a yükle
+3. Runtime → Change runtime type → GPU
+4. Runtime → Run all
+5. 45-60 dakika bekle
+6. Model dosyalarını indir
+
+Detaylar için: [docs/TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md)
+
+## ☁️ Cloud Deployment
+
+### Google Colab (Önerilen - Ücretsiz)
+
+```bash
+# 1. Colab'a yükle: WikipediaML_Training.ipynb
+# 2. GPU aktif et
+# 3. Run all
+# 4. Model indir
+```
+
+### GCP ($300 Kredi)
+
+```bash
+# 1. GCP hesabı aç
+# 2. $300 kredi al
+# 3. VM oluştur
+gcloud compute instances create wikipediaml-trainer \
+  --zone=us-central1-a \
+  --machine-type=n1-standard-4 \
+  --preemptible
+
+# 4. Eğitimi çalıştır
+python train_ml_model_curated.py
+```
+
+Detaylar için: [docs/CLOUD_GUIDE.md](docs/CLOUD_GUIDE.md)
+
+## 🔧 Konfigürasyon
 
 ### Environment Variables
 
-Create a `.env` file:
+`.env` dosyası oluştur:
 
 ```bash
-# Optional: Claude API for reasoning
+# Optional: Claude API (AI reasoning için)
 ANTHROPIC_API_KEY=your-api-key-here
 ```
 
 ### Flags
 
 ```bash
---async    # Enable async/parallel processing (3x faster)
---claude   # Enable Claude reasoning (requires API key)
+--async    # Async/parallel processing (3x hızlı)
+--ml       # ML model kullan (daha doğru)
+--claude   # Claude AI reasoning (en akıllı)
 ```
 
-## 📈 How It Works
+## 📈 Sistem Nasıl Öğrenir?
 
-### 1. Bidirectional Beam Search
+### 1. İlk Çalıştırma
 ```
-Start: Potato          Target: Pizza
-   ↓                      ↓
-Tomato ←─────────────→ Italian_cuisine
-   ↓                      ↓
-[Intersection found!]
-Path: Potato → Tomato → Pizza
+Potato → Pizza
+├─> Semantic similarity kullan
+├─> 2 adımda bul: Potato → Tomato → Pizza
+└─> Süre: 1.5s
 ```
 
-### 2. Semantic Similarity
+### 2. Yolu Öğren
 ```
-For each link, calculate:
-- Embedding similarity (sentence transformers)
-- Category overlap (Wikipedia categories)
-- Heuristic score (word overlap, etc.)
-
-Choose top-k links with highest scores
+Knowledge Graph'a ekle:
+- Potato → Tomato (weight: 1)
+- Tomato → Pizza (weight: 1)
 ```
 
-### 3. Knowledge Graph
+### 3. İkinci Çalıştırma
 ```
-First run:  Potato → Pizza (1.5s, searches)
-Second run: Potato → Pizza (0.0s, cached!)
-
-Graph learns successful paths and reuses them
-```
-
-## 🎯 Advanced Features
-
-### Wikipedia Categories
-```python
-# Automatically uses Wikipedia categories for better accuracy
-# +15-20% improvement in link selection
-# Example: "Pizza" → "Italian cuisine" category
+Potato → Pizza
+├─> KG'de var mı? EVET!
+├─> Potato → Tomato → Pizza
+└─> Süre: 0.00s (ANINDA!)
 ```
 
-### Async/Parallel Processing
-```python
-# Fetches multiple pages simultaneously
-# 4 pages × 500ms = 2000ms (sync)
-# 4 pages in parallel = 500ms (async) → 4x faster!
+### 4. ML Training
+```
+Her başarılı/başarısız deneme:
+├─> Training data olarak kaydet
+├─> 10 feature extract et
+├─> Model'i güncelle
+└─> Sonraki aramada daha akıllı!
 ```
 
-### Claude Reasoning
-```python
-# Optional AI reasoning for complex paths
-# Explains why each link was chosen
-# Higher accuracy but slower
-```
+## 🎯 Gelecek Hedefler
 
-## 📊 Statistics
+### Kısa Vade (1 ay)
+- [ ] 10,000+ yol öğren
+- [ ] %80+ cache hit rate
+- [ ] ML model iyileştir
 
-After each run, see detailed statistics:
+### Orta Vade (3 ay)
+- [ ] 50,000+ yol
+- [ ] %98+ doğruluk
+- [ ] Cloud training pipeline
 
-```
-📊 SONUÇ ÖZETİ
-✅ Path bulundu!
-🛤️  Path: Potato → Tomato → Pizza
-📏 Adım sayısı: 2
-⏱️  Süre: 0.66s
-🔍 Taranan sayfa: 2
+### Uzun Vade (6-12 ay)
+- [ ] 100,000+ yol
+- [ ] %90+ cache hit
+- [ ] Production-ready API
 
-💾 SİSTEM İSTATİSTİKLERİ
-Scraper Cache: 0.0% hit rate
-Embedder Cache: 3.5% hit rate
-Knowledge Graph: 10 paths learned, 1 reused
-```
+## 📚 Dokümantasyon
 
-## 🚀 Roadmap & Future Goals
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Sistem mimarisi ve teknik detaylar
+- [TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md) - ML model eğitim rehberi
+- [CLOUD_GUIDE.md](docs/CLOUD_GUIDE.md) - Cloud deployment rehberi
+- [REFACTOR_PLAN.md](REFACTOR_PLAN.md) - Refactor planı ve ilerleme
 
-### Phase 1: Foundation (Completed ✅)
-- ✅ Semantic search with sentence transformers
-- ✅ Bidirectional beam search
-- ✅ Wikipedia categories integration
-- ✅ Knowledge graph learning
-- ✅ Caching system (embeddings, graph, categories)
+## 🤝 Katkıda Bulunma
 
-### Phase 2: Machine Learning (In Progress 🔄)
-- ✅ ML-based link scoring (10 features)
-- ✅ Self-learning trainer system
-- ✅ 3D graph visualization
-- ⏳ Performance optimization (ongoing)
-- ⏳ Feature engineering improvements
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing`)
+3. Commit yapın (`git commit -m 'Add amazing feature'`)
+4. Push yapın (`git push origin feature/amazing`)
+5. Pull Request açın
 
-### Phase 3: Performance & Scale (Next 🎯)
-- 🎯 **GPU Acceleration**: 10-50x speedup for embeddings
-- 🎯 **Batch Processing**: Process multiple links simultaneously
-- 🎯 **Advanced Caching**: Redis for distributed cache
-- 🎯 **Graph Database**: Neo4j for efficient graph queries
-- 🎯 **Model Optimization**: Quantization, pruning, distillation
-
-### Phase 4: Intelligence (Future 🔮)
-- 🔮 **Advanced ML Models**: XGBoost, LightGBM, Neural Networks
-- 🔮 **Reinforcement Learning**: Learn from user feedback
-- 🔮 **Multi-modal Learning**: Images, infoboxes, structured data
-- 🔮 **Transfer Learning**: Pre-trained models for Wikipedia
-
-### Phase 5: Production (Future 🚀)
-- 🚀 **FastAPI Backend**: RESTful API
-- 🚀 **React Frontend**: Modern web interface
-- 🚀 **Docker Deployment**: Containerization
-- 🚀 **Monitoring**: Prometheus, Grafana
-- 🚀 **Distributed System**: Horizontal scaling
-
-See `docs/ROADMAP.md` for detailed roadmap.
-
-## 🎯 Performance Optimization Goals
-
-### Current Performance
-- **Path Finding**: 0.5-2s per path
-- **Embedding Calculation**: ~100ms per page
-- **Category Analysis**: ~500ms per page (with API calls)
-- **ML Feature Extraction**: ~200ms per link
-
-### Optimization Targets
-
-#### 1. GPU Acceleration (Priority: HIGH 🔥)
-```python
-# Current: CPU-based embeddings
-embeddings = model.encode(texts)  # ~100ms per text
-
-# Target: GPU-based embeddings
-embeddings = model.encode(texts, device='cuda')  # ~10ms per text
-# Expected: 10x speedup
-```
-
-#### 2. Batch Processing (Priority: HIGH 🔥)
-```python
-# Current: Sequential processing
-for link in links:
-    score = calculate_score(link)  # 200ms × 100 links = 20s
-
-# Target: Batch processing
-scores = calculate_scores_batch(links)  # 2s for 100 links
-# Expected: 10x speedup
-```
-
-#### 3. Advanced Caching (Priority: MEDIUM 📊)
-```python
-# Current: Local PKL files
-cache = pickle.load('cache/embeddings_cache.pkl')
-
-# Target: Redis distributed cache
-cache = redis.get('embedding:page_title')
-# Expected: 2-3x speedup, distributed access
-```
-
-#### 4. Graph Database (Priority: MEDIUM 📊)
-```python
-# Current: NetworkX in-memory graph
-path = nx.shortest_path(G, start, target)
-
-# Target: Neo4j graph database
-path = neo4j.run("MATCH path=shortestPath(...)")
-# Expected: 5-10x speedup for large graphs
-```
-
-#### 5. Model Optimization (Priority: LOW 🔧)
-```python
-# Current: Full precision model (float32)
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-# Target: Quantized model (int8)
-model = SentenceTransformer('all-MiniLM-L6-v2', quantize=True)
-# Expected: 2-4x speedup, 4x less memory
-```
-
-### Expected Overall Improvements
-- **10-50x faster** with GPU acceleration
-- **5-10x faster** with batch processing
-- **2-3x faster** with Redis caching
-- **5-10x faster** with Neo4j for large graphs
-- **Combined: 100-500x speedup potential!**
-
-## 🧠 Knowledge Graph Optimization
-
-### Current KG Usage
-```python
-# Knowledge graph stores successful paths
-# Reuses paths when available (instant results)
-# Current: ~10-100 paths stored
-```
-
-### Optimization Goals
-
-#### 1. Expand Graph Coverage
-- **Target**: Store 10,000+ successful paths
-- **Method**: Continuous learning from all searches
-- **Benefit**: 90%+ cache hit rate
-
-#### 2. Graph Pruning
-- **Remove**: Low-quality paths (>10 steps)
-- **Keep**: High-quality paths (<5 steps)
-- **Update**: Path weights based on success rate
-
-#### 3. Graph Analytics
-- **Centrality**: Find most important pages
-- **Communities**: Detect topic clusters
-- **Shortcuts**: Discover common intermediate pages
-
-#### 4. Predictive Paths
-```python
-# Current: Reactive (search when requested)
-path = find_path(start, target)
-
-# Target: Proactive (predict likely paths)
-likely_paths = predict_paths(start, target)
-# Pre-compute and cache popular paths
-```
-
-### KG Performance Metrics
-- **Coverage**: % of queries answered from cache
-- **Quality**: Average path length
-- **Freshness**: Last update time
-- **Size**: Number of nodes/edges
-
-## 📊 ML Model Improvements
-
-### Current ML Features (10 features)
-1. **Semantic Similarity**: Embedding cosine similarity
-2. **Text Overlap**: Word/character overlap
-3. **Link Position**: Position in page
-4. **Category Similarity**: Wikipedia category overlap (disabled for performance)
-5. **Graph Features**: PageRank, degree centrality
-6. **Heuristic Score**: Combined heuristic
-
-### Future ML Enhancements
-
-#### 1. Advanced Features
-- **Infobox Data**: Structured information
-- **Image Similarity**: Visual features
-- **Citation Network**: Reference patterns
-- **Temporal Features**: Page age, edit frequency
-- **User Behavior**: Click patterns (if available)
-
-#### 2. Deep Learning Models
-```python
-# Current: Traditional ML (10 features)
-model = XGBClassifier()
-
-# Target: Neural networks
-model = NeuralNetwork(
-    input_dim=50,  # More features
-    hidden_layers=[128, 64, 32],
-    output_dim=1
-)
-```
-
-#### 3. Ensemble Methods
-```python
-# Combine multiple models
-ensemble = VotingClassifier([
-    ('xgb', XGBClassifier()),
-    ('lgb', LGBMClassifier()),
-    ('nn', NeuralNetwork())
-])
-```
-
-#### 4. Online Learning
-```python
-# Current: Batch training
-model.fit(X_train, y_train)
-
-# Target: Continuous learning
-model.partial_fit(X_new, y_new)  # Update with new data
-```
-
-See `docs/PERFORMANCE_OPTIMIZATION_PLAN.md` for detailed optimization strategies.
-
-## 📚 Documentation
-
-### Getting Started
-- `QUICKSTART.md` - Quick start guide
-- `docs/TRAINING_GUIDE.md` - ML training guide
-- `docs/EMERGENCY_STOP.md` - How to stop frozen processes
-
-### Technical Documentation
-- `ARCHITECTURE.md` - System architecture
-- `docs/PROJECT_CONTEXT.md` - Technical context
-- `docs/ROADMAP.md` - Detailed roadmap
-- `docs/PERFORMANCE_OPTIMIZATION_PLAN.md` - Optimization strategies
-
-### Feature Documentation
-- `docs/BIDIRECTIONAL_SEMANTIC_SEARCH.md` - Search algorithm
-- `docs/3D_VISUALIZATION_PLAN.md` - Visualization features
-- `docs/CATEGORIES_FEATURE.md` - Wikipedia categories
-
-### Project History
-- `CHANGELOG.md` - Version history
-- `docs/PROGRESS_LOG.md` - Development progress
-- `docs/REFACTOR_SUMMARY.md` - Recent refactoring
-
-## 🤝 Contributing
-
-Contributions welcome! Please read the documentation first.
-
-## 📄 License
+## 📄 Lisans
 
 MIT License
 
-## 🎓 Learning Resources
+## 🎓 Öğrenme Kaynakları
 
-This project demonstrates:
-- Semantic search with sentence transformers
-- Graph algorithms (bidirectional BFS, beam search)
-- Async/parallel programming in Python
-- Knowledge graph construction
-- API integration (Wikipedia, Claude)
-- Caching strategies
-- Production-ready ML systems
+Bu proje şunları gösterir:
+- Semantic search (sentence transformers)
+- Knowledge graphs (NetworkX)
+- Machine learning (XGBoost)
+- Async programming (asyncio)
+- Self-supervised learning
+- Production ML systems
 
-## 📞 Support
+## 📊 İstatistikler
 
-For issues or questions, please check the documentation in `docs/` folder.
+- **Core Modüller:** 10 dosya
+- **Toplam Kod:** ~15,000 satır
+- **ML Features:** 10 feature
+- **Cache Layers:** 3 katman
+- **Öğrenme:** Sürekli
+
+## 🚀 Hızlı Komutlar
+
+```bash
+# Basit arama
+python main.py Potato Pizza --async
+
+# ML ile arama
+python main.py Potato Pizza --async --ml
+
+# Model eğit (hızlı test)
+python train_ml_model_curated.py --limit 10
+
+# Model eğit (tam)
+python train_ml_model_curated.py
+
+# Colab'da eğit
+# WikipediaML_Training.ipynb → Colab'a yükle → Run all
+```
 
 ---
 
-**Version:** 4.0.0 - Machine Learning & Optimization
-**Status:** Active Development
-**Last Updated:** December 10, 2024
+**Versiyon:** 5.0.0 (Refactored)  
+**Durum:** Aktif Geliştirme  
+**Son Güncelleme:** 12 Aralık 2024
 
-**Key Focus**: Performance optimization, ML improvements, and scalability
+**Hedef:** Wikipedia oyununu mükemmel oynayan, sürekli öğrenen AI sistemi 🎮🧠

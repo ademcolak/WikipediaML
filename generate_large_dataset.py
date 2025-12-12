@@ -239,10 +239,10 @@ def main():
     parser = argparse.ArgumentParser(description='Generate large curated dataset')
     parser.add_argument('--count', type=int, default=500, 
                        help='Number of page pairs to generate')
-    parser.add_argument('--output', type=str, default='training_dataset_large.json',
+    parser.add_argument('--output', type=str, default='data/training_dataset_large.json',
                        help='Output file name')
     parser.add_argument('--append', action='store_true',
-                       help='Append to existing training_dataset.json')
+                       help='Append to existing data/training_dataset.json')
     
     args = parser.parse_args()
     
@@ -256,7 +256,7 @@ def main():
     # Append to existing if requested
     if args.append:
         try:
-            with open('training_dataset.json', 'r', encoding='utf-8') as f:
+            with open('data/training_dataset.json', 'r', encoding='utf-8') as f:
                 existing = json.load(f)
             
             print(f"\n📁 Appending to existing dataset...")
@@ -266,11 +266,11 @@ def main():
             existing['pairs'].extend(dataset['pairs'])
             dataset = existing
             dataset['total_pairs'] = len(dataset['pairs'])
-            args.output = 'training_dataset.json'
+            args.output = 'data/training_dataset.json'
             
             print(f"   Total pairs: {len(dataset['pairs'])}")
         except FileNotFoundError:
-            print(f"\n⚠️  training_dataset.json not found, creating new file")
+            print(f"\n⚠️  data/training_dataset.json not found, creating new file")
     
     # Save
     with open(args.output, 'w', encoding='utf-8') as f:

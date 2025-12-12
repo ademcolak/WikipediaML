@@ -1,0 +1,45 @@
+# WikipediaML Training - GPU-Enabled Docker Image
+# For cloud training with CUDA support (NVIDIA GPUs)
+
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+
+# Set working directory
+WORKDIR /app
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    python3.11-dev \
+    build-essential \
+    git \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symbolic links for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install PyTorch with CUDA support
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install other dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create cache directory
+RUN mkdir -p cache
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV USE_ML=true
+ENV VERBOSE=true
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Default command
+CMD ["python", "train_ml_model_curated.py"]
