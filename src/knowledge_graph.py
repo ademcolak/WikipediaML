@@ -264,6 +264,10 @@ class WikiKnowledgeGraph:
     def save(self):
         """Graph'ı dosyaya kaydet."""
         try:
+            # Cache klasörünü oluştur
+            import os
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            
             with open(self.cache_file, 'wb') as f:
                 pickle.dump({
                     'graph': self.graph,

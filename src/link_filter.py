@@ -28,51 +28,9 @@ class LinkFilter:
     
     def __init__(
         self,
-        verbose: bool = False,
-        use_categories: bool = True,
-        use_hierarchy: bool = True,
-        use_ml: bool = False
+        verbose: bool = False
     ):
         self.verbose = verbose
-        self.use_categories = use_categories
-        self.use_hierarchy = use_hierarchy
-        self.use_ml = use_ml
-        
-        # Category analyzer (lazy loading)
-        self._category_analyzer = None
-        
-        # ML scorer (lazy loading)
-        self._ml_scorer = None
-    
-    @property
-    def category_analyzer(self):
-        """Lazy load category analyzer."""
-        if self._category_analyzer is None and self.use_categories:
-            from src.category_analyzer import WikipediaCategoryAnalyzer
-            self._category_analyzer = WikipediaCategoryAnalyzer(verbose=False)
-        return self._category_analyzer
-    
-    @property
-    def ml_scorer(self):
-        """Lazy load ML scorer."""
-        if self._ml_scorer is None and self.use_ml:
-            try:
-                from src.ml_link_scorer import MLLinkScorer
-                scorer = MLLinkScorer(verbose=False)
-                # Check if model is trained
-                if scorer.model is None:
-                    if self.verbose:
-                        print("⚠️  ML model not trained. Run: python train_ml_model.py --quick")
-                    self._ml_scorer = None
-                else:
-                    self._ml_scorer = scorer
-                    if self.verbose:
-                        print("✅ ML scorer loaded successfully")
-            except Exception as e:
-                if self.verbose:
-                    print(f"⚠️  ML scorer failed to load: {e}")
-                self._ml_scorer = None
-        return self._ml_scorer
     
     def quick_filter(
         self,
@@ -222,30 +180,7 @@ class LinkFilter:
             if link in hub_pages:
                 base_score *= 1.5
             
-            # Category bonus (with hierarchy!)
-            if self.use_categories and self.category_analyzer:
-                try:
-                    if self.use_hierarchy:
-                        # Hierarchical similarity (includes parent categories)
-                        hier_sim = self.category_analyzer.hierarchical_similarity(
-                            link, target,
-                            depth=1,  # 1 level of parents
-                            weight_direct=0.7,
-                            weight_parent=0.3
-                        )
-                        # Depth-based scoring
-                        depth_score = self.category_analyzer.category_depth_score(link, target)
-                        
-                        # Combined category score
-                        category_score = (hier_sim * 0.6 + depth_score * 0.4)
-                        # Category bonus: 0.0-0.4 ek puan (increased from 0.3)
-                        base_score += category_score * 0.4
-                    else:
-                        # Simple category similarity (backward compatible)
-                        category_sim = self.category_analyzer.category_similarity(link, target)
-                        base_score += category_sim * 0.3
-                except:
-                    pass  # Category fetch hatası, devam et
+            # Category bonus removed in v5.0.0
             
             # Kategori/template sayfalarını cezalandır
             if link.startswith(('Category:', 'Template:', 'Wikipedia:', 'Help:')):
@@ -292,50 +227,8 @@ class LinkFilter:
         Returns:
             Filtered links (best max_links)
         """
-        # Fallback to smart filter if ML not available
-        if not self.use_ml or self.ml_scorer is None:
-            if self.verbose:
-                print("   ⚠️  ML not available, using smart filter")
-            return self.smart_filter(links, target, current_page, max_links)
-        
-        # Check if model is trained
-        if self.ml_scorer.model is None:
-            if self.verbose:
-                print("   ⚠️  ML model not trained, using smart filter")
-            return self.smart_filter(links, target, current_page, max_links)
-        
-        # Pre-filter with heuristics (reduce from 500+ to 200)
-        pre_filtered = self.quick_filter(links, target, max_links * 2)
-        
-        if self.verbose:
-            print(f"   🤖 ML filter: {len(links)} → {len(pre_filtered)} (pre-filter)")
-        
-        # Score with ML model
-        try:
-            scored_links = self.ml_scorer.score_links(
-                pre_filtered,
-                target,
-                current_page,
-                embedder,
-                category_analyzer,
-                knowledge_graph
-            )
-            
-            # Take top max_links
-            result = [link for link, score in scored_links[:max_links]]
-            
-            if self.verbose:
-                print(f"   🤖 ML filter: {len(pre_filtered)} → {len(result)} (ML scoring)")
-                if scored_links:
-                    print(f"      Top ML score: {scored_links[0][1]:.3f} ({scored_links[0][0]})")
-            
-            return result
-            
-        except Exception as e:
-            if self.verbose:
-                print(f"   ⚠️  ML scoring failed: {e}")
-                print("   ⚠️  Falling back to smart filter")
-            return self.smart_filter(links, target, current_page, max_links)
+        # ML filter removed in v5.0.0 - use smart filter
+        return self.smart_filter(links, target, current_page, max_links)
     
     def hybrid_filter(
         self,
@@ -382,30 +275,9 @@ class LinkFilter:
             score = self._calculate_score(link, target, target_words)
             heuristic_scores[link] = score
         
-        # Get ML scores if available
+        # ML scoring removed in v5.0.0
         ml_scores = {}
-        if self.use_ml and self.ml_scorer and self.ml_scorer.model and embedder:
-            try:
-                scored_links = self.ml_scorer.score_links(
-                    pre_filtered,
-                    target,
-                    current_page,
-                    embedder,
-                    category_analyzer or self.category_analyzer,
-                    knowledge_graph
-                )
-                ml_scores = {link: score for link, score in scored_links}
-                
-                if self.verbose:
-                    print(f"   🔀 Hybrid filter: Using ML (weight={ml_weight:.2f})")
-            except Exception as e:
-                if self.verbose:
-                    print(f"   ⚠️  ML scoring failed: {e}, using heuristic only")
-                ml_weight = 0.0  # Fall back to heuristic only
-        else:
-            if self.verbose and self.use_ml:
-                print(f"   ⚠️  ML not available (model not trained?), using heuristic only")
-            ml_weight = 0.0  # No ML available
+        ml_weight = 0.0
         
         # Combine scores
         combined_scores = []
@@ -435,38 +307,4 @@ class LinkFilter:
         return result
 
 
-def test_link_filter():
-    """Test fonksiyonu."""
-    filter = LinkFilter(verbose=True)
-    
-    # Test 1: Basit kelime overlap
-    links = [
-        "United_States",
-        "U.S._Route_111",
-        "United_Kingdom",
-        "Random_Page",
-        "Another_Random",
-        "U.S._History"
-    ]
-    target = "U.S._Route_111"
-    
-    print("\n" + "="*60)
-    print("Test 1: Kelime Overlap")
-    print("="*60)
-    filtered = filter.quick_filter(links, target, max_links=3)
-    print(f"Filtered: {filtered}")
-    
-    # Test 2: Çok fazla link
-    links = [f"Page_{i}" for i in range(500)]
-    links.extend(["United_States", "U.S._Route", "Route_111"])
-    target = "U.S._Route_111"
-    
-    print("\n" + "="*60)
-    print("Test 2: Çok Fazla Link")
-    print("="*60)
-    filtered = filter.quick_filter(links, target, max_links=10)
-    print(f"Top 10: {filtered[:10]}")
-
-
-if __name__ == "__main__":
-    test_link_filter()
+# Removed: test_link_filter() - test function not needed in v5.0.0

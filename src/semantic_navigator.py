@@ -16,7 +16,6 @@ from src.scraper import WikipediaScraper
 from src.async_scraper import AsyncWikipediaScraper
 from src.embedder import WikiEmbedder
 from src.knowledge_graph import WikiKnowledgeGraph
-from src.claude_reasoning import ClaudeReasoning
 from src.link_filter import LinkFilter
 
 
@@ -49,10 +48,7 @@ class SemanticNavigator:
         self,
         verbose: bool = True,
         use_graph: bool = True,
-        use_claude: bool = False,
-        claude_api_key: Optional[str] = None,
-        use_async: bool = False,
-        use_ml: bool = False
+        use_async: bool = False
     ):
         """
         SemanticNavigator'ı başlat.
@@ -60,166 +56,22 @@ class SemanticNavigator:
         Parametreler:
             verbose (bool): Detaylı log çıktısı
             use_graph (bool): Knowledge Graph kullan (default: True)
-            use_claude (bool): Claude reasoning kullan (default: False)
-            claude_api_key (str): Anthropic API key (None ise env'den alınır)
             use_async (bool): Async scraper kullan (3-4x daha hızlı, default: False)
-            use_ml (bool): ML-based link scoring kullan (Phase 2, default: False)
         """
         self.scraper = WikipediaScraper(cache_size=256)
         self.async_scraper = AsyncWikipediaScraper(cache_size=256) if use_async else None
         self.embedder = WikiEmbedder(cache_size=2048)  # Büyük cache (bazı sayfalarda 500+ link var)
-        self.link_filter = LinkFilter(verbose=verbose, use_ml=use_ml)  # Pre-filtering + ML scoring
+        self.link_filter = LinkFilter(verbose=verbose)  # Pre-filtering
         self.knowledge_graph = WikiKnowledgeGraph() if use_graph else None
-        self.claude_reasoning = ClaudeReasoning(api_key=claude_api_key) if use_claude else None
         self.verbose = verbose
         self.use_graph = use_graph
-        self.use_claude = use_claude
         self.use_async = use_async
-        self.use_ml = use_ml
 
         # Metrics
         self.pages_explored = 0
         self.start_time = 0
 
-    def greedy_semantic_search(
-        self,
-        start: str,
-        target: str,
-        max_steps: int = 10
-    ) -> SemanticSearchResult:
-        """
-        Greedy Semantic Search: Her adımda en yüksek similarity'li link'i seç.
-
-        Algoritma:
-        1. Target'ın embedding'ini hesapla (bir kere)
-        2. Mevcut sayfanın linklerini al
-        3. Her linkin target'a similarity'sini hesapla
-        4. En yüksek similarity'ye sahip link'i seç
-        5. O linke git ve tekrarla
-
-        Avantajlar:
-        - Çok hızlı (her adımda 1 sayfa)
-        - Semantically mantıklı path'ler
-        - Az memory kullanımı
-
-        Dezavantajlar:
-        - Greedy → local minima'ya takılabilir
-        - Garanti optimal path değil
-        - Hedefe direkt link yoksa takılabilir
-
-        Parametreler:
-            start (str): Başlangıç sayfası
-            target (str): Hedef sayfa
-            max_steps (int): Maksimum adım sayısı
-
-        Dönüş:
-            SemanticSearchResult
-        """
-        self._initialize_search()
-
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"🤖 GREEDY SEMANTIC SEARCH")
-            print(f"{'='*60}")
-            print(f"📍 Başlangıç: {start}")
-            print(f"🎯 Hedef: {target}")
-            print(f"🚀 Semantic arama başlıyor...\n")
-
-        # Edge case
-        if start == target:
-            return self._create_result(True, [start], [], "Greedy Semantic")
-
-        # Target embedding'i hesapla (bir kere - tüm adımlarda kullanılacak)
-        if self.verbose:
-            print(f"🧮 Target embedding hesaplanıyor: {target}")
-
-        target_emb = self.embedder.get_embedding(target)
-
-        # Path tracking
-        current_page = start
-        path = [start]
-        visited = {start}
-        similarity_scores = []
-
-        # Greedy search loop
-        for step in range(max_steps):
-            if self.verbose:
-                print(f"\n{'─'*60}")
-                print(f"📊 Adım {step + 1}")
-                print(f"   Mevcut sayfa: {current_page}")
-
-            # Mevcut sayfanın linklerini al
-            soup = self.scraper.get_page_html(current_page)
-            if not soup:
-                if self.verbose:
-                    print(f"   ❌ Sayfa çekilemedi!")
-                break
-
-            links = self.scraper.get_wiki_links(soup)
-            self.pages_explored += 1
-
-            if self.verbose:
-                print(f"   📎 {len(links)} link bulundu")
-
-            # Ziyaret edilmemiş linkleri filtrele
-            unvisited_links = [link for link in links if link not in visited]
-
-            if not unvisited_links:
-                if self.verbose:
-                    print(f"   ⚠️ Tüm linkler ziyaret edilmiş!")
-                break
-
-            if self.verbose:
-                print(f"   🔍 {len(unvisited_links)} ziyaret edilmemiş link")
-
-            # AKILLI SEÇİM: En yüksek similarity'ye sahip link'i bul
-            best_link, best_score, top_candidates = self._select_best_link(
-                unvisited_links,
-                target_emb,
-                show_top=5
-            )
-
-            # Verbose output: Top 5 candidate
-            if self.verbose:
-                print(f"\n   🎯 Top 5 Candidates:")
-                for i, (candidate, score) in enumerate(top_candidates, 1):
-                    marker = "👉" if candidate == best_link else "  "
-                    print(f"   {marker} {i}. {candidate:<30} (similarity: {score:.3f})")
-
-            # Seçilen linke git
-            visited.add(best_link)
-            path.append(best_link)
-            similarity_scores.append(best_score)
-            current_page = best_link
-
-            if self.verbose:
-                print(f"\n   ✅ Seçilen: {best_link} (similarity: {best_score:.3f})")
-
-            # Hedefe ulaştık mı?
-            if current_page == target:
-                if self.verbose:
-                    print(f"\n{'='*60}")
-                    print(f"🎉 HEDEF BULUNDU!")
-                    print(f"{'='*60}")
-
-                result = self._create_result(True, path, similarity_scores, "Greedy Semantic")
-                self._print_result(result)
-                return result
-
-            # Rate limiting
-            time.sleep(0.3)
-
-        # Max steps veya takıldı
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"⚠️ HEDEF BULUNAMADI")
-            print(f"{'='*60}")
-            print(f"   • {len(path)} adım atıldı")
-            print(f"   • Max steps ulaşıldı veya takıldı")
-
-        result = self._create_result(False, path, similarity_scores, "Greedy Semantic")
-        self._print_result(result)
-        return result
+    # Removed: greedy_semantic_search() - not used in v5.0.0
 
     def _select_best_link(
         self,
@@ -401,26 +253,13 @@ class SemanticNavigator:
                 if self.verbose:
                     print(f"      {len(unvisited)} yeni link bulundu")
 
-                # ML-based filtering (Phase 2!)
-                if self.use_ml:
-                    # Hybrid filter: ML + heuristic
-                    filtered_links = self.link_filter.hybrid_filter(
-                        unvisited,
-                        target,
-                        current_page,
-                        self.embedder,
-                        self.link_filter.category_analyzer,
-                        self.knowledge_graph,
-                        max_links=beam_width * 10  # Get more candidates for beam
-                    )
-                else:
-                    # Smart filter: heuristic only
-                    filtered_links = self.link_filter.smart_filter(
-                        unvisited,
-                        target,
-                        current_page,
-                        max_links=100
-                    )
+                # Smart filter: heuristic only
+                filtered_links = self.link_filter.smart_filter(
+                    unvisited,
+                    target,
+                    current_page,
+                    max_links=100
+                )
 
                 # Link'lerin similarity'lerini hesapla
                 link_embs = self.embedder.get_embeddings_batch(filtered_links)
@@ -490,279 +329,10 @@ class SemanticNavigator:
         self._print_result(result)
         return result
 
-    def bidirectional_beam_search(
-        self,
-        start: str,
-        target: str,
-        beam_width: int = 3,
-        max_depth: int = 6
-    ) -> SemanticSearchResult:
-        """
-        Bidirectional Beam Search: Hem baştan hem sondan semantic search.
-
-        Normal beam search'ten farkı:
-        - Tek yönlü: start → target (k^d complexity)
-        - İki yönlü: start → ← target (2×k^(d/2) complexity)
-        - Exponential growth'u yarıya böler!
-
-        Algoritma:
-        1. İki beam: forward (start'tan) ve backward (target'tan)
-        2. Her adımda her iki beam'i de genişlet
-        3. Kesişme var mı kontrol et
-        4. Kesişme bulunca path'leri birleştir
-
-        Avantajlar:
-        - Çok daha az sayfa tarama (%80-90 azalma)
-        - Uzak path'lerde çok daha hızlı
-        - Hub sayfalar (Italy, United_States) hemen kesişir
-
-        Parametreler:
-            start (str): Başlangıç sayfası
-            target (str): Hedef sayfa
-            beam_width (int): Her yönde kaç alternatif path (default: 3)
-            max_depth (int): Her yön için maksimum derinlik (default: 6)
-
-        Dönüş:
-            SemanticSearchResult
-        """
-        self._initialize_search()
-
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"🔄 BIDIRECTIONAL BEAM SEARCH (width={beam_width})")
-            print(f"{'='*60}")
-            print(f"📍 Başlangıç: {start}")
-            print(f"🎯 Hedef: {target}")
-            print(f"💡 İki yönlü arama: {beam_width}×2 alternatif path\n")
-
-        # Edge case
-        if start == target:
-            return self._create_result(True, [start], [], "Bidirectional Beam Search")
-
-        # Target ve start embeddings (bir kere hesapla)
-        target_emb = self.embedder.get_embedding(target)
-        start_emb = self.embedder.get_embedding(start)
-
-        # Forward beam: start'tan target'a doğru
-        # [(current_page, path, cumulative_score)]
-        forward_beam = [(start, [start], 0.0)]
-        forward_visited = {start: [start]}
-
-        # Backward beam: target'tan start'a doğru
-        backward_beam = [(target, [target], 0.0)]
-        backward_visited = {target: [target]}
-
-        # Main loop
-        for depth in range(max_depth):
-            if self.verbose:
-                print(f"\n{'─'*60}")
-                print(f"📊 Derinlik {depth + 1}")
-                print(f"   Forward beam: {len(forward_beam)} paths")
-                print(f"   Backward beam: {len(backward_beam)} paths")
-
-            # FORWARD SEARCH (start → target)
-            if forward_beam:
-                forward_candidates = []
-
-                for current_page, path, cum_score in forward_beam:
-                    if self.verbose:
-                        print(f"\n   🔍 Forward: {current_page}")
-
-                    # Sayfayı çek
-                    soup = self.scraper.get_page_html(current_page)
-                    if not soup:
-                        continue
-
-                    links = self.scraper.get_wiki_links(soup)
-                    self.pages_explored += 1
-
-                    # Ziyaret edilmemiş linkler
-                    unvisited = [l for l in links if l not in forward_visited]
-                    if not unvisited:
-                        continue
-
-                    if self.verbose:
-                        print(f"      {len(unvisited)} yeni link")
-
-                    # Smart pre-filter (heuristic + hub detection)
-                    if len(unvisited) > 100:
-                        unvisited = self.link_filter.smart_filter(
-                            unvisited,
-                            target,
-                            current_page,
-                            max_links=100
-                        )
-
-                    # Similarity hesapla (target'a göre)
-                    link_embs = self.embedder.get_embeddings_batch(unvisited)
-                    similarities = []
-                    for i, link_emb in enumerate(link_embs):
-                        sim = self.embedder.cosine_similarity(target_emb, link_emb)
-                        similarities.append((unvisited[i], sim))
-
-                    # Top-k link
-                    similarities.sort(key=lambda x: x[1], reverse=True)
-                    top_links = similarities[:beam_width]
-
-                    # Candidate'leri ekle
-                    for link, sim in top_links:
-                        # KESİŞME KONTROLÜ!
-                        if link in backward_visited:
-                            # BULUNDU! Path'leri birleştir
-                            forward_path = path + [link]
-                            backward_path = backward_visited[link]
-                            # Backward path'i ters çevir (target'tan link'e)
-                            backward_path_reversed = list(reversed(backward_path))
-                            # Birleştir (link ortakta, bir kere ekle)
-                            complete_path = forward_path + backward_path_reversed[1:]
-
-                            if self.verbose:
-                                print(f"\n{'='*60}")
-                                print(f"🎉 KESİŞME BULUNDU!")
-                                print(f"{'='*60}")
-                                print(f"🔗 Kesişme noktası: {link}")
-                                print(f"   Forward: {' → '.join(forward_path)}")
-                                print(f"   Backward: {' → '.join(backward_path)}")
-
-                            result = self._create_result(
-                                True,
-                                complete_path,
-                                [sim],
-                                f"Bidirectional Beam Search (width={beam_width})"
-                            )
-                            self._print_result(result)
-                            return result
-
-                        # Yeni path
-                        new_path = path + [link]
-                        new_score = (cum_score * len(path) + sim) / len(new_path)
-                        forward_candidates.append((link, new_path, new_score))
-                        forward_visited[link] = new_path
-
-                # En iyi beam_width tanesini seç
-                if forward_candidates:
-                    forward_candidates.sort(key=lambda x: x[2], reverse=True)
-                    forward_beam = forward_candidates[:beam_width]
-
-                    if self.verbose:
-                        print(f"\n   🎯 Forward top {len(forward_beam)}:")
-                        for i, (page, _, score) in enumerate(forward_beam, 1):
-                            print(f"      {i}. {page} (score: {score:.3f})")
-
-            # BACKWARD SEARCH (target → start)
-            if backward_beam:
-                backward_candidates = []
-
-                for current_page, path, cum_score in backward_beam:
-                    if self.verbose:
-                        print(f"\n   🔍 Backward: {current_page}")
-
-                    # Sayfayı çek
-                    soup = self.scraper.get_page_html(current_page)
-                    if not soup:
-                        continue
-
-                    links = self.scraper.get_wiki_links(soup)
-                    self.pages_explored += 1
-
-                    # Ziyaret edilmemiş linkler
-                    unvisited = [l for l in links if l not in backward_visited]
-                    if not unvisited:
-                        continue
-
-                    if self.verbose:
-                        print(f"      {len(unvisited)} yeni link")
-
-                    # Smart pre-filter (backward için start'a göre)
-                    if len(unvisited) > 100:
-                        unvisited = self.link_filter.smart_filter(
-                            unvisited,
-                            start,  # Backward search start'a doğru gidiyor
-                            current_page,
-                            max_links=100
-                        )
-
-                    # Similarity hesapla (start'a göre!)
-                    link_embs = self.embedder.get_embeddings_batch(unvisited)
-                    similarities = []
-                    for i, link_emb in enumerate(link_embs):
-                        sim = self.embedder.cosine_similarity(start_emb, link_emb)
-                        similarities.append((unvisited[i], sim))
-
-                    # Top-k link
-                    similarities.sort(key=lambda x: x[1], reverse=True)
-                    top_links = similarities[:beam_width]
-
-                    # Candidate'leri ekle
-                    for link, sim in top_links:
-                        # KESİŞME KONTROLÜ!
-                        if link in forward_visited:
-                            # BULUNDU! Path'leri birleştir
-                            forward_path = forward_visited[link]
-                            backward_path = path + [link]
-                            # Backward path'i ters çevir
-                            backward_path_reversed = list(reversed(backward_path))
-                            # Birleştir
-                            complete_path = forward_path + backward_path_reversed[1:]
-
-                            if self.verbose:
-                                print(f"\n{'='*60}")
-                                print(f"🎉 KESİŞME BULUNDU!")
-                                print(f"{'='*60}")
-                                print(f"🔗 Kesişme noktası: {link}")
-                                print(f"   Forward: {' → '.join(forward_path)}")
-                                print(f"   Backward: {' → '.join(backward_path)}")
-
-                            result = self._create_result(
-                                True,
-                                complete_path,
-                                [sim],
-                                f"Bidirectional Beam Search (width={beam_width})"
-                            )
-                            self._print_result(result)
-                            return result
-
-                        # Yeni path
-                        new_path = path + [link]
-                        new_score = (cum_score * len(path) + sim) / len(new_path)
-                        backward_candidates.append((link, new_path, new_score))
-                        backward_visited[link] = new_path
-
-                # En iyi beam_width tanesini seç
-                if backward_candidates:
-                    backward_candidates.sort(key=lambda x: x[2], reverse=True)
-                    backward_beam = backward_candidates[:beam_width]
-
-                    if self.verbose:
-                        print(f"\n   🎯 Backward top {len(backward_beam)}:")
-                        for i, (page, _, score) in enumerate(backward_beam, 1):
-                            print(f"      {i}. {page} (score: {score:.3f})")
-
-            # Her iki beam de boşsa dur
-            if not forward_beam and not backward_beam:
-                break
-
-            # Rate limiting
-            time.sleep(0.3)
-
-        # Max depth veya takıldı
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"⚠️ HEDEF BULUNAMADI")
-            print(f"{'='*60}")
-
-        # En iyi forward path'i döndür
-        best_path = forward_beam[0][1] if forward_beam else [start]
-        result = self._create_result(
-            False,
-            best_path,
-            [],
-            f"Bidirectional Beam Search (width={beam_width})"
-        )
-        self._print_result(result)
-        return result
-
-    def claude_enhanced_search(
+    # Removed: bidirectional_beam_search() - async version is used instead (275 lines removed)
+    # Removed: claude_enhanced_search() - not used in v5.0.0
+    
+    def _removed_claude_enhanced_search(
         self,
         start: str,
         target: str,
@@ -793,141 +363,14 @@ class SemanticNavigator:
             start (str): Başlangıç sayfası
             target (str): Hedef sayfa
             max_steps (int): Maksimum adım sayısı
-            top_candidates (int): Claude'a kaç candidate gösterilsin
+            top_candidates (int): Kaç candidate gösterilsin
 
         Dönüş:
             SemanticSearchResult
+        
+        Note: This method is deprecated and not used in v5.0.0
         """
-        if not self.claude_reasoning:
-            raise ValueError("Claude reasoning etkin değil! use_claude=True ile başlatın")
-
-        self._initialize_search()
-
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"🧠 CLAUDE-ENHANCED SEARCH")
-            print(f"{'='*60}")
-            print(f"📍 Başlangıç: {start}")
-            print(f"🎯 Hedef: {target}")
-            print(f"🤖 Claude reasoning aktif...\n")
-
-        # Edge case
-        if start == target:
-            return self._create_result(True, [start], [], "Claude-Enhanced")
-
-        # Target embedding
-        target_emb = self.embedder.get_embedding(target)
-
-        # Path tracking
-        current_page = start
-        path = [start]
-        visited = {start}
-        similarity_scores = []
-        reasoning_log = []
-
-        # Search loop
-        for step in range(max_steps):
-            if self.verbose:
-                print(f"\n{'─'*60}")
-                print(f"📊 Adım {step + 1}")
-                print(f"   Mevcut sayfa: {current_page}")
-
-            # Sayfayı çek
-            soup = self.scraper.get_page_html(current_page)
-            if not soup:
-                if self.verbose:
-                    print(f"   ❌ Sayfa çekilemedi!")
-                break
-
-            links = self.scraper.get_wiki_links(soup)
-            self.pages_explored += 1
-
-            # Ziyaret edilmemiş linkler
-            unvisited_links = [link for link in links if link not in visited]
-
-            if not unvisited_links:
-                if self.verbose:
-                    print(f"   ⚠️ Tüm linkler ziyaret edilmiş!")
-                break
-
-            if self.verbose:
-                print(f"   📎 {len(links)} link, {len(unvisited_links)} ziyaret edilmemiş")
-
-            # Top-N candidates bul (semantic)
-            link_embs = self.embedder.get_embeddings_batch(unvisited_links)
-            similarities = []
-            for i, link_emb in enumerate(link_embs):
-                sim = self.embedder.cosine_similarity(target_emb, link_emb)
-                similarities.append((unvisited_links[i], sim))
-
-            # Yüksekten düşüğe sırala
-            similarities.sort(key=lambda x: x[1], reverse=True)
-            candidates = similarities[:top_candidates]
-
-            if self.verbose:
-                print(f"\n   🎯 Top {len(candidates)} Candidates (Semantic):")
-                for i, (candidate, score) in enumerate(candidates, 1):
-                    print(f"      {i}. {candidate:<30} (similarity: {score:.3f})")
-
-            # Claude'a sor
-            if self.verbose:
-                print(f"\n   🤖 Claude'a soruluyor...")
-
-            choice = self.claude_reasoning.choose_best_link(
-                current_page=current_page,
-                target_page=target,
-                candidates=candidates,
-                path_so_far=path
-            )
-
-            if self.verbose:
-                print(f"\n   ✅ Claude'un Seçimi: {choice.chosen_link}")
-                print(f"   💭 Reasoning: {choice.reasoning}")
-                print(f"   🎯 Confidence: {choice.confidence:.2f}")
-
-            # Seçilen linke git
-            visited.add(choice.chosen_link)
-            path.append(choice.chosen_link)
-
-            # Score olarak Claude confidence + semantic similarity ortalaması
-            chosen_semantic = next((s for l, s in candidates if l == choice.chosen_link), 0.0)
-            combined_score = (choice.confidence + chosen_semantic) / 2
-            similarity_scores.append(combined_score)
-            reasoning_log.append(choice.reasoning)
-
-            current_page = choice.chosen_link
-
-            # Hedefe ulaştık mı?
-            if current_page == target:
-                if self.verbose:
-                    print(f"\n{'='*60}")
-                    print(f"🎉 HEDEF BULUNDU!")
-                    print(f"{'='*60}")
-
-                result = self._create_result(True, path, similarity_scores, "Claude-Enhanced")
-                self._print_result(result)
-
-                # Reasoning log göster
-                if self.verbose:
-                    print(f"\n💭 Claude Reasoning Log:")
-                    print(f"{'─'*60}")
-                    for i, reason in enumerate(reasoning_log, 1):
-                        print(f"   {i}. {reason}")
-
-                return result
-
-            # Rate limiting
-            time.sleep(0.5)  # Claude API için biraz daha uzun bekleme
-
-        # Max steps veya takıldı
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"⚠️ HEDEF BULUNAMADI")
-            print(f"{'='*60}")
-
-        result = self._create_result(False, path, similarity_scores, "Claude-Enhanced")
-        self._print_result(result)
-        return result
+        raise NotImplementedError("Claude-enhanced search removed in v5.0.0. Use beam search instead.")
 
     def hybrid_search(
         self,
@@ -956,9 +399,8 @@ class SemanticNavigator:
         self._initialize_search()
 
         if self.verbose:
-            mode = "Claude Reasoning" if self.use_claude else "Beam Search"
             print(f"\n{'='*60}")
-            print(f"🧬 HYBRID SEARCH (Graph + {mode})")
+            print(f"🧬 HYBRID SEARCH (Graph + Beam Search)")
             print(f"{'='*60}")
             print(f"📍 Başlangıç: {start}")
             print(f"🎯 Hedef: {target}\n")
@@ -1009,47 +451,16 @@ class SemanticNavigator:
             else:
                 if self.verbose:
                     print(f"❌ Graph'ta path yok")
-                    if self.use_claude:
-                        print(f"   Claude-Enhanced search kullanılacak...\n")
-                    else:
-                        print(f"   Beam search kullanılacak...\n")
+                    print(f"   Beam search kullanılacak...\n")
 
-        # 2. Claude, Bidirectional Beam, veya Beam Search
-        if self.use_claude:
-            # Claude-Enhanced Search (daha akıllı!)
-            result = self.claude_enhanced_search(
-                start=start,
-                target=target,
-                max_steps=max_steps,
-                top_candidates=5
-            )
-            result.algorithm = "Hybrid (Claude-Enhanced)"
-        else:
-            # Bidirectional Beam Search (çok daha hızlı!)
-            # Uzak path'ler için bidirectional kullan
-            result = self.bidirectional_beam_search(
-                start=start,
-                target=target,
-                beam_width=4,  # 4 alternatif yol (daha fazla exploration)
-                max_depth=min(max_steps // 2 + 2, 10)  # Her yön için max depth (artırıldı)
-            )
-            result.algorithm = "Hybrid (Bidirectional Beam)"
-            
-            # Eğer bulunamadıysa ve çok uzak path ise, normal beam search dene
-            if not result.found and max_steps > 15:
-                if self.verbose:
-                    print(f"\n{'='*60}")
-                    print(f"⚠️ Bidirectional başarısız, normal beam search deneniyor...")
-                    print(f"{'='*60}")
-                
-                # Normal beam search (tek yönlü ama daha derin)
-                result = self.beam_search(
-                    start=start,
-                    target=target,
-                    beam_width=5,  # Daha geniş beam
-                    max_depth=max_steps
-                )
-                result.algorithm = "Hybrid (Beam Search Fallback)"
+        # 2. Beam Search
+        result = self.beam_search(
+            start=start,
+            target=target,
+            beam_width=4,
+            max_depth=max_steps
+        )
+        result.algorithm = "Hybrid (Beam Search)"
 
         # 3. Başarılıysa graph'a kaydet (path quality ile)
         if result.found and self.knowledge_graph:
@@ -1073,11 +484,7 @@ class SemanticNavigator:
 
         return result
 
-    def _save_to_graph(self, result: SemanticSearchResult):
-        """Başarılı path'i graph'a kaydet."""
-        if result.found and self.knowledge_graph:
-            self.knowledge_graph.add_path(result.path, success=True)
-            self.knowledge_graph.save()
+    # Removed: _save_to_graph() - not used, hybrid_search calls add_path directly
 
     def get_stats(self) -> dict:
         """Tüm statistics'i döndür."""
@@ -1088,9 +495,6 @@ class SemanticNavigator:
 
         if self.knowledge_graph:
             stats['graph'] = self.knowledge_graph.get_stats()
-
-        if self.claude_reasoning:
-            stats['claude'] = self.claude_reasoning.get_stats()
 
         return stats
 
