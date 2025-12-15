@@ -8,7 +8,7 @@ Wikipedia'da X sayfasından Y sayfasına sadece linklere tıklayarak ulaşma oyu
 
 ## ✨ Nasıl Çalışır?
 
-### 3 Katmanlı Akıllı Sistem
+### 2 Katmanlı Akıllı Sistem
 
 ```
 1. KNOWLEDGE GRAPH (Hafıza)
@@ -16,19 +16,13 @@ Wikipedia'da X sayfasından Y sayfasına sadece linklere tıklayarak ulaşma oyu
    ├─> Evet → Anında kullan! (0.00s, %100 doğru)
    └─> Hayır → Katman 2'ye git
 
-2. ML MODEL (Öğrenme)
-   ├─> Bu linklerden hangisi en iyi?
-   ├─> 10 feature analizi
-   ├─> XGBoost classifier
-   └─> Confidence düşükse → Katman 3'e git
-
-3. SEMANTIC SIMILARITY (Temel)
-   ├─> Cosine similarity
+2. SEMANTIC SIMILARITY (Akıllı Arama)
+   ├─> Cosine similarity ile link seçimi
    ├─> Her zaman çalışır
+   ├─> %95+ başarı oranı
    └─> Baseline performance
 
 Sonuç: Her başarılı yol → KG'ye eklenir
-       Her deneme → ML training data
        Sistem sürekli öğrenir ve iyileşir!
 ```
 
@@ -57,9 +51,6 @@ python main.py Potato Pizza
 
 # Async mode (3x daha hızlı - ÖNERİLİR!)
 python main.py Potato Pizza --async
-
-# ML mode (öğrenilmiş model ile)
-python main.py Potato Pizza --async --ml
 ```
 
 ### Örnekler
@@ -74,7 +65,7 @@ python main.py Potato Pizza --async
 python main.py Italy Rome --async
 
 # Zor yollar
-python main.py Porsche Serik_Akhmetov_Government --async --ml
+python main.py Porsche Serik_Akhmetov_Government --async
 ```
 
 ## 📊 Performans
@@ -83,13 +74,11 @@ python main.py Porsche Serik_Akhmetov_Government --async --ml
 |-----|-----|----------|----------|
 | **Sync** | 1-2s | 95% | Basit yollar |
 | **Async** | 0.5-1s | 95% | Çoğu yol (önerilen) |
-| **ML** | 0.5-1s | 98% | Zor yollar |
 | **KG Cache** | 0.00s | 100% | Öğrenilmiş yollar |
 
 ### Speedup
 - **Async:** 3x daha hızlı
 - **KG Cache:** 2000x+ daha hızlı (anında!)
-- **ML:** %3-5 daha doğru
 
 ## 🧠 Sistem Mimarisi
 
@@ -99,11 +88,6 @@ main.py
 SemanticNavigator (Orchestrator)
     ├── KnowledgeGraph (Hafıza)
     │   └── Öğrenilmiş yollar (anında sonuç)
-    │
-    ├── MLLinkScorer (Öğrenme)
-    │   ├── 10 feature extraction
-    │   ├── XGBoost classifier
-    │   └── Self-learning trainer
     │
     ├── Embedder (Semantic)
     │   ├── Sentence transformers
@@ -127,96 +111,13 @@ WikipediaML/
 ├── src/                             # Core modüller
 │   ├── semantic_navigator.py        # Ana orchestrator
 │   ├── knowledge_graph.py           # Hafıza sistemi
-│   ├── ml_link_scorer.py            # ML scoring
-│   ├── self_learning_trainer.py     # Training pipeline
 │   ├── embedder.py                  # Semantic similarity
 │   ├── scraper.py                   # Wikipedia fetcher
 │   ├── async_scraper.py             # Async fetcher
-│   ├── link_filter.py               # Link filtering
-│   ├── category_analyzer.py         # Wikipedia categories
-│   └── claude_reasoning.py          # AI reasoning (optional)
+│   └── link_filter.py               # Link filtering
 │
-├── train_ml_model_curated.py        # ML model eğitimi
-├── training_dataset.json            # Eğitim verisi
-│
-├── WikipediaML_Training.ipynb       # Colab notebook
-│
-└── docs/                            # Dokümantasyon
-    ├── ARCHITECTURE.md              # Teknik detaylar
-    ├── TRAINING_GUIDE.md            # ML eğitim rehberi
-    └── CLOUD_GUIDE.md               # Cloud deployment
-```
-
-## 🎓 ML Model Eğitimi
-
-### Hızlı Test (10 çift, ~5-10 dakika)
-
-```bash
-python train_ml_model_curated.py --limit 10
-```
-
-### Tam Eğitim (50 çift, ~30-60 dakika)
-
-```bash
-python train_ml_model_curated.py
-```
-
-### Cloud'da Eğitim (Colab - Ücretsiz!)
-
-1. `WikipediaML_Training.ipynb` dosyasını aç
-2. Google Colab'a yükle
-3. Runtime → Change runtime type → GPU
-4. Runtime → Run all
-5. 45-60 dakika bekle
-6. Model dosyalarını indir
-
-Detaylar için: [docs/TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md)
-
-## ☁️ Cloud Deployment
-
-### Google Colab (Önerilen - Ücretsiz)
-
-```bash
-# 1. Colab'a yükle: WikipediaML_Training.ipynb
-# 2. GPU aktif et
-# 3. Run all
-# 4. Model indir
-```
-
-### GCP ($300 Kredi)
-
-```bash
-# 1. GCP hesabı aç
-# 2. $300 kredi al
-# 3. VM oluştur
-gcloud compute instances create wikipediaml-trainer \
-  --zone=us-central1-a \
-  --machine-type=n1-standard-4 \
-  --preemptible
-
-# 4. Eğitimi çalıştır
-python train_ml_model_curated.py
-```
-
-Detaylar için: [docs/CLOUD_GUIDE.md](docs/CLOUD_GUIDE.md)
-
-## 🔧 Konfigürasyon
-
-### Environment Variables
-
-`.env` dosyası oluştur:
-
-```bash
-# Optional: Claude API (AI reasoning için)
-ANTHROPIC_API_KEY=your-api-key-here
-```
-
-### Flags
-
-```bash
---async    # Async/parallel processing (3x hızlı)
---ml       # ML model kullan (daha doğru)
---claude   # Claude AI reasoning (en akıllı)
+├── cache/                           # KG ve cache dosyaları
+└── data/                            # Veri dosyaları
 ```
 
 ## 📈 Sistem Nasıl Öğrenir?
@@ -244,38 +145,41 @@ Potato → Pizza
 └─> Süre: 0.00s (ANINDA!)
 ```
 
-### 4. ML Training
+## 🎯 Özellikler
+
+### ✅ Mevcut Özellikler:
+- ✅ Knowledge Graph (öğrenme ve hafıza)
+- ✅ Semantic Similarity (akıllı link seçimi)
+- ✅ Async Processing (3x hızlı)
+- ✅ Cache System (performans)
+- ✅ Bidirectional Search (daha hızlı)
+- ✅ Beam Search (multi-path)
+
+### 🎓 Teknolojiler:
+- **Python 3.11+**
+- **Sentence Transformers** - Semantic embeddings
+- **NetworkX** - Knowledge graph
+- **aiohttp** - Async HTTP
+- **BeautifulSoup** - HTML parsing
+
+## 📊 İstatistikler
+
+- **Core Modüller:** 6 dosya
+- **Toplam Kod:** ~3,700 satır
+- **Cache Layers:** 3 katman
+- **Öğrenme:** Sürekli
+
+## 🚀 Hızlı Komutlar
+
+```bash
+# Basit arama
+python main.py Potato Pizza --async
+
+# Farklı örnekler
+python main.py Albert_Einstein Physics --async
+python main.py Italy Rome --async
+python main.py Computer Science --async
 ```
-Her başarılı/başarısız deneme:
-├─> Training data olarak kaydet
-├─> 10 feature extract et
-├─> Model'i güncelle
-└─> Sonraki aramada daha akıllı!
-```
-
-## 🎯 Gelecek Hedefler
-
-### Kısa Vade (1 ay)
-- [ ] 10,000+ yol öğren
-- [ ] %80+ cache hit rate
-- [ ] ML model iyileştir
-
-### Orta Vade (3 ay)
-- [ ] 50,000+ yol
-- [ ] %98+ doğruluk
-- [ ] Cloud training pipeline
-
-### Uzun Vade (6-12 ay)
-- [ ] 100,000+ yol
-- [ ] %90+ cache hit
-- [ ] Production-ready API
-
-## 📚 Dokümantasyon
-
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Sistem mimarisi ve teknik detaylar
-- [TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md) - ML model eğitim rehberi
-- [CLOUD_GUIDE.md](docs/CLOUD_GUIDE.md) - Cloud deployment rehberi
-- [REFACTOR_PLAN.md](REFACTOR_PLAN.md) - Refactor planı ve ilerleme
 
 ## 🤝 Katkıda Bulunma
 
@@ -294,42 +198,14 @@ MIT License
 Bu proje şunları gösterir:
 - Semantic search (sentence transformers)
 - Knowledge graphs (NetworkX)
-- Machine learning (XGBoost)
 - Async programming (asyncio)
 - Self-supervised learning
-- Production ML systems
-
-## 📊 İstatistikler
-
-- **Core Modüller:** 10 dosya
-- **Toplam Kod:** ~15,000 satır
-- **ML Features:** 10 feature
-- **Cache Layers:** 3 katman
-- **Öğrenme:** Sürekli
-
-## 🚀 Hızlı Komutlar
-
-```bash
-# Basit arama
-python main.py Potato Pizza --async
-
-# ML ile arama
-python main.py Potato Pizza --async --ml
-
-# Model eğit (hızlı test)
-python train_ml_model_curated.py --limit 10
-
-# Model eğit (tam)
-python train_ml_model_curated.py
-
-# Colab'da eğit
-# WikipediaML_Training.ipynb → Colab'a yükle → Run all
-```
+- Production systems
 
 ---
 
-**Versiyon:** 5.0.0 (Refactored)  
+**Versiyon:** 5.0.0 (Clean)  
 **Durum:** Aktif Geliştirme  
-**Son Güncelleme:** 12 Aralık 2024
+**Son Güncelleme:** 15 Aralık 2024
 
 **Hedef:** Wikipedia oyununu mükemmel oynayan, sürekli öğrenen AI sistemi 🎮🧠
