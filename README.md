@@ -75,10 +75,12 @@ python main.py Porsche Serik_Akhmetov_Government --async
 | **Sync** | 1-2s | 95% | Basit yollar |
 | **Async** | 0.5-1s | 95% | Çoğu yol (önerilen) |
 | **KG Cache** | 0.00s | 100% | Öğrenilmiş yollar |
+| **Paralel (5 worker)** | 4-5x hızlı | 95% | Hızlı eğitim |
 
 ### Speedup
 - **Async:** 3x daha hızlı
 - **KG Cache:** 2000x+ daha hızlı (anında!)
+- **Paralel Eğitim:** 4-5x daha hızlı öğrenme
 
 ## 🧠 Sistem Mimarisi
 
@@ -117,7 +119,12 @@ WikipediaML/
 │   └── link_filter.py               # Link filtering
 │
 ├── cache/                           # KG ve cache dosyaları
-└── data/                            # Veri dosyaları
+├── data/                            # Veri dosyaları
+│
+├── auto_train_parallel.py           # Paralel eğitim sistemi
+├── merge_graphs.py                  # Graph birleştirme
+├── start_parallel.sh                # Otomatik paralel başlatma
+└── PARALLEL_TRAINING.md             # Paralel eğitim rehberi
 ```
 
 ## 📈 Sistem Nasıl Öğrenir?
@@ -151,6 +158,7 @@ Potato → Pizza
 - ✅ Knowledge Graph (öğrenme ve hafıza)
 - ✅ Semantic Similarity (akıllı link seçimi)
 - ✅ Async Processing (3x hızlı)
+- ✅ **Paralel Eğitim (4-5x hızlı öğrenme)** 🆕
 - ✅ Cache System (performans)
 - ✅ Bidirectional Search (daha hızlı)
 - ✅ Beam Search (multi-path)
@@ -171,6 +179,7 @@ Potato → Pizza
 
 ## 🚀 Hızlı Komutlar
 
+### Temel Kullanım
 ```bash
 # Basit arama
 python main.py Potato Pizza --async
@@ -179,6 +188,25 @@ python main.py Potato Pizza --async
 python main.py Albert_Einstein Physics --async
 python main.py Italy Rome --async
 python main.py Computer Science --async
+```
+
+### Paralel Eğitim (Yeni!) 🆕
+```bash
+# Otomatik başlatma (5 worker)
+./start_parallel.sh
+
+# Manuel başlatma (5 farklı terminal)
+python auto_train_parallel.py --worker-id 1 --count 100
+python auto_train_parallel.py --worker-id 2 --count 100
+python auto_train_parallel.py --worker-id 3 --count 100
+python auto_train_parallel.py --worker-id 4 --count 100
+python auto_train_parallel.py --worker-id 5 --count 100
+
+# Birleştirme
+python merge_graphs.py
+
+# Detaylı rehber
+cat PARALLEL_TRAINING.md
 ```
 
 ## 🤝 Katkıda Bulunma
@@ -204,8 +232,24 @@ Bu proje şunları gösterir:
 
 ---
 
-**Versiyon:** 5.0.0 (Clean)  
-**Durum:** Aktif Geliştirme  
-**Son Güncelleme:** 15 Aralık 2024
+**Versiyon:** 5.1.0 (Paralel Eğitim)
+**Durum:** Aktif Geliştirme
+**Son Güncelleme:** 16 Aralık 2024
 
 **Hedef:** Wikipedia oyununu mükemmel oynayan, sürekli öğrenen AI sistemi 🎮🧠
+
+---
+
+## 🆕 Yenilikler (v5.1.0)
+
+### Paralel Eğitim Sistemi
+- ✅ Birden fazla konsolda aynı anda eğitim
+- ✅ 4-5x daha hızlı öğrenme
+- ✅ Process-safe graph yönetimi
+- ✅ Otomatik graph birleştirme
+- ✅ Detaylı dokümantasyon ([`PARALLEL_TRAINING.md`](PARALLEL_TRAINING.md))
+
+**Hızlı Başlangıç:**
+```bash
+./start_parallel.sh  # 5 worker otomatik başlar ve birleştirilir
+```

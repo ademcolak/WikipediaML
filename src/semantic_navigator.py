@@ -59,7 +59,11 @@ class SemanticNavigator:
             use_async (bool): Async scraper kullan (3-4x daha hızlı, default: False)
         """
         self.scraper = WikipediaScraper(cache_size=256)
-        self.async_scraper = AsyncWikipediaScraper(cache_size=256) if use_async else None
+        # Async scraper için düşük max_concurrent (Wikipedia rate limiting)
+        self.async_scraper = AsyncWikipediaScraper(
+            cache_size=256,
+            max_concurrent=3  # 10'dan 3'e düşür (rate limiting için)
+        ) if use_async else None
         self.embedder = WikiEmbedder(cache_size=2048)  # Büyük cache (bazı sayfalarda 500+ link var)
         self.link_filter = LinkFilter(verbose=verbose)  # Pre-filtering
         self.knowledge_graph = WikiKnowledgeGraph() if use_graph else None

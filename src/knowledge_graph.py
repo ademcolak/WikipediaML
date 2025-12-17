@@ -73,6 +73,9 @@ class WikiKnowledgeGraph:
 
         current_time = time.time()
         
+        # Path sayacını artır (sadece bir kere, başta)
+        self.paths_learned += 1
+        
         # Path'i graph'a ekle (ardışık edge'ler)
         for i in range(len(path) - 1):
             source = path[i]
@@ -94,8 +97,6 @@ class WikiKnowledgeGraph:
             
             # Track usage
             self.edge_last_used[(source, target)] = current_time
-
-        self.paths_learned += 1
         
         # Auto-prune if too many edges
         if self.graph.number_of_edges() > self.max_edges:

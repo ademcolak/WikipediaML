@@ -2,12 +2,13 @@
 """
 visualize_kg_3d.py
 ------------------
-Knowledge Graph'ı 3D olarak görselleştir.
+Knowledge Graph'ı 3D olarak görselleştir ve otomatik olarak tarayıcıda aç.
 
 Kullanım:
     python visualize_kg_3d.py
     python visualize_kg_3d.py --max-nodes 100
     python visualize_kg_3d.py --min-weight 2.0
+    python visualize_kg_3d.py --no-browser  # Tarayıcıda açma
 """
 
 import argparse
@@ -16,6 +17,12 @@ import networkx as nx
 import plotly.graph_objects as go
 import numpy as np
 from pathlib import Path
+import webbrowser
+import http.server
+import socketserver
+import threading
+import time
+import sys
 
 
 def load_knowledge_graph():
@@ -25,7 +32,7 @@ def load_knowledge_graph():
     if not kg_path.exists():
         print("❌ Knowledge Graph bulunamadı!")
         print("   Önce eğitim yapmalısınız:")
-        print("   python auto_train.py")
+        print("   python train.py --strategy strategic --iterations 50")
         return None
     
     with open(kg_path, 'rb') as f:
@@ -90,7 +97,7 @@ def create_3d_visualization(graph, title="Knowledge Graph 3D"):
         neighbors = list(graph.neighbors(node))
         neighbor_text = ", ".join(neighbors[:5])
         if len(neighbors) > 5:
-            neighbor_text += f"... (+{len(neighbors)-5} more)"
+            neighbor_text += f"... (+{len(neighbors)-5} daha)"
         
         text = f"<b>{node}</b><br>"
         text += f"Bağlantı sayısı: {degree}<br>"
@@ -199,8 +206,8 @@ def print_graph_stats(graph):
     print("📊 GRAPH İSTATİSTİKLERİ")
     print("="*70)
     
-    print(f"\n📍 Node sayısı: {graph.number_of_nodes()}")
-    print(f"🔗 Edge sayısı: {graph.number_of_edges()}")
+    print(f"\n📍 Node sayısı: {graph.number_of_nodes():,}")
+    print(f"🔗 Edge sayısı: {graph.number_of_edges():,}")
     
     if graph.number_of_nodes() > 0:
         # Degree istatistikleri
@@ -214,7 +221,8 @@ def print_graph_stats(graph):
         top_nodes = sorted(graph.degree(), key=lambda x: x[1], reverse=True)[:5]
         print(f"\n🌟 En Bağlantılı Sayfalar:")
         for i, (node, degree) in enumerate(top_nodes, 1):
-            print(f"   {i}. {node}: {degree} bağlantı")
+            display_name = node[:50] + "..." if len(node) > 50 else node
+            print(f"   {i}. {display_name}: {degree} bağlantı")
         
         # Weight istatistikleri
         weights = [data.get('weight', 1.0) for _, _, data in graph.edges(data=True)]
@@ -227,12 +235,82 @@ def print_graph_stats(graph):
     print("="*70)
 
 
+class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """Sessiz HTTP handler (log yazdırmaz)."""
+    def log_message(self, format, *args):
+        pass
+
+
+def start_server(port=8000):
+    """HTTP server başlat."""
+    handler = QuietHTTPRequestHandler
+    
+    try:
+        with socketserver.TCPServer(("", port), handler) as httpd:
+            print(f"🌐 HTTP server başlatıldı: http://localhost:{port}")
+            httpd.serve_forever()
+    except OSError:
+        # Port kullanımda, başka port dene
+        return start_server(port + 1)
+
+
+def open_in_browser(filepath, port=8000, no_browser=False):
+    """Dosyayı tarayıcıda aç."""
+    if no_browser:
+        print(f"\n💡 Görselleştirmeyi görmek için:")
+        print(f"   http://localhost:{port}/{filepath}")
+        return
+    
+    # Server'ı thread'de başlat
+    server_thread = threading.Thread(target=start_server, args=(port,), daemon=True)
+    server_thread.start()
+    
+    # Server'ın başlamasını bekle
+    time.sleep(1)
+    
+    # Tarayıcıda aç
+    url = f"http://localhost:{port}/{filepath}"
+    print(f"\n🚀 Tarayıcıda açılıyor: {url}")
+    
+    try:
+        webbrowser.open(url)
+        print("\n✅ Görselleştirme tarayıcıda açıldı!")
+        print("\n💡 İpuçları:")
+        print("   - Fare ile döndürebilirsiniz")
+        print("   - Scroll ile zoom yapabilirsiniz")
+        print("   - Node'ların üzerine gelin detay görmek için")
+        print("\n⚠️  Server çalışıyor. Kapatmak için Ctrl+C")
+        
+        # Server'ı çalışır tut
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n\n👋 Server kapatılıyor...")
+            sys.exit(0)
+            
+    except Exception as e:
+        print(f"\n⚠️  Tarayıcı açılamadı: {e}")
+        print(f"\n💡 Manuel olarak açın:")
+        print(f"   {url}")
+        print("\n⚠️  Server çalışıyor. Kapatmak için Ctrl+C")
+        
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n\n👋 Server kapatılıyor...")
+            sys.exit(0)
+
+
 def main():
     """Ana fonksiyon."""
     parser = argparse.ArgumentParser(description='KG 3D Görselleştirme')
     parser.add_argument('--max-nodes', type=int, help='Maksimum node sayısı (default: tümü)')
     parser.add_argument('--min-weight', type=float, help='Minimum edge weight (default: 0)')
     parser.add_argument('--output', type=str, default='kg_3d.html', help='Çıktı dosyası')
+    parser.add_argument('--port', type=int, default=8000, help='HTTP server portu')
+    parser.add_argument('--no-browser', action='store_true', help='Tarayıcıda açma')
     
     args = parser.parse_args()
     
@@ -245,15 +323,15 @@ def main():
     graph = load_knowledge_graph()
     
     if graph is None:
-        return
+        sys.exit(1)
     
-    print(f"✅ {graph.number_of_nodes()} node, {graph.number_of_edges()} edge yüklendi")
+    print(f"✅ {graph.number_of_nodes():,} node, {graph.number_of_edges():,} edge yüklendi")
     
     # Filtrele
     if args.max_nodes or args.min_weight:
         print("\n🔍 Graph filtreleniyor...")
         graph = filter_graph(graph, args.max_nodes, args.min_weight)
-        print(f"✅ {graph.number_of_nodes()} node, {graph.number_of_edges()} edge kaldı")
+        print(f"✅ {graph.number_of_nodes():,} node, {graph.number_of_edges():,} edge kaldı")
     
     # İstatistikleri göster
     print_graph_stats(graph)
@@ -274,12 +352,10 @@ def main():
     fig.write_html(output_path)
     
     print(f"\n✅ Görselleştirme kaydedildi: {output_path}")
-    print(f"   Tarayıcıda açmak için: open {output_path}")
-    print("\n💡 İpuçları:")
-    print("   - Fare ile döndürebilirsiniz")
-    print("   - Scroll ile zoom yapabilirsiniz")
-    print("   - Node'ların üzerine gelin detay görmek için")
     print("="*70)
+    
+    # Tarayıcıda aç
+    open_in_browser(output_path, args.port, args.no_browser)
 
 
 if __name__ == "__main__":
