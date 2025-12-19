@@ -4,17 +4,19 @@ kg_stats.py
 -----------
 Knowledge Graph istatistiklerini gösterir.
 
+WikipediaML v6.0.0 - Performance & Algorithms Update
+
 Bu script:
 - KG büyümesini gösterir
-- Cache hit rate
-- Performans metrikleri
-- Node/Edge sayıları
-- Görsel grafikler
+- Cache hit rate ve performans
+- Node/Edge sayıları ve analiz
+- Popüler sayfalar ve yollar
+- Sistem önerileri
 
 Kullanım:
-    python kg_stats.py
-    python kg_stats.py --detailed
-    python kg_stats.py --export stats.txt
+    python kg_stats.py                    # Temel istatistikler
+    python kg_stats.py --detailed         # Detaylı analiz
+    python kg_stats.py --export stats.txt # Dosyaya kaydet
 """
 
 import argparse
@@ -26,7 +28,8 @@ import sys
 def print_header():
     """Başlık yazdır."""
     print("\n" + "╔" + "═" * 68 + "╗")
-    print("║" + " " * 20 + "📊 KNOWLEDGE GRAPH İSTATİSTİKLERİ" + " " * 15 + "║")
+    print("║" + " " * 15 + "📊 KNOWLEDGE GRAPH İSTATİSTİKLERİ" + " " * 16 + "║")
+    print("║" + " " * 20 + "WikipediaML v6.0.0" + " " * 29 + "║")
     print("╚" + "═" * 68 + "╝")
 
 
@@ -174,8 +177,9 @@ def print_file_info(kg):
         print(f"{'Durum:':<30} {'✅ Mevcut':>10}")
     else:
         print(f"{'Durum:':<30} {'❌ Yok':>10}")
-        print(f"\n💡 İlk aramayı yapın:")
-        print(f"   python main.py Italy Rome --async")
+        print(f"\n💡 İlk kullanım:")
+        print(f"   python main.py Potato Pizza")
+        print(f"   python main.py Italy Rome --beam")
 
 
 def print_recommendations(kg):
@@ -190,6 +194,10 @@ def print_recommendations(kg):
     if paths_learned == 0:
         print("❗ Henüz hiç yol öğrenilmemiş!")
         print("\n🚀 Başlamak için:")
+        print("   # Basit kullanım")
+        print("   python main.py Potato Pizza")
+        print("   python main.py Italy Rome --beam")
+        print("\n   # Eğitim (önerilen)")
         print("   python train.py --strategy strategic --iterations 50")
     elif paths_learned < 100:
         print(f"📈 İyi başlangıç! ({paths_learned:,} yol)")
@@ -197,45 +205,74 @@ def print_recommendations(kg):
         remaining = 100 - paths_learned
         print(f"   Kalan: {remaining} yol")
         print("\n🚀 Devam etmek için:")
-        print("   python train.py --strategy hybrid --iterations 50")
+        print("   python train.py --strategy strategic --iterations 50")
     elif paths_learned < 500:
         print(f"✅ Güzel ilerleme! ({paths_learned:,} yol)")
         print("\n🎯 Hedef: 500 yol")
         remaining = 500 - paths_learned
         print(f"   Kalan: {remaining} yol")
         print("\n🚀 Daha da büyütmek için:")
-        print("   python train.py --strategy hybrid --workers 2 --iterations 200")
+        print("   python train.py --strategy strategic --workers 2 --iterations 200")
     elif paths_learned < 1000:
         print(f"🎉 Harika! ({paths_learned:,} yol)")
         print("\n🎯 Hedef: 1,000 yol")
         remaining = 1000 - paths_learned
         print(f"   Kalan: {remaining} yol")
         print("\n🚀 Sürekli büyütmek için:")
-        print("   python train.py --strategy hybrid --workers 3 --iterations 500")
-    else:
+        print("   python train.py --strategy strategic --workers 3 --iterations 500")
+    elif paths_learned < 5000:
+        print(f"🎉 Harika! ({paths_learned:,} yol)")
+        print("\n🎯 Hedef: 5,000 yol")
+        remaining = 5000 - paths_learned
+        print(f"   Kalan: {remaining} yol")
+        print("\n🚀 Sürekli büyütmek için:")
+        print("   python train.py --strategy strategic --workers 3 --iterations 1000")
+    elif paths_learned < 10000:
         print(f"🏆 Mükemmel! ({paths_learned:,} yol)")
-        print("\n🎯 Sonraki hedef: 5,000 yol")
+        print("\n🎯 Hedef: 10,000 yol")
+        remaining = 10000 - paths_learned
+        print(f"   Kalan: {remaining} yol")
         print("\n🚀 Paralel eğitim için:")
-        print("   python train.py --strategy hybrid --workers 4 --iterations 1000")
-    
-    # Doğruluk tahmini
-    print("\n📊 Doğruluk Tahmini:")
-    if edges < 1000:
-        accuracy = 10 + (edges / 1000) * 10
-        print(f"   Mevcut: ~{accuracy:.0f}%")
-        print(f"   Hedef: 30% için ~3,000 edge gerekli")
-    elif edges < 5000:
-        accuracy = 20 + (edges / 5000) * 20
-        print(f"   Mevcut: ~{accuracy:.0f}%")
-        print(f"   Hedef: 50% için ~10,000 edge gerekli")
-    elif edges < 50000:
-        accuracy = 40 + (edges / 50000) * 40
-        print(f"   Mevcut: ~{accuracy:.0f}%")
-        print(f"   Hedef: 80% için ~50,000 edge gerekli")
+        print("   python train.py --strategy strategic --workers 4 --iterations 2000")
     else:
-        accuracy = min(90, 80 + (edges / 100000) * 10)
-        print(f"   Mevcut: ~{accuracy:.0f}%")
-        print(f"   🎉 Harika bir kapsama!")
+        print(f"🏆🏆🏆 OLAĞANÜSTÜ! ({paths_learned:,} yol)")
+        print("\n🎉 10,000+ yol - Profesyonel seviye!")
+        print("\n💡 Sistem artık çok güçlü:")
+        print("   • Yüksek cache hit rate")
+        print("   • Hızlı path bulma")
+        print("   • Geniş Wikipedia kapsamı")
+        print("\n🚀 Devam etmek için:")
+        print("   python train.py --strategy strategic --workers 5 --iterations 5000")
+    
+    # Performans tahmini
+    print("\n📊 Sistem Performansı:")
+    if edges < 1000:
+        print(f"   KG Cache Hit Rate: ~{(edges/1000)*10:.0f}%")
+        print(f"   Semantic Search: %75-85 doğruluk")
+        print(f"   Hedef: 1,000 edge için daha fazla eğitim")
+    elif edges < 5000:
+        hit_rate = 10 + (edges / 5000) * 20
+        print(f"   KG Cache Hit Rate: ~{hit_rate:.0f}%")
+        print(f"   Semantic Search: %75-85 doğruluk")
+        print(f"   Hedef: 5,000 edge için daha fazla eğitim")
+    elif edges < 10000:
+        hit_rate = 30 + (edges / 10000) * 30
+        print(f"   KG Cache Hit Rate: ~{hit_rate:.0f}%")
+        print(f"   Hybrid Navigator: Aktif")
+        print(f"   Hedef: 10,000 edge (Hybrid threshold)")
+    else:
+        hit_rate = min(80, 60 + (edges / 50000) * 20)
+        print(f"   KG Cache Hit Rate: ~{hit_rate:.0f}%")
+        print(f"   Hybrid Navigator: Optimize")
+        print(f"   🎉 Mükemmel kapsama!")
+    
+    # Algoritma önerileri
+    print("\n🎯 Algoritma Önerileri:")
+    print("   • Greedy Search: Hızlı, iyi doğruluk")
+    print("   • Beam Search: Multi-path, daha az tıklama")
+    print("   • A* Search: Optimal path, garantili en kısa")
+    if edges >= 10000:
+        print("   • Hybrid Navigator: KG + Embedding (önerilen)")
     
     # Görselleştirme önerisi
     if nodes >= 10:
@@ -319,10 +356,15 @@ def main():
     except Exception as e:
         print(f"\n❌ Hata: {e}")
         print("\n💡 KG dosyası bulunamadı veya okunamadı.")
-        print("\nİlk aramayı yapın:")
-        print("  python main.py Italy Rome --async")
-        print("\nVeya otomatik eğitim başlatın:")
+        print("\n🚀 Başlamak için:")
+        print("  # Basit kullanım")
+        print("  python main.py Potato Pizza")
+        print("  python main.py Italy Rome --beam")
+        print("\n  # Eğitim (önerilen)")
         print("  python train.py --strategy strategic --iterations 50")
+        print("\n📖 Detaylı bilgi:")
+        print("  docs/PROJECT_STATUS.md")
+        print("  docs/USAGE.md")
         sys.exit(1)
 
 

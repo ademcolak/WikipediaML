@@ -5,6 +5,7 @@ Semantic embeddings kullanarak akıllı Wikipedia navigasyonu.
 
 Algorithms:
 - Greedy Semantic Search: Her adımda en yüksek similarity'li link'i seç
+- Parallel Evaluation: Linkleri paralel değerlendir (YENI!)
 - Beam Search: Top-k linkleri paralel explore et (ileride)
 """
 
@@ -20,6 +21,7 @@ from src.link_filter import LinkFilter
 from src.hybrid_navigator import HybridNavigator
 from src.embedding_navigator import EmbeddingNavigator
 from src.llm_navigator import LLMNavigator
+from src.parallel_evaluator import ParallelLinkEvaluator
 
 
 @dataclass
@@ -53,7 +55,9 @@ class SemanticNavigator:
         use_graph: bool = True,
         use_async: bool = False,
         use_hybrid: bool = False,
-        use_llm: bool = False
+        use_llm: bool = False,
+        use_parallel: bool = True,
+        max_workers: int = 4
     ):
         """
         SemanticNavigator'ı başlat.
@@ -64,6 +68,8 @@ class SemanticNavigator:
             use_async (bool): Async scraper kullan (3-4x daha hızlı, default: False)
             use_hybrid (bool): Hybrid Navigator kullan (Embedding + LLM, default: False)
             use_llm (bool): LLM Navigator kullan (Claude API, default: False)
+            use_parallel (bool): Parallel link evaluation kullan (default: True)
+            max_workers (int): Parallel evaluation için worker sayısı (default: 4)
         """
         self.scraper = WikipediaScraper(cache_size=256)
         # Async scraper için düşük max_concurrent (Wikipedia rate limiting)
@@ -79,6 +85,17 @@ class SemanticNavigator:
         self.use_async = use_async
         self.use_hybrid = use_hybrid
         self.use_llm = use_llm
+        self.use_parallel = use_parallel
+
+        # Parallel Evaluator (YENI!)
+        self.parallel_evaluator = None
+        if use_parallel:
+            self.parallel_evaluator = ParallelLinkEvaluator(
+                max_workers=max_workers,
+                verbose=verbose
+            )
+            if verbose:
+                print(f"✅ Parallel Evaluator initialized ({max_workers} workers)")
 
         # Hybrid Navigator (10K+ edge için)
         self.hybrid_navigator = None
@@ -119,6 +136,8 @@ class SemanticNavigator:
     ) -> tuple[str, float, list[tuple[str, float]]]:
         """
         Linkler arasından en yüksek similarity'ye sahip olanı seç.
+        
+        UPDATED: Artık parallel evaluation kullanıyor (daha hızlı!)
 
         Parametreler:
             links: Candidate linkler
@@ -131,24 +150,35 @@ class SemanticNavigator:
         if self.verbose:
             print(f"   🧮 {len(links)} link için embedding hesaplanıyor...")
 
-        # Batch olarak tüm linklerin embedding'lerini al (hızlı!)
-        link_embeddings = self.embedder.get_embeddings_batch(links)
+        # Parallel evaluation kullan (varsa)
+        if self.use_parallel and self.parallel_evaluator and len(links) > 10:
+            # Parallel evaluation (daha hızlı!)
+            top_candidates = self.parallel_evaluator.evaluate_links_parallel(
+                links=links,
+                target_embedding=target_emb,
+                embedder=self.embedder,
+                top_k=show_top
+            )
+        else:
+            # Sequential evaluation (fallback)
+            # Batch olarak tüm linklerin embedding'lerini al (hızlı!)
+            link_embeddings = self.embedder.get_embeddings_batch(links)
 
-        # Her link için similarity hesapla
-        similarities = []
-        for i, link_emb in enumerate(link_embeddings):
-            sim = self.embedder.cosine_similarity(target_emb, link_emb)
-            similarities.append((links[i], sim))
+            # Her link için similarity hesapla
+            similarities = []
+            for i, link_emb in enumerate(link_embeddings):
+                sim = self.embedder.cosine_similarity(target_emb, link_emb)
+                similarities.append((links[i], sim))
 
-        # Yüksekten düşüğe sırala
-        similarities.sort(key=lambda x: x[1], reverse=True)
+            # Yüksekten düşüğe sırala
+            similarities.sort(key=lambda x: x[1], reverse=True)
+            
+            # Top-k candidates
+            top_candidates = similarities[:show_top]
 
         # En iyi link
-        best_link = similarities[0][0]
-        best_score = similarities[0][1]
-
-        # Top-k candidates
-        top_candidates = similarities[:show_top]
+        best_link = top_candidates[0][0]
+        best_score = top_candidates[0][1]
 
         return best_link, best_score, top_candidates
 

@@ -5,74 +5,57 @@ __pycache__/
 *.so
 .Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
 # Virtual Environment
 venv/
 env/
 ENV/
-.venv/
+.venv
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.sublime-*
+*~
 
-# Environment Variables
-.env
-
-# Cache files
+# Project specific
 cache/
-*.pkl
-*.pickle
-
-# Data files (training datasets - too large for git)
 data/
-*.json
-!.gitkeep
-
-# Logs
+*.pkl
 *.log
-logs/
+worker_*.log
+
+# Environment
+.env
 
 # OS
 .DS_Store
 Thumbs.db
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
 
-# Test outputs
-test_results/
-*.html
-
-# Temporary files
-*.tmp
-*.bak
-*~
+# Jupyter
 .ipynb_checkpoints/
+*.ipynb
 
-# Training outputs
-training.log
-checkpoint.json
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Archive (keep in repo but ignore changes)
-# archive/
-# docs/archive/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Model files (large)
-*.h5
-*.hdf5
-*.onnx
-
-# Data files (large)
-*.csv
-*.json.gz
-*.parquet
+# Benchmark results
+benchmark/*.json
+benchmark/visualizations/

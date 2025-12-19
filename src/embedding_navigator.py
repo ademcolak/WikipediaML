@@ -18,12 +18,12 @@ class EmbeddingNavigator:
     Uses pre-trained sentence-transformers model.
     """
     
-    def __init__(self, model_name: str = 'all-MiniLM-L6-v2', cache_size: int = 10000):
+    def __init__(self, model_name: str = 'paraphrase-MiniLM-L6-v2', cache_size: int = 10000):
         """
         Initialize Embedding Navigator.
         
         Args:
-            model_name: Sentence-transformers model name
+            model_name: Sentence-transformers model name (default: paraphrase-MiniLM-L6-v2)
             cache_size: Maximum number of embeddings to cache
         """
         try:
@@ -36,7 +36,7 @@ class EmbeddingNavigator:
         
         print(f"📦 Loading embedding model: {model_name}...")
         self.model = self.SentenceTransformer(model_name)
-        print(f"✅ Model loaded!")
+        print(f"✅ Model loaded! (Optimized for speed + quality)")
         
         # Cache for embeddings
         self.cache: Dict[str, np.ndarray] = {}

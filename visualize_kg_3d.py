@@ -5,10 +5,14 @@ visualize_kg_3d.py
 Knowledge Graph'ı 3D olarak görselleştir ve otomatik olarak tarayıcıda aç.
 
 Kullanım:
-    python visualize_kg_3d.py
-    python visualize_kg_3d.py --max-nodes 100
-    python visualize_kg_3d.py --min-weight 2.0
-    python visualize_kg_3d.py --no-browser  # Tarayıcıda açma
+    python visualize_kg_3d.py                    # Otomatik: En önemli 300 node
+    python visualize_kg_3d.py --preset small     # 100 node (hızlı)
+    python visualize_kg_3d.py --preset medium    # 300 node (dengeli)
+    python visualize_kg_3d.py --preset large     # 500 node (detaylı)
+    python visualize_kg_3d.py --preset full      # Tüm graph (yavaş!)
+    python visualize_kg_3d.py --max-nodes 100    # Özel node sayısı
+    python visualize_kg_3d.py --min-weight 2.0   # Minimum edge weight
+    python visualize_kg_3d.py --no-browser       # Tarayıcıda açma
 """
 
 import argparse
@@ -70,12 +74,23 @@ def filter_graph(graph, max_nodes=None, min_weight=None):
     return G
 
 
-def create_3d_visualization(graph, title="Knowledge Graph 3D"):
+def create_3d_visualization(graph, title="Knowledge Graph 3D", fast_mode=False):
     """3D görselleştirme oluştur."""
     
     # Spring layout ile 3D pozisyonlar
     print("🎨 3D layout hesaplanıyor...")
-    pos = nx.spring_layout(graph, dim=3, k=0.5, iterations=50)
+    
+    # Node sayısına göre iterasyon sayısını ayarla
+    num_nodes = graph.number_of_nodes()
+    if fast_mode or num_nodes > 300:
+        iterations = 20  # Hızlı mod
+    elif num_nodes > 150:
+        iterations = 30  # Orta hız
+    else:
+        iterations = 50  # Yüksek kalite
+    
+    print(f"   Iterasyon: {iterations}, Node: {num_nodes}")
+    pos = nx.spring_layout(graph, dim=3, k=0.5, iterations=iterations)
     
     # Node pozisyonları
     node_x = [pos[node][0] for node in graph.nodes()]
@@ -130,10 +145,22 @@ def create_3d_visualization(graph, title="Knowledge Graph 3D"):
         name='Bağlantılar'
     )
     
-    # Node trace
+    # Node trace - text rendering'i optimize et
+    num_nodes = graph.number_of_nodes()
+    
+    # Çok fazla node varsa text'leri gösterme (performans için)
+    if num_nodes > 200:
+        mode = 'markers'
+        text_labels = None
+        textfont = None
+    else:
+        mode = 'markers+text'
+        text_labels = [node[:15] for node in graph.nodes()]
+        textfont = dict(size=8, color='white')
+    
     node_trace = go.Scatter3d(
         x=node_x, y=node_y, z=node_z,
-        mode='markers+text',
+        mode=mode,
         marker=dict(
             size=node_sizes,
             color=node_colors,
@@ -147,9 +174,9 @@ def create_3d_visualization(graph, title="Knowledge Graph 3D"):
             ),
             line=dict(color='white', width=0.5)
         ),
-        text=[node[:15] for node in graph.nodes()],  # Kısa isimler
-        textposition="top center",
-        textfont=dict(size=8, color='white'),
+        text=text_labels,
+        textposition="top center" if text_labels else None,
+        textfont=textfont,
         hovertext=node_text,
         hoverinfo='text',
         name='Sayfalar'
@@ -305,14 +332,48 @@ def open_in_browser(filepath, port=8000, no_browser=False):
 
 def main():
     """Ana fonksiyon."""
-    parser = argparse.ArgumentParser(description='KG 3D Görselleştirme')
-    parser.add_argument('--max-nodes', type=int, help='Maksimum node sayısı (default: tümü)')
+    parser = argparse.ArgumentParser(
+        description='KG 3D Görselleştirme',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Preset'ler:
+  small   : 100 node  (en hızlı, genel bakış)
+  medium  : 300 node  (dengeli, önerilen) [DEFAULT]
+  large   : 500 node  (detaylı, biraz yavaş)
+  full    : Tüm graph (çok yavaş, 10000+ node için önerilmez!)
+
+Örnekler:
+  python visualize_kg_3d.py                    # 300 node (medium)
+  python visualize_kg_3d.py --preset small     # 100 node
+  python visualize_kg_3d.py --preset large     # 500 node
+  python visualize_kg_3d.py --max-nodes 150    # Özel sayı
+        """
+    )
+    parser.add_argument('--preset', type=str, choices=['small', 'medium', 'large', 'full'],
+                       help='Hazır boyut ayarı (default: medium)')
+    parser.add_argument('--max-nodes', type=int, help='Maksimum node sayısı (preset yerine)')
     parser.add_argument('--min-weight', type=float, help='Minimum edge weight (default: 0)')
     parser.add_argument('--output', type=str, default='kg_3d.html', help='Çıktı dosyası')
     parser.add_argument('--port', type=int, default=8000, help='HTTP server portu')
     parser.add_argument('--no-browser', action='store_true', help='Tarayıcıda açma')
+    parser.add_argument('--fast', action='store_true', help='Hızlı mod (düşük kalite layout)')
     
     args = parser.parse_args()
+    
+    # Preset'leri işle
+    preset_sizes = {
+        'small': 100,
+        'medium': 300,
+        'large': 500,
+        'full': None  # Tümü
+    }
+    
+    # max-nodes belirlenmemişse preset kullan
+    if args.max_nodes is None:
+        preset = args.preset or 'medium'  # Default: medium
+        args.max_nodes = preset_sizes[preset]
+        if preset != 'full':
+            print(f"\n💡 Preset: {preset} ({args.max_nodes} node)")
     
     print("\n" + "="*70)
     print("🎨 KNOWLEDGE GRAPH 3D GÖRSELLEŞTİRME")
@@ -325,13 +386,34 @@ def main():
     if graph is None:
         sys.exit(1)
     
-    print(f"✅ {graph.number_of_nodes():,} node, {graph.number_of_edges():,} edge yüklendi")
+    original_nodes = graph.number_of_nodes()
+    original_edges = graph.number_of_edges()
+    print(f"✅ {original_nodes:,} node, {original_edges:,} edge yüklendi")
+    
+    # Performans uyarısı
+    if original_nodes > 1000 and args.max_nodes is None:
+        print("\n⚠️  UYARI: Graph çok büyük!")
+        print(f"   {original_nodes:,} node var. Görselleştirme çok yavaş olabilir.")
+        print("   Önerilen: --preset small veya --preset medium kullanın")
+        print("\n   Devam etmek için Enter'a basın (veya Ctrl+C ile iptal)...")
+        try:
+            input()
+        except KeyboardInterrupt:
+            print("\n\n👋 İptal edildi.")
+            sys.exit(0)
     
     # Filtrele
     if args.max_nodes or args.min_weight:
         print("\n🔍 Graph filtreleniyor...")
         graph = filter_graph(graph, args.max_nodes, args.min_weight)
-        print(f"✅ {graph.number_of_nodes():,} node, {graph.number_of_edges():,} edge kaldı")
+        filtered_nodes = graph.number_of_nodes()
+        filtered_edges = graph.number_of_edges()
+        print(f"✅ {filtered_nodes:,} node, {filtered_edges:,} edge kaldı")
+        
+        # Filtreleme oranını göster
+        if original_nodes > 0:
+            node_ratio = (filtered_nodes / original_nodes) * 100
+            print(f"   📊 Node'ların %{node_ratio:.1f}'i gösteriliyor")
     
     # İstatistikleri göster
     print_graph_stats(graph)
@@ -345,13 +427,21 @@ def main():
     if args.min_weight:
         title += f" (min weight: {args.min_weight})"
     
-    fig = create_3d_visualization(graph, title)
+    fig = create_3d_visualization(graph, title, fast_mode=args.fast)
     
     # Kaydet
     output_path = args.output
     fig.write_html(output_path)
     
+    file_size = Path(output_path).stat().st_size / (1024 * 1024)  # MB
     print(f"\n✅ Görselleştirme kaydedildi: {output_path}")
+    print(f"   📦 Dosya boyutu: {file_size:.2f} MB")
+    
+    # Performans ipuçları
+    if file_size > 10:
+        print("\n💡 İpucu: Dosya büyük. Daha hızlı yükleme için:")
+        print("   python visualize_kg_3d.py --preset small")
+    
     print("="*70)
     
     # Tarayıcıda aç
