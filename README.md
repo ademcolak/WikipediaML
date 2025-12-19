@@ -63,6 +63,22 @@ pip install -r requirements.txt
 
 ### Kullanım
 
+#### 🌐 Web Demo (Önerilen!)
+```bash
+# İnteraktif web arayüzü
+python web_demo.py
+
+# Tarayıcıda aç: http://localhost:5000
+```
+
+**Özellikler:**
+- 🎮 Gerçek zamanlı path görselleştirme
+- 🚀 Birden fazla algoritma seçimi
+- 👣 Adım adım navigasyon
+- 📊 Canlı performans metrikleri
+- 🎯 Rastgele challenge'lar
+
+#### 💻 Terminal Kullanımı
 ```bash
 # Basit kullanım
 python main.py Potato Pizza
@@ -98,6 +114,7 @@ python main.py Porsche Serik_Akhmetov_Government --hybrid --llm
 |-----|-----|----------|---------|----------|
 | **Sync** | 1-2s ⚡ | 95% | Ücretsiz | Basit yollar |
 | **Async** | 0.5-1s ⚡ | 95% | Ücretsiz | Çoğu yol |
+| **Bidirectional** | 1-3s ⚡ | 100% | Ücretsiz | Optimal path 🆕 |
 | **Beam Search** | 2-3s | 95%+ | Ücretsiz | Minimum tıklama |
 | **A* Search** | 2-4s | 95%+ | Ücretsiz | Optimal path |
 | **Hybrid** | 2-3s | 70-80% | Ücretsiz | 10K+ edge |
@@ -142,20 +159,26 @@ SemanticNavigator (Orchestrator)
 
 ```
 WikipediaML/
-├── main.py                          # Ana uygulama
+├── main.py                          # Ana uygulama (terminal)
+├── web_demo.py                      # Web demo (Flask) 🆕
 ├── train.py                         # Eğitim sistemi
 ├── test_hybrid.py                   # Hybrid test
-├── kg_stats.py                      # KG istatistikleri 🆕
-├── visualize_kg_3d.py               # 3D görselleştirme (optimize) 🆕
+├── kg_stats.py                      # KG istatistikleri
+├── visualize_kg_3d.py               # 3D görselleştirme (optimize)
 ├── merge_graphs.py                  # Graph birleştirme
+├── analyze_external_repos.py        # Repo analiz scripti 🆕
 ├── requirements.txt                 # Bağımlılıklar
 ├── .env.example                     # Environment template
 │
-├── src/                             # Core modüller (14 dosya)
+├── templates/                       # Web UI templates 🆕
+│   └── index.html                   # Ana sayfa
+│
+├── src/                             # Core modüller (15 dosya)
 │   ├── semantic_navigator.py        # Ana orchestrator
 │   ├── embedding_navigator.py       # Embedding-based navigator
 │   ├── beam_search_navigator.py     # Beam search algorithm
 │   ├── astar_navigator.py           # A* search algorithm
+│   ├── bidirectional_navigator.py   # Bidirectional BFS 🆕
 │   ├── hybrid_navigator.py          # Hybrid system (KG+Emb+LLM)
 │   ├── llm_navigator.py             # LLM integration
 │   ├── knowledge_graph.py           # Hafıza sistemi
@@ -167,11 +190,23 @@ WikipediaML/
 │   ├── training_pipeline.py         # Training orchestrator
 │   └── training_strategies.py       # Training strategies
 │
-├── docs/                            # Dokümantasyon (9 dosya)
+├── benchmark/                       # Benchmark sistemi 🆕
+│   ├── README.md                    # Benchmark dokümantasyonu
+│   ├── create_dataset.py            # Dataset oluşturucu
+│   ├── run_benchmark.py             # Otomatik test runner
+│   ├── visualize_results.py         # Sonuç görselleştirme
+│   ├── test_dataset.json            # Test dataset
+│   └── results_*.json               # Benchmark sonuçları
+│
+├── docs/                            # Dokümantasyon (14 dosya)
 │   ├── ARCHITECTURE.md              # Sistem mimarisi
 │   ├── HYBRID_SETUP.md              # Hybrid navigator rehberi
 │   ├── USAGE.md                     # Kullanım kılavuzu
-│   ├── VISUALIZATION.md             # 3D görselleştirme rehberi 🆕
+│   ├── VISUALIZATION.md             # 3D görselleştirme rehberi
+│   ├── BENCHMARK_GUIDE.md           # Benchmark sistemi rehberi
+│   ├── EXTERNAL_REPOS_ANALYSIS.md   # Dış repo analizi 🆕
+│   ├── INTEGRATION_GUIDE.md         # Entegrasyon rehberi 🆕
+│   ├── SPEEDRUN_INTEGRATION_SUMMARY.md # Speedrun entegrasyon özeti 🆕
 │   ├── RULES.md                     # Video kuralları
 │   ├── ROADMAP.md                   # Geliştirme planı
 │   ├── WEEK1_SUMMARY.md             # Hafta 1 özeti
@@ -213,13 +248,16 @@ Potato → Pizza
 ### ✅ Mevcut Özellikler:
 - ✅ Knowledge Graph (öğrenme ve hafıza)
 - ✅ Semantic Similarity (akıllı link seçimi)
-- ✅ **Optimized Embeddings** 🆕 (5.9x daha hızlı)
-- ✅ **Parallel Evaluation** 🆕 (228x speedup)
-- ✅ **Beam Search Algorithm** 🆕 (multi-path exploration)
-- ✅ **A* Search Algorithm** 🆕 (optimal pathfinding)
+- ✅ **Optimized Embeddings** (5.9x daha hızlı)
+- ✅ **Parallel Evaluation** (228x speedup)
+- ✅ **Beam Search Algorithm** (multi-path exploration)
+- ✅ **A* Search Algorithm** (optimal pathfinding)
+- ✅ **Bidirectional BFS** 🆕 (optimal + hızlı)
 - ✅ **Hybrid Navigator** (KG + Embedding + LLM)
-- ✅ **3D Visualization** 🆕 (optimize edilmiş, preset'lerle)
-- ✅ **KG Statistics** 🆕 (detaylı istatistikler ve milestone'lar)
+- ✅ **Web Demo** 🆕 (interaktif Flask arayüzü)
+- ✅ **3D Visualization** (optimize edilmiş, preset'lerle)
+- ✅ **KG Statistics** (detaylı istatistikler ve milestone'lar)
+- ✅ **Benchmark System** (otomatik test, metrikler, dashboard)
 - ✅ Async Processing (3x hızlı)
 - ✅ Paralel Eğitim (4-5x hızlı öğrenme)
 - ✅ Large Cache System (10000 embeddings)
@@ -235,17 +273,34 @@ Potato → Pizza
 
 ## 📊 İstatistikler
 
-- **Core Modüller:** 14 dosya
-- **Dokümantasyon:** 9 dosya
-- **Toplam Kod:** ~4,000+ satır
+- **Core Modüller:** 15 dosya
+- **Web Demo:** Flask + HTML/CSS/JS 🆕
+- **Benchmark Sistemi:** 4 dosya
+- **Dokümantasyon:** 14 dosya
+- **Toplam Kod:** ~6,500+ satır
 - **Cache Size:** 10,000 embeddings
 - **Algorithms:** 3 (Greedy, Beam, A*)
+- **Test Coverage:** Otomatik benchmark 🆕
 - **Öğrenme:** Sürekli
 - **Video Standardı:** ✅ BAŞARILI
 
 ## 🚀 Hızlı Komutlar
 
-### Temel Kullanım
+### 🌐 Web Demo (Önerilen!)
+```bash
+# İnteraktif web arayüzü başlat
+python web_demo.py
+
+# Tarayıcıda aç: http://localhost:5000
+
+# Özellikler:
+# - Gerçek zamanlı path görselleştirme
+# - Birden fazla algoritma seçimi
+# - Adım adım navigasyon
+# - Canlı performans metrikleri
+```
+
+### 💻 Terminal Kullanımı
 ```bash
 # Basit arama (optimized, 1-2s)
 python main.py Potato Pizza --async
@@ -328,6 +383,34 @@ python merge_graphs.py
 # Detaylı rehber
 cat PARALLEL_TRAINING.md
 ```
+
+### 📊 Benchmark Sistemi (Yeni!) 🆕
+```bash
+# 1. Test dataset oluştur
+python benchmark/create_dataset.py --count 500
+
+# 2. Benchmark çalıştır
+python benchmark/run_benchmark.py
+
+# 3. Sonuçları görselleştir
+python benchmark/visualize_results.py benchmark/results_*.json
+
+# Farklı algoritmalar
+python benchmark/run_benchmark.py --algorithm beam --beam-width 3
+python benchmark/run_benchmark.py --algorithm astar
+
+# Algoritma karşılaştırması
+python benchmark/visualize_results.py benchmark/results_*.json --compare
+
+# Detaylı rehber
+cat benchmark/README.md
+```
+
+**💡 Benchmark İpuçları:**
+- İlk test için `--max-tests 50` kullanın (hızlı)
+- Farklı algoritmaları karşılaştırın
+- Sonuçları HTML dashboard'da görüntüleyin
+- Zorluk seviyelerini analiz edin (easy/medium/hard)
 
 ## 🤝 Katkıda Bulunma
 
@@ -418,11 +501,22 @@ python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid -
 
 ## 📖 Detaylı Dokümantasyon
 
+### Core Dokümantasyon
 - **[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)** - Güncel proje durumu ve metrikler
 - **[`docs/ROADMAP.md`](docs/ROADMAP.md)** - 4 haftalık geliştirme planı
+- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** - Sistem mimarisi
+- **[`docs/USAGE.md`](docs/USAGE.md)** - Kullanım kılavuzu
+
+### Özellik Rehberleri
+- **[`docs/HYBRID_SETUP.md`](docs/HYBRID_SETUP.md)** - Hybrid navigator rehberi
+- **[`docs/VISUALIZATION.md`](docs/VISUALIZATION.md)** - 3D görselleştirme rehberi
+- **[`docs/BENCHMARK_GUIDE.md`](docs/BENCHMARK_GUIDE.md)** - Benchmark sistemi rehberi
+
+### Entegrasyon & Analiz 🆕
+- **[`docs/EXTERNAL_REPOS_ANALYSIS.md`](docs/EXTERNAL_REPOS_ANALYSIS.md)** - Wikipedia speedrun repoları analizi
+- **[`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md)** - Dış repo entegrasyon rehberi
+
+### Proje Özeti
 - **[`docs/RULES.md`](docs/RULES.md)** - Video kuralları ve değerlendirme
 - **[`docs/WEEK1_SUMMARY.md`](docs/WEEK1_SUMMARY.md)** - Hafta 1 detaylı özet
 - **[`docs/FINAL_SUMMARY.md`](docs/FINAL_SUMMARY.md)** - Proje genel özeti
-- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** - Sistem mimarisi
-- **[`docs/HYBRID_SETUP.md`](docs/HYBRID_SETUP.md)** - Hybrid navigator rehberi
-- **[`docs/USAGE.md`](docs/USAGE.md)** - Kullanım kılavuzu

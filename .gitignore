@@ -57,5 +57,7 @@ Thumbs.db
 htmlcov/
 
 # Benchmark results
-benchmark/*.json
+benchmark/test_dataset.json
+benchmark/results_*.json
+benchmark/*.html
 benchmark/visualizations/
