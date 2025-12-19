@@ -2,7 +2,7 @@
 """
 train.py
 --------
-Yeni standart eğitim sistemi - Tüm eğitim türleri için tek entry point.
+Standart eğitim sistemi - Tüm eğitim türleri için tek entry point.
 
 Kullanım:
     # Stratejik eğitim (popüler sayfalar)
@@ -17,8 +17,16 @@ Kullanım:
     # Özel eğitim (kendi listesi)
     python train.py --strategy custom --file my_pairs.txt --workers 1
 
+10K+ Edge için Hybrid Navigator:
+    # Hybrid Navigator (KG + Embedding)
+    python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid
+    
+    # Hybrid Navigator + LLM (en yüksek doğruluk)
+    python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid --use-llm
+
 Özellikler:
     - Standart pipeline (setup → train → save → backup → cleanup)
+    - Hybrid Navigator desteği (10K+ edge için)
     - Otomatik merge
     - Rate limiting
     - Wikipedia 429 koruması
@@ -76,6 +84,8 @@ def run_training(args):
         max_concurrent=args.max_concurrent,
         use_graph=True,
         use_async=True,
+        use_hybrid=args.use_hybrid,
+        use_llm=args.use_llm,
         verbose=args.verbose
     )
     
@@ -137,6 +147,12 @@ def run_parallel_training(args):
         
         if args.strategy == 'custom' and args.file:
             cmd.extend(['--file', args.file])
+        
+        if args.use_hybrid:
+            cmd.append('--use-hybrid')
+        
+        if args.use_llm:
+            cmd.append('--use-llm')
         
         print(f"\n🔧 Worker {worker_id} başlatılıyor...")
         process = subprocess.Popen(cmd)
@@ -239,6 +255,19 @@ def main():
         '--file',
         type=str,
         help='Custom strategy için çift listesi dosyası'
+    )
+    
+    # Hybrid Navigator (10K+ edge için)
+    parser.add_argument(
+        '--use-hybrid',
+        action='store_true',
+        help='Hybrid Navigator kullan (KG + Embedding, 10K+ edge için)'
+    )
+    
+    parser.add_argument(
+        '--use-llm',
+        action='store_true',
+        help='LLM Navigator kullan (Claude API, --use-hybrid ile birlikte)'
     )
     
     # Diğer

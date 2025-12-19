@@ -52,6 +52,10 @@ class TrainingConfig:
     use_graph: bool = True
     use_async: bool = True
     
+    # Hybrid Navigator (10K+ edge için)
+    use_hybrid: bool = False
+    use_llm: bool = False
+    
     # Verbose
     verbose: bool = False
     
@@ -180,6 +184,8 @@ class TrainingPipeline(ABC):
         print(f"   • Workers: {self.config.num_workers}")
         print(f"   • Rate limit: {self.config.rate_limit_delay}s")
         print(f"   • Max concurrent: {self.config.max_concurrent}")
+        print(f"   • Hybrid mode: {self.config.use_hybrid}")
+        print(f"   • LLM mode: {self.config.use_llm}")
         print(f"   • Graph file: {self.graph_file}")
         print("=" * 70)
         
@@ -188,7 +194,9 @@ class TrainingPipeline(ABC):
         self.navigator = SemanticNavigator(
             verbose=self.config.verbose,
             use_graph=self.config.use_graph,
-            use_async=self.config.use_async
+            use_async=self.config.use_async,
+            use_hybrid=self.config.use_hybrid,
+            use_llm=self.config.use_llm
         )
         
         # Worker-specific graph ayarla

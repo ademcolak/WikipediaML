@@ -17,6 +17,9 @@ from src.async_scraper import AsyncWikipediaScraper
 from src.embedder import WikiEmbedder
 from src.knowledge_graph import WikiKnowledgeGraph
 from src.link_filter import LinkFilter
+from src.hybrid_navigator import HybridNavigator
+from src.embedding_navigator import EmbeddingNavigator
+from src.llm_navigator import LLMNavigator
 
 
 @dataclass
@@ -48,7 +51,9 @@ class SemanticNavigator:
         self,
         verbose: bool = True,
         use_graph: bool = True,
-        use_async: bool = False
+        use_async: bool = False,
+        use_hybrid: bool = False,
+        use_llm: bool = False
     ):
         """
         SemanticNavigator'ı başlat.
@@ -57,6 +62,8 @@ class SemanticNavigator:
             verbose (bool): Detaylı log çıktısı
             use_graph (bool): Knowledge Graph kullan (default: True)
             use_async (bool): Async scraper kullan (3-4x daha hızlı, default: False)
+            use_hybrid (bool): Hybrid Navigator kullan (Embedding + LLM, default: False)
+            use_llm (bool): LLM Navigator kullan (Claude API, default: False)
         """
         self.scraper = WikipediaScraper(cache_size=256)
         # Async scraper için düşük max_concurrent (Wikipedia rate limiting)
@@ -70,6 +77,33 @@ class SemanticNavigator:
         self.verbose = verbose
         self.use_graph = use_graph
         self.use_async = use_async
+        self.use_hybrid = use_hybrid
+        self.use_llm = use_llm
+
+        # Hybrid Navigator (10K+ edge için)
+        self.hybrid_navigator = None
+        if use_hybrid and self.knowledge_graph:
+            try:
+                embedding_nav = EmbeddingNavigator() if use_hybrid else None
+                llm_nav = LLMNavigator() if use_llm else None
+                self.hybrid_navigator = HybridNavigator(
+                    kg=self.knowledge_graph,
+                    embedding_nav=embedding_nav,
+                    llm_nav=llm_nav,
+                    use_embedding=use_hybrid,
+                    use_llm=use_llm
+                )
+                if verbose:
+                    print("✅ Hybrid Navigator initialized")
+                    if use_llm:
+                        print("   • LLM mode: ACTIVE (Claude API)")
+                    else:
+                        print("   • LLM mode: DISABLED (Embedding only)")
+            except Exception as e:
+                if verbose:
+                    print(f"⚠️ Hybrid Navigator initialization failed: {e}")
+                    print("   Falling back to standard semantic search")
+                self.hybrid_navigator = None
 
         # Metrics
         self.pages_explored = 0
@@ -383,13 +417,13 @@ class SemanticNavigator:
         max_steps: int = 10
     ) -> SemanticSearchResult:
         """
-        Hybrid Search: Graph + Semantic/Claude Search kombinasyonu.
+        Hybrid Search: Graph + Semantic/Hybrid Navigator kombinasyonu.
 
-        1. Graph'ta path var mı bak
+        1. Graph'ta path var mı bak (A* search)
         2. Varsa kullan (hızlı!)
         3. Yoksa:
-           - use_claude=True → Claude-Enhanced Search
-           - use_claude=False → Beam Search
+           - use_hybrid=True → HybridNavigator (KG + Embedding + LLM)
+           - use_hybrid=False → Beam Search (sadece semantic)
         4. Başarılıysa graph'a kaydet
 
         Parametreler:
@@ -403,8 +437,9 @@ class SemanticNavigator:
         self._initialize_search()
 
         if self.verbose:
+            mode_name = "Hybrid Navigator (KG+Embedding+LLM)" if self.use_hybrid else "Beam Search"
             print(f"\n{'='*60}")
-            print(f"🧬 HYBRID SEARCH (Graph + Beam Search)")
+            print(f"🧬 HYBRID SEARCH (Graph + {mode_name})")
             print(f"{'='*60}")
             print(f"📍 Başlangıç: {start}")
             print(f"🎯 Hedef: {target}\n")
@@ -455,16 +490,24 @@ class SemanticNavigator:
             else:
                 if self.verbose:
                     print(f"❌ Graph'ta path yok")
-                    print(f"   Beam search kullanılacak...\n")
+                    if self.use_hybrid:
+                        print(f"   Hybrid Navigator kullanılacak (KG + Embedding + LLM)...\n")
+                    else:
+                        print(f"   Beam search kullanılacak...\n")
 
-        # 2. Beam Search
-        result = self.beam_search(
-            start=start,
-            target=target,
-            beam_width=4,
-            max_depth=max_steps
-        )
-        result.algorithm = "Hybrid (Beam Search)"
+        # 2. Hybrid Navigator veya Beam Search
+        if self.use_hybrid and self.hybrid_navigator:
+            # Yeni Hybrid Navigator ile path bul
+            result = self._hybrid_navigator_search(start, target, max_steps)
+        else:
+            # Klasik Beam Search
+            result = self.beam_search(
+                start=start,
+                target=target,
+                beam_width=4,
+                max_depth=max_steps
+            )
+            result.algorithm = "Hybrid (Beam Search)"
 
         # 3. Başarılıysa graph'a kaydet (path quality ile)
         if result.found and self.knowledge_graph:
@@ -487,6 +530,96 @@ class SemanticNavigator:
         self.embedder.save_cache_to_disk()
 
         return result
+    
+    def _hybrid_navigator_search(
+        self,
+        start: str,
+        target: str,
+        max_steps: int = 10
+    ) -> SemanticSearchResult:
+        """
+        HybridNavigator kullanarak path bul.
+        
+        3-tier system:
+        1. KG lookup (fastest)
+        2. Embedding filter (medium)
+        3. LLM selection (smartest)
+        """
+        if self.verbose:
+            print(f"🚀 Hybrid Navigator başlatılıyor...")
+        
+        path = [start]
+        current = start
+        similarity_scores = []
+        
+        for step in range(max_steps):
+            if current == target:
+                # Hedef bulundu!
+                if self.verbose:
+                    print(f"\n{'='*60}")
+                    print(f"🎉 HEDEF BULUNDU!")
+                    print(f"{'='*60}")
+                
+                return self._create_result(
+                    True,
+                    path,
+                    similarity_scores,
+                    "Hybrid Navigator (KG+Embedding+LLM)"
+                )
+            
+            # Mevcut sayfanın linklerini al
+            soup = self.scraper.get_page_html(current)
+            links = self.scraper.get_wiki_links(soup) if soup else []
+            
+            self.pages_explored += 1
+            
+            if not links:
+                if self.verbose:
+                    print(f"   ❌ {current}: No links found")
+                break
+            
+            if self.verbose:
+                print(f"\n   🔍 Step {step + 1}: {current}")
+                print(f"      Available links: {len(links)}")
+            
+            # Hybrid Navigator ile sonraki adımı seç
+            try:
+                if not self.hybrid_navigator:
+                    raise ValueError("Hybrid Navigator not initialized")
+                
+                next_page = self.hybrid_navigator.find_next_step(
+                    current_page=current,
+                    target_page=target,
+                    available_links=links,
+                    embedding_k=5
+                )
+                
+                if self.verbose:
+                    print(f"      → Selected: {next_page}")
+                
+                path.append(next_page)
+                current = next_page
+                
+                # Rate limiting
+                time.sleep(0.3)
+                
+            except Exception as e:
+                if self.verbose:
+                    print(f"   ❌ Error: {e}")
+                break
+        
+        # Max steps veya hata
+        if self.verbose:
+            print(f"\n{'='*60}")
+            print(f"⚠️ HEDEF BULUNAMADI (max steps: {max_steps})")
+            print(f"{'='*60}")
+        
+        return self._create_result(
+            False,
+            path,
+            similarity_scores,
+            "Hybrid Navigator (KG+Embedding+LLM)"
+        )
 
     # Removed: _save_to_graph() - not used, hybrid_search calls add_path directly
 
