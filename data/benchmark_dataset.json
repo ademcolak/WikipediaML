@@ -1,0 +1,80 @@
+[
+  {
+    "id": 1,
+    "start": "Italy",
+    "target": "Rome",
+    "difficulty": "easy"
+  },
+  {
+    "id": 2,
+    "start": "France",
+    "target": "Paris",
+    "difficulty": "easy"
+  },
+  {
+    "id": 3,
+    "start": "Physics",
+    "target": "Albert_Einstein",
+    "difficulty": "easy"
+  },
+  {
+    "id": 4,
+    "start": "Computer_science",
+    "target": "Programming",
+    "difficulty": "easy"
+  },
+  {
+    "id": 5,
+    "start": "United_States",
+    "target": "New_York_City",
+    "difficulty": "easy"
+  },
+  {
+    "id": 6,
+    "start": "Technology",
+    "target": "Philosophy",
+    "difficulty": "medium"
+  },
+  {
+    "id": 7,
+    "start": "Biology",
+    "target": "Computer_science",
+    "difficulty": "medium"
+  },
+  {
+    "id": 8,
+    "start": "History",
+    "target": "Mathematics",
+    "difficulty": "medium"
+  },
+  {
+    "id": 9,
+    "start": "Art",
+    "target": "Science",
+    "difficulty": "medium"
+  },
+  {
+    "id": 10,
+    "start": "Music",
+    "target": "Engineering",
+    "difficulty": "medium"
+  },
+  {
+    "id": 11,
+    "start": "Ancient_Rome",
+    "target": "Quantum_mechanics",
+    "difficulty": "hard"
+  },
+  {
+    "id": 12,
+    "start": "Basketball",
+    "target": "Medieval_history",
+    "difficulty": "hard"
+  },
+  {
+    "id": 13,
+    "start": "Poetry",
+    "target": "Nuclear_physics",
+    "difficulty": "hard"
+  }
+]

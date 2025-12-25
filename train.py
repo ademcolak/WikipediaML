@@ -1,314 +1,153 @@
 #!/usr/bin/env python3
 """
-train.py
---------
-Standart eğitim sistemi - Tüm eğitim türleri için tek entry point.
+WikipediaML Training - Sürekli Öğrenme
+======================================
+
+Otomatik training - gece çalışır, sürekli öğrenir.
+Parametre yok, sadece çalıştır.
 
 Kullanım:
-    # Stratejik eğitim (popüler sayfalar)
-    python train.py --strategy strategic --workers 3 --iterations 100
-    
-    # Rastgele eğitim (çeşitlilik)
-    python train.py --strategy random --workers 3 --iterations 100
-    
-    # Hibrit eğitim (70% stratejik, 30% rastgele)
-    python train.py --strategy hybrid --workers 3 --iterations 100
-    
-    # Özel eğitim (kendi listesi)
-    python train.py --strategy custom --file my_pairs.txt --workers 1
-
-10K+ Edge için Hybrid Navigator:
-    # Hybrid Navigator (KG + Embedding)
-    python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid
-    
-    # Hybrid Navigator + LLM (en yüksek doğruluk)
-    python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid --use-llm
+    python train.py
 
 Özellikler:
-    - Standart pipeline (setup → train → save → backup → cleanup)
-    - Hybrid Navigator desteği (10K+ edge için)
-    - Otomatik merge
-    - Rate limiting
-    - Wikipedia 429 koruması
+- Random challenge'lar oluşturur
+- Path bulur ve KG'ye kaydeder
+- Her 100 path'te bir otomatik save
+- Ctrl+C ile güvenli çıkış
 """
 
 import sys
-import argparse
-import asyncio
+import time
+import random
+import signal
 from pathlib import Path
-from typing import List, Tuple
 
-from src.training_pipeline import TrainingConfig
-from src.training_strategies import (
-    StrategicTraining,
-    RandomTraining,
-    CustomTraining,
-    HybridTraining
-)
+# Add core to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from core import Navigator
 
 
-def load_custom_pairs(file_path: str) -> List[Tuple[str, str]]:
-    """
-    Dosyadan özel çiftleri yükle.
+class Trainer:
+    """Training orchestrator."""
     
-    Format:
-        Start_Page,Target_Page
-        Italy,Rome
-        Physics,Albert_Einstein
-    
-    Args:
-        file_path: Dosya yolu
+    def __init__(self):
+        """Initialize trainer."""
+        self.navigator = Navigator()
+        self.running = True
+        self.iterations = 0
+        self.successful = 0
+        self.failed = 0
         
-    Returns:
-        (start, target) çiftleri listesi
-    """
-    pairs = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#'):
-                parts = line.split(',')
-                if len(parts) == 2:
-                    pairs.append((parts[0].strip(), parts[1].strip()))
-    return pairs
-
-
-def run_training(args):
-    """Eğitimi çalıştır."""
-    # Konfigürasyon oluştur
-    config = TrainingConfig(
-        worker_id=args.worker_id,
-        num_workers=args.workers,
-        num_iterations=args.iterations,
-        rate_limit_delay=args.rate_limit,
-        max_concurrent=args.max_concurrent,
-        use_graph=True,
-        use_async=True,
-        use_hybrid=args.use_hybrid,
-        use_llm=args.use_llm,
-        verbose=args.verbose
-    )
+        # Setup signal handler for graceful shutdown
+        signal.signal(signal.SIGINT, self._signal_handler)
     
-    # Strateji seç
-    if args.strategy == 'strategic':
-        pipeline = StrategicTraining(config)
-    elif args.strategy == 'random':
-        pipeline = RandomTraining(config)
-    elif args.strategy == 'hybrid':
-        pipeline = HybridTraining(config, strategic_ratio=args.hybrid_ratio)
-    elif args.strategy == 'custom':
-        if not args.file:
-            print("❌ Custom strategy için --file parametresi gerekli!")
-            sys.exit(1)
-        pairs = load_custom_pairs(args.file)
-        pipeline = CustomTraining(config, pairs)
-    else:
-        print(f"❌ Bilinmeyen strateji: {args.strategy}")
-        sys.exit(1)
+    def _signal_handler(self, sig, frame):
+        """Handle Ctrl+C gracefully."""
+        print("\n\n⚠️  Stopping training...")
+        self.running = False
     
-    # Çalıştır
-    pipeline.run()
-
-
-def run_parallel_training(args):
-    """Paralel eğitim - Birden fazla worker."""
-    import subprocess
-    import time
-    
-    print("\n" + "=" * 70)
-    print(f"🚀 PARALEL EĞİTİM - {args.workers} WORKER")
-    print("=" * 70)
-    print(f"\nStrateji: {args.strategy}")
-    print(f"Iterations: {args.iterations}")
-    print(f"Rate limit: {args.rate_limit}s")
-    print(f"Max concurrent: {args.max_concurrent}")
-    print("=" * 70)
-    
-    # Her worker için process başlat
-    processes = []
-    for worker_id in range(1, args.workers + 1):
-        cmd = [
-            sys.executable,
-            __file__,
-            '--strategy', args.strategy,
-            '--worker-id', str(worker_id),
-            '--workers', str(args.workers),
-            '--iterations', str(args.iterations),
-            '--rate-limit', str(args.rate_limit),
-            '--max-concurrent', str(args.max_concurrent),
-            '--no-parallel'  # Recursive çağrıyı önle
+    def generate_challenge(self) -> tuple[str, str]:
+        """
+        Generate random challenge.
+        
+        Strategy: Use popular pages for better connectivity.
+        """
+        # Popular pages (high connectivity)
+        popular_pages = [
+            'United_States', 'United_Kingdom', 'France', 'Germany', 'Italy',
+            'China', 'Japan', 'India', 'Russia', 'Brazil',
+            'Europe', 'Asia', 'Africa', 'North_America', 'South_America',
+            'World_War_II', 'World_War_I', 'Cold_War',
+            'Science', 'Technology', 'Mathematics', 'Physics', 'Chemistry',
+            'Biology', 'Computer_science', 'Engineering',
+            'History', 'Geography', 'Philosophy', 'Religion',
+            'Art', 'Music', 'Literature', 'Film',
+            'Sports', 'Football', 'Basketball', 'Tennis',
+            'New_York_City', 'London', 'Paris', 'Tokyo', 'Rome'
         ]
         
-        if args.verbose:
-            cmd.append('--verbose')
+        # Select two different pages
+        start = random.choice(popular_pages)
+        target = random.choice([p for p in popular_pages if p != start])
         
-        if args.strategy == 'hybrid':
-            cmd.extend(['--hybrid-ratio', str(args.hybrid_ratio)])
-        
-        if args.strategy == 'custom' and args.file:
-            cmd.extend(['--file', args.file])
-        
-        if args.use_hybrid:
-            cmd.append('--use-hybrid')
-        
-        if args.use_llm:
-            cmd.append('--use-llm')
-        
-        print(f"\n🔧 Worker {worker_id} başlatılıyor...")
-        process = subprocess.Popen(cmd)
-        processes.append(process)
-        time.sleep(0.5)  # Stagger başlatma
+        return start, target
     
-    print(f"\n✅ {args.workers} worker başlatıldı!")
-    print("⏳ Worker'ların bitmesi bekleniyor...")
+    def train_iteration(self):
+        """Run one training iteration."""
+        self.iterations += 1
+        
+        # Generate challenge
+        start, target = self.generate_challenge()
+        
+        print(f"\n{'='*60}")
+        print(f"Iteration {self.iterations}")
+        print(f"Challenge: {start} → {target}")
+        print(f"{'='*60}")
+        
+        # Find path
+        result = self.navigator.find_path(start, target, verbose=True)
+        
+        # Update stats
+        if result.found:
+            self.successful += 1
+        else:
+            self.failed += 1
+        
+        # Auto-save every 100 iterations
+        if self.iterations % 100 == 0:
+            self.navigator.save()
+            self._print_stats()
     
-    # Tüm worker'ların bitmesini bekle
-    for process in processes:
-        process.wait()
+    def _print_stats(self):
+        """Print training statistics."""
+        print(f"\n{'='*60}")
+        print("📊 TRAINING STATISTICS")
+        print(f"{'='*60}")
+        print(f"Iterations: {self.iterations}")
+        print(f"Successful: {self.successful} ({self.successful/self.iterations*100:.1f}%)")
+        print(f"Failed: {self.failed} ({self.failed/self.iterations*100:.1f}%)")
+        
+        stats = self.navigator.get_stats()
+        print(f"\nKnowledge Graph:")
+        print(f"  Nodes: {stats['knowledge']['nodes']}")
+        print(f"  Edges: {stats['knowledge']['edges']}")
+        print(f"  Paths learned: {stats['knowledge']['paths_learned']}")
+        print(f"  Cache hit rate: {stats['kg_hit_rate']:.1f}%")
+        print(f"{'='*60}")
     
-    print("\n✅ Tüm worker'lar tamamlandı!")
-    
-    # Merge
-    if args.auto_merge:
-        print("\n🔗 Graph'lar birleştiriliyor...")
-        subprocess.run([sys.executable, 'merge_graphs.py', '--cleanup'])
-        print("✅ Merge tamamlandı!")
+    def run(self):
+        """Run training loop."""
+        print("\n" + "="*60)
+        print("🏭 WIKIPEDIAML TRAINING")
+        print("="*60)
+        print("\nTraining will run continuously.")
+        print("Press Ctrl+C to stop and save.\n")
+        print("="*60)
+        
+        try:
+            while self.running:
+                self.train_iteration()
+                
+                # Rate limiting (be nice to Wikipedia)
+                time.sleep(2)
+        
+        except KeyboardInterrupt:
+            pass
+        
+        finally:
+            # Final save
+            print("\n\n💾 Saving final state...")
+            self.navigator.save()
+            self._print_stats()
+            print("\n✅ Training complete!")
 
 
 def main():
-    """Ana fonksiyon."""
-    parser = argparse.ArgumentParser(
-        description='Standart eğitim sistemi',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Örnekler:
-  # Stratejik eğitim (3 worker, 100 iteration)
-  python train.py --strategy strategic --workers 3 --iterations 100
-  
-  # Rastgele eğitim (tek worker, 50 iteration)
-  python train.py --strategy random --workers 1 --iterations 50
-  
-  # Hibrit eğitim (70% stratejik, 30% rastgele)
-  python train.py --strategy hybrid --workers 3 --iterations 100 --hybrid-ratio 0.7
-  
-  # Özel eğitim (kendi listesi)
-  python train.py --strategy custom --file pairs.txt --workers 1
-        """
-    )
-    
-    # Strateji
-    parser.add_argument(
-        '--strategy',
-        type=str,
-        choices=['strategic', 'random', 'hybrid', 'custom'],
-        default='strategic',
-        help='Eğitim stratejisi (default: strategic)'
-    )
-    
-    # Worker ayarları
-    parser.add_argument(
-        '--workers',
-        type=int,
-        default=3,
-        help='Worker sayısı (default: 3)'
-    )
-    
-    parser.add_argument(
-        '--worker-id',
-        type=int,
-        default=1,
-        help='Worker ID (internal use)'
-    )
-    
-    # Eğitim ayarları
-    parser.add_argument(
-        '--iterations',
-        type=int,
-        default=100,
-        help='Iteration sayısı (default: 100)'
-    )
-    
-    parser.add_argument(
-        '--rate-limit',
-        type=float,
-        default=1.0,
-        help='Rate limiting delay (saniye, default: 1.0)'
-    )
-    
-    parser.add_argument(
-        '--max-concurrent',
-        type=int,
-        default=2,
-        help='Max concurrent requests (default: 2)'
-    )
-    
-    # Hibrit strateji
-    parser.add_argument(
-        '--hybrid-ratio',
-        type=float,
-        default=0.7,
-        help='Hibrit stratejide stratejik oran (default: 0.7)'
-    )
-    
-    # Özel strateji
-    parser.add_argument(
-        '--file',
-        type=str,
-        help='Custom strategy için çift listesi dosyası'
-    )
-    
-    # Hybrid Navigator (10K+ edge için)
-    parser.add_argument(
-        '--use-hybrid',
-        action='store_true',
-        help='Hybrid Navigator kullan (KG + Embedding, 10K+ edge için)'
-    )
-    
-    parser.add_argument(
-        '--use-llm',
-        action='store_true',
-        help='LLM Navigator kullan (Claude API, --use-hybrid ile birlikte)'
-    )
-    
-    # Diğer
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Detaylı log'
-    )
-    
-    parser.add_argument(
-        '--no-parallel',
-        action='store_true',
-        help='Paralel çalıştırmayı devre dışı bırak (internal)'
-    )
-    
-    parser.add_argument(
-        '--auto-merge',
-        action='store_true',
-        default=True,
-        help='Otomatik merge (default: True)'
-    )
-    
-    args = parser.parse_args()
-    
-    try:
-        if args.workers > 1 and not args.no_parallel:
-            # Paralel eğitim
-            run_parallel_training(args)
-        else:
-            # Tek worker
-            run_training(args)
-    
-    except KeyboardInterrupt:
-        print("\n\n⚠️  İşlem kullanıcı tarafından durduruldu.")
-        sys.exit(0)
-    except Exception as e:
-        print(f"\n\n❌ Hata: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    """Main entry point."""
+    trainer = Trainer()
+    trainer.run()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

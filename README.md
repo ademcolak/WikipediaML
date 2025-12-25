@@ -1,522 +1,233 @@
-# 🎮 WikipediaML - Wikipedia Oyunu Çözücü
+# WikipediaML - Wikipedia Path Finder 🎮
 
-Wikipedia'da X sayfasından Y sayfasına sadece linklere tıklayarak ulaşma oyununu oynayan akıllı sistem.
+AI that learns to play the Wikipedia game using semantic search and knowledge graphs.
 
-## 🎯 Hedef
+## 🎯 What It Does
 
-**Wikipedia oyununu mükemmel oynayan, öğrene öğrene gelişen bir AI sistemi.**
+Finds the shortest path between two Wikipedia pages by clicking links, just like the Wikipedia game!
 
-## ✨ Nasıl Çalışır?
-
-### 3 Katmanlı Akıllı Sistem (10K+ Edge için)
-
+**Example:**
 ```
-1. KNOWLEDGE GRAPH (Hafıza)
-   ├─> Daha önce bu yolu gördüm mü?
-   ├─> Evet → Anında kullan! (0.00s, %100 doğru)
-   └─> Hayır → Katman 2'ye git
+Italy → Rome (2 steps)
+Italy → Europe → Rome
 
-2. EMBEDDING FILTER (Akıllı Filtreleme)
-   ├─> Semantic similarity ile top-5 link seç
-   ├─> 1-2 saniye
-   ├─> %60-70 doğruluk
-   └─> LLM'e gönder
-
-3. LLM SELECTION (En Akıllı Seçim)
-   ├─> Claude API ile en iyi link'i seç
-   ├─> 3-5 saniye
-   ├─> %70-80+ doğruluk
-   └─> ~$0.02 per query
-
-Sonuç: Her başarılı yol → KG'ye eklenir
-       Sistem sürekli öğrenir ve iyileşir!
+Physics → Albert Einstein (2 steps)  
+Physics → Scientist → Albert Einstein
 ```
 
-### Klasik Sistem (<10K Edge)
+## 🚀 Quick Start
 
-```
-1. KNOWLEDGE GRAPH (Hafıza)
-   └─> Öğrenilmiş yollar (anında!)
-
-2. SEMANTIC SIMILARITY (Akıllı Arama)
-   ├─> Cosine similarity ile link seçimi
-   ├─> Her zaman çalışır
-   └─> %95+ başarı oranı
-```
-
-## 🚀 Hızlı Başlangıç
-
-### Kurulum
+### Installation
 
 ```bash
-# Projeyi klonla
-git clone <repo-url>
+# Clone repository
+git clone https://github.com/yourusername/WikipediaML.git
 cd WikipediaML
 
-# Virtual environment oluştur
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Bağımlılıkları kur
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Kullanım
+### Usage
 
-#### 🌐 Web Demo (Önerilen!)
+**1. Play the Game (Interactive)**
 ```bash
-# İnteraktif web arayüzü
-python web_demo.py
-
-# Tarayıcıda aç: http://localhost:5000
+python play.py
 ```
+Interactive mode - enter start and target pages, get instant results!
 
-**Özellikler:**
-- 🎮 Gerçek zamanlı path görselleştirme
-- 🚀 Birden fazla algoritma seçimi
-- 👣 Adım adım navigasyon
-- 📊 Canlı performans metrikleri
-- 🎯 Rastgele challenge'lar
-
-#### 💻 Terminal Kullanımı
+**2. Train the System (Background)**
 ```bash
-# Basit kullanım
-python main.py Potato Pizza
-
-# Async mode (3x daha hızlı)
-python main.py Potato Pizza --async
-
-# Hybrid Navigator (10K+ edge için)
-python main.py Italy Rome --hybrid
-
-# Hybrid + LLM (en yüksek doğruluk)
-python main.py Italy Rome --hybrid --llm
+python train.py
 ```
+Runs continuously, learns from random challenges, builds knowledge graph.
+Press Ctrl+C to stop and save.
 
-### Örnekler
-
+**3. Run Benchmark (Test Performance)**
 ```bash
-# Kolay yollar
-python main.py Albert_Einstein Physics --async
-python main.py Python_(programming_language) Machine_learning --async
-
-# Orta zorluk
-python main.py Potato Pizza --async
-python main.py Italy Rome --hybrid
-
-# Zor yollar (Hybrid + LLM önerilir)
-python main.py Porsche Serik_Akhmetov_Government --hybrid --llm
+python benchmark.py
 ```
+Tests performance on standard dataset, shows detailed metrics.
 
-## 📊 Performans
+## 📊 How It Works
 
-| Mod | Hız | Doğruluk | Maliyet | Kullanım |
-|-----|-----|----------|---------|----------|
-| **Sync** | 1-2s ⚡ | 95% | Ücretsiz | Basit yollar |
-| **Async** | 0.5-1s ⚡ | 95% | Ücretsiz | Çoğu yol |
-| **Bidirectional** | 1-3s ⚡ | 100% | Ücretsiz | Optimal path 🆕 |
-| **Beam Search** | 2-3s | 95%+ | Ücretsiz | Minimum tıklama |
-| **A* Search** | 2-4s | 95%+ | Ücretsiz | Optimal path |
-| **Hybrid** | 2-3s | 70-80% | Ücretsiz | 10K+ edge |
-| **Hybrid+LLM** | 4-5s | 75-85% | ~$0.02/query | Zor yollar |
-| **KG Cache** | 0.00s ⚡⚡⚡ | 100% | Ücretsiz | Öğrenilmiş yollar |
+### Three-Tier System
 
-### 🚀 Performans İyileştirmeleri (v6.0.0)
-- **Embedding Model:** 5.9x daha hızlı (`paraphrase-MiniLM-L6-v2`)
-- **Parallel Evaluation:** 228x speedup (4 workers, 100 links)
-- **Cache Size:** 5x daha büyük (2048 → 10000)
-- **Genel Hız:** 5-7x iyileşme
-- **Video Standardı:** ✅ BAŞARILI (1-2s hedefine ulaşıldı)
+**Tier 1: Knowledge Graph (Instant)**
+- Stores successful paths
+- Instant lookup if path exists
+- Grows with training
 
-### 🎯 Algoritma Karşılaştırması
-- **Greedy Search:** En hızlı, iyi doğruluk
-- **Beam Search:** Multi-path, daha az tıklama
-- **A* Search:** Optimal path, garantili en kısa yol
-- **Hybrid Navigator:** %70-80 doğruluk (10K+ edge'de)
-- **Hybrid + LLM:** %75-85 doğruluk (en yüksek)
+**Tier 2: Beam Search (Smart)**
+- Semantic similarity (sentence transformers)
+- Explores top 5 paths simultaneously
+- Max depth: 6 steps
 
-## 🧠 Sistem Mimarisi
+**Tier 3: Auto-Learning**
+- Saves successful paths automatically
+- Improves over time
+- No manual intervention needed
 
-```
-main.py
-    ↓
-SemanticNavigator (Orchestrator)
-    ├── KnowledgeGraph (Hafıza)
-    │   └── Öğrenilmiş yollar (anında sonuç)
-    │
-    ├── Embedder (Semantic)
-    │   ├── Sentence transformers
-    │   └── Cosine similarity
-    │
-    ├── AsyncScraper (Hız)
-    │   └── Parallel page fetching
-    │
-    └── LinkFilter (Optimizasyon)
-        └── Smart pre-filtering
-```
-
-## 📁 Proje Yapısı
+### Architecture
 
 ```
 WikipediaML/
-├── main.py                          # Ana uygulama (terminal)
-├── web_demo.py                      # Web demo (Flask) 🆕
-├── train.py                         # Eğitim sistemi
-├── test_hybrid.py                   # Hybrid test
-├── kg_stats.py                      # KG istatistikleri
-├── visualize_kg_3d.py               # 3D görselleştirme (optimize)
-├── merge_graphs.py                  # Graph birleştirme
-├── analyze_external_repos.py        # Repo analiz scripti 🆕
-├── requirements.txt                 # Bağımlılıklar
-├── .env.example                     # Environment template
+├── train.py          # Training script (continuous learning)
+├── play.py           # Interactive game
+├── benchmark.py      # Performance testing
 │
-├── templates/                       # Web UI templates 🆕
-│   └── index.html                   # Ana sayfa
+├── core/            # Core system (3 files)
+│   ├── wikipedia.py    # Wikipedia interface (scraping + embeddings)
+│   ├── knowledge.py    # Knowledge graph + ML
+│   └── navigator.py    # Path finding (beam search)
 │
-├── src/                             # Core modüller (15 dosya)
-│   ├── semantic_navigator.py        # Ana orchestrator
-│   ├── embedding_navigator.py       # Embedding-based navigator
-│   ├── beam_search_navigator.py     # Beam search algorithm
-│   ├── astar_navigator.py           # A* search algorithm
-│   ├── bidirectional_navigator.py   # Bidirectional BFS 🆕
-│   ├── hybrid_navigator.py          # Hybrid system (KG+Emb+LLM)
-│   ├── llm_navigator.py             # LLM integration
-│   ├── knowledge_graph.py           # Hafıza sistemi
-│   ├── embedder.py                  # Optimized embeddings
-│   ├── parallel_evaluator.py        # Parallel link evaluation
-│   ├── scraper.py                   # Wikipedia fetcher
-│   ├── async_scraper.py             # Async fetcher
-│   ├── link_filter.py               # Link filtering
-│   ├── training_pipeline.py         # Training orchestrator
-│   └── training_strategies.py       # Training strategies
+├── data/            # Data storage
+│   ├── knowledge_graph.pkl      # Learned paths
+│   ├── benchmark_dataset.json   # Test dataset
+│   └── benchmark_results_*.json # Test results
 │
-├── benchmark/                       # Benchmark sistemi 🆕
-│   ├── README.md                    # Benchmark dokümantasyonu
-│   ├── create_dataset.py            # Dataset oluşturucu
-│   ├── run_benchmark.py             # Otomatik test runner
-│   ├── visualize_results.py         # Sonuç görselleştirme
-│   ├── test_dataset.json            # Test dataset
-│   └── results_*.json               # Benchmark sonuçları
-│
-├── docs/                            # Dokümantasyon (14 dosya)
-│   ├── ARCHITECTURE.md              # Sistem mimarisi
-│   ├── HYBRID_SETUP.md              # Hybrid navigator rehberi
-│   ├── USAGE.md                     # Kullanım kılavuzu
-│   ├── VISUALIZATION.md             # 3D görselleştirme rehberi
-│   ├── BENCHMARK_GUIDE.md           # Benchmark sistemi rehberi
-│   ├── EXTERNAL_REPOS_ANALYSIS.md   # Dış repo analizi 🆕
-│   ├── INTEGRATION_GUIDE.md         # Entegrasyon rehberi 🆕
-│   ├── SPEEDRUN_INTEGRATION_SUMMARY.md # Speedrun entegrasyon özeti 🆕
-│   ├── RULES.md                     # Video kuralları
-│   ├── ROADMAP.md                   # Geliştirme planı
-│   ├── WEEK1_SUMMARY.md             # Hafta 1 özeti
-│   ├── FINAL_SUMMARY.md             # Proje özeti
-│   └── PROJECT_STATUS.md            # Güncel durum
-│
-├── cache/                           # KG ve cache dosyaları
-│   └── wiki_graph.pkl               # Knowledge Graph (10K+ paths)
-└── data/                            # Veri dosyaları
+└── archive/         # Old code (reference only)
 ```
 
-## 📈 Sistem Nasıl Öğrenir?
+## 📈 Performance
 
-### 1. İlk Çalıştırma
-```
-Potato → Pizza
-├─> Semantic similarity kullan
-├─> 2 adımda bul: Potato → Tomato → Pizza
-└─> Süre: 1.5s
-```
+### Current Results
+- **Easy challenges:** ~70% success (e.g., Italy → Rome)
+- **Medium challenges:** ~40% success (e.g., Technology → Philosophy)
+- **Hard challenges:** ~20% success (e.g., Ancient Rome → Quantum Mechanics)
+- **Average time:** <2 seconds per path
 
-### 2. Yolu Öğren
-```
-Knowledge Graph'a ekle:
-- Potato → Tomato (weight: 1)
-- Tomato → Pizza (weight: 1)
-```
+### Knowledge Graph Stats
+- **Nodes:** Grows with training
+- **Edges:** Weighted by usage
+- **Cache hit rate:** Improves over time
 
-### 3. İkinci Çalıştırma
-```
-Potato → Pizza
-├─> KG'de var mı? EVET!
-├─> Potato → Tomato → Pizza
-└─> Süre: 0.00s (ANINDA!)
-```
+## 🛠️ Technical Details
 
-## 🎯 Özellikler
+### Core Technologies
+- **Sentence Transformers:** `all-MiniLM-L12-v2` (384 dim)
+- **Graph Library:** NetworkX (directed, weighted)
+- **Web Scraping:** BeautifulSoup + Requests
+- **Search Algorithm:** Beam search (width=5, depth=6)
 
-### ✅ Mevcut Özellikler:
-- ✅ Knowledge Graph (öğrenme ve hafıza)
-- ✅ Semantic Similarity (akıllı link seçimi)
-- ✅ **Optimized Embeddings** (5.9x daha hızlı)
-- ✅ **Parallel Evaluation** (228x speedup)
-- ✅ **Beam Search Algorithm** (multi-path exploration)
-- ✅ **A* Search Algorithm** (optimal pathfinding)
-- ✅ **Bidirectional BFS** 🆕 (optimal + hızlı)
-- ✅ **Hybrid Navigator** (KG + Embedding + LLM)
-- ✅ **Web Demo** 🆕 (interaktif Flask arayüzü)
-- ✅ **3D Visualization** (optimize edilmiş, preset'lerle)
-- ✅ **KG Statistics** (detaylı istatistikler ve milestone'lar)
-- ✅ **Benchmark System** (otomatik test, metrikler, dashboard)
-- ✅ Async Processing (3x hızlı)
-- ✅ Paralel Eğitim (4-5x hızlı öğrenme)
-- ✅ Large Cache System (10000 embeddings)
+### Key Features
+- **LRU Caching:** Fast repeated lookups
+- **Semantic Similarity:** Cosine similarity on embeddings
+- **Weighted Edges:** Usage-based path quality
+- **Auto-Save:** Every 100 iterations
+- **Graceful Shutdown:** Ctrl+C saves state
 
-### 🎓 Teknolojiler:
-- **Python 3.11+**
-- **Sentence Transformers** - Semantic embeddings (`paraphrase-MiniLM-L6-v2`)
-- **NetworkX** - Knowledge graph
-- **ThreadPoolExecutor** - Parallel processing
-- **aiohttp** - Async HTTP
-- **BeautifulSoup** - HTML parsing
-- **Anthropic Claude** - LLM integration (optional)
+## 📝 Examples
 
-## 📊 İstatistikler
-
-- **Core Modüller:** 15 dosya
-- **Web Demo:** Flask + HTML/CSS/JS 🆕
-- **Benchmark Sistemi:** 4 dosya
-- **Dokümantasyon:** 14 dosya
-- **Toplam Kod:** ~6,500+ satır
-- **Cache Size:** 10,000 embeddings
-- **Algorithms:** 3 (Greedy, Beam, A*)
-- **Test Coverage:** Otomatik benchmark 🆕
-- **Öğrenme:** Sürekli
-- **Video Standardı:** ✅ BAŞARILI
-
-## 🚀 Hızlı Komutlar
-
-### 🌐 Web Demo (Önerilen!)
+### Training
 ```bash
-# İnteraktif web arayüzü başlat
-python web_demo.py
+$ python train.py
 
-# Tarayıcıda aç: http://localhost:5000
+🏭 WIKIPEDIAML TRAINING
+======================================
+Training will run continuously.
+Press Ctrl+C to stop and save.
+======================================
 
-# Özellikler:
-# - Gerçek zamanlı path görselleştirme
-# - Birden fazla algoritma seçimi
-# - Adım adım navigasyon
-# - Canlı performans metrikleri
+Iteration 1
+Challenge: United_States → New_York_City
+✅ Path found! 2 steps, 1.23s
+
+Iteration 2
+Challenge: Physics → Albert_Einstein
+✅ Path found! 2 steps, 0.87s
+
+...
 ```
 
-### 💻 Terminal Kullanımı
+### Playing
 ```bash
-# Basit arama (optimized, 1-2s)
-python main.py Potato Pizza --async
+$ python play.py
 
-# Farklı örnekler
-python main.py Albert_Einstein Physics --async
-python main.py Italy Rome --async
-python main.py Computer Science --async
+🎮 WIKIPEDIAML - WIKIPEDIA GAME
+======================================
+
+Start page: Italy
+Target page: Rome
+
+✅ PATH FOUND!
+======================================
+
+🛤️  Path (1 steps):
+  🏁 Italy
+  🎯 Rome
+
+📊 Stats:
+  Steps: 1
+  Time: 0.45s
+  Source: knowledge_graph
+  ⚡ Instant (from Knowledge Graph!)
 ```
 
-### 🆕 Yeni Algoritmalar (v6.0.0)
+### Benchmark
 ```bash
-# Beam Search (multi-path exploration)
-python main.py Italy Rome --beam --beam-width 3
+$ python benchmark.py
 
-# A* Search (optimal pathfinding)
-python main.py Italy Rome --astar
+🎯 WIKIPEDIAML BENCHMARK
+======================================
+
+Test #1: Italy → Rome (easy)
+✅ Success! 1 steps, 0.45s
+
+Test #2: Technology → Philosophy (medium)
+✅ Success! 3 steps, 2.13s
+
+...
+
+📊 BENCHMARK RESULTS
+======================================
+✅ Successful: 8/13 (61.5%)
+❌ Failed: 5/13
+⏱️  Total Time: 24.56s
+
+📈 Performance Metrics:
+   Avg Time: 1.87s (±0.92s)
+   Avg Steps: 2.3
 ```
 
-### 📊 Knowledge Graph İstatistikleri
-```bash
-# KG istatistiklerini görüntüle
-python kg_stats.py
+## 🔮 Future Plans
 
-# Çıktı örneği:
-# 📊 KNOWLEDGE GRAPH İSTATİSTİKLERİ
-# Node sayısı: 8,234
-# Edge sayısı: 10,261
-# Öğrenilmiş yol sayısı: 10,261
-# Seviye: OLAĞANÜSTÜ! 🌟 (Profesyonel seviye)
-```
+### Short Term
+- Topic-based routing (Wikipedia categories)
+- Better embedding model (DistilBERT)
+- Hybrid similarity (semantic + structural)
 
-### 🎨 3D Görselleştirme (Optimize Edilmiş!)
-```bash
-# Otomatik (300 node - önerilen)
-python visualize_kg_3d.py
+### Medium Term
+- ML link predictor (neural network)
+- Pattern recognition
+- Hub detection
 
-# Hızlı görünüm (100 node)
-python visualize_kg_3d.py --preset small
+### Long Term
+- Reinforcement learning agent
+- Multi-modal embeddings
+- Distributed training
 
-# Detaylı görünüm (500 node)
-python visualize_kg_3d.py --preset large
+## 🤝 Contributing
 
-# Özel node sayısı
-python visualize_kg_3d.py --max-nodes 150
+This is an educational project. Feel free to:
+- Report issues
+- Suggest improvements
+- Fork and experiment
 
-# Minimum weight filtresi
-python visualize_kg_3d.py --min-weight 2.0
+## 📄 License
 
-# Hızlı mod (düşük kalite layout)
-python visualize_kg_3d.py --preset small --fast
+MIT License - See LICENSE file for details
 
-# Tüm graph (10K+ node için ÖNERİLMEZ!)
-python visualize_kg_3d.py --preset full
-```
+## 🙏 Acknowledgments
 
-**💡 Görselleştirme İpuçları:**
-- **10K+ node varsa:** `--preset small` veya `--preset medium` kullanın
-- **Hızlı önizleme:** `--preset small --fast` (20 iterasyon)
-- **Kaliteli görünüm:** `--preset medium` (varsayılan, 300 node)
-- **Detaylı analiz:** `--preset large` (500 node)
-- Preset'ler otomatik olarak en önemli (en çok bağlantılı) node'ları seçer
-- 200+ node'da text rendering otomatik olarak kapatılır (performans için)
+- Wikipedia for the amazing knowledge base
+- Sentence Transformers for semantic embeddings
+- NetworkX for graph algorithms
 
-### Paralel Eğitim (Yeni!) 🆕
-```bash
-# Otomatik başlatma (5 worker)
-./start_parallel.sh
+## 📧 Contact
 
-# Manuel başlatma (5 farklı terminal)
-python auto_train_parallel.py --worker-id 1 --count 100
-python auto_train_parallel.py --worker-id 2 --count 100
-python auto_train_parallel.py --worker-id 3 --count 100
-python auto_train_parallel.py --worker-id 4 --count 100
-python auto_train_parallel.py --worker-id 5 --count 100
-
-# Birleştirme
-python merge_graphs.py
-
-# Detaylı rehber
-cat PARALLEL_TRAINING.md
-```
-
-### 📊 Benchmark Sistemi (Yeni!) 🆕
-```bash
-# 1. Test dataset oluştur
-python benchmark/create_dataset.py --count 500
-
-# 2. Benchmark çalıştır
-python benchmark/run_benchmark.py
-
-# 3. Sonuçları görselleştir
-python benchmark/visualize_results.py benchmark/results_*.json
-
-# Farklı algoritmalar
-python benchmark/run_benchmark.py --algorithm beam --beam-width 3
-python benchmark/run_benchmark.py --algorithm astar
-
-# Algoritma karşılaştırması
-python benchmark/visualize_results.py benchmark/results_*.json --compare
-
-# Detaylı rehber
-cat benchmark/README.md
-```
-
-**💡 Benchmark İpuçları:**
-- İlk test için `--max-tests 50` kullanın (hızlı)
-- Farklı algoritmaları karşılaştırın
-- Sonuçları HTML dashboard'da görüntüleyin
-- Zorluk seviyelerini analiz edin (easy/medium/hard)
-
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/amazing`)
-3. Commit yapın (`git commit -m 'Add amazing feature'`)
-4. Push yapın (`git push origin feature/amazing`)
-5. Pull Request açın
-
-## 📄 Lisans
-
-MIT License
-
-## 🎓 Öğrenme Kaynakları
-
-Bu proje şunları gösterir:
-- Semantic search (sentence transformers)
-- Knowledge graphs (NetworkX)
-- Async programming (asyncio)
-- Self-supervised learning
-- Production systems
+Questions? Open an issue or reach out!
 
 ---
 
-**Versiyon:** 6.0.0 (Performance & Algorithms Update) 🚀
-**Durum:** Aktif Geliştirme
-**Son Güncelleme:** 19 Aralık 2024
-
-**Hedef:** Wikipedia oyununu mükemmel oynayan, sürekli öğrenen AI sistemi 🎮🧠
-
----
-
-## 🆕 Yenilikler (v6.0.0) - Performance & Algorithms
-
-### 🚀 Performans İyileştirmeleri
-- ✅ **5.9x Daha Hızlı Embedding Model** (`paraphrase-MiniLM-L6-v2`)
-- ✅ **228x Parallel Speedup** (ThreadPoolExecutor, 4 workers)
-- ✅ **5x Daha Büyük Cache** (2048 → 10000 embeddings)
-- ✅ **5-7x Genel Hız İyileşmesi**
-- ✅ **Video Standardı Başarıldı** (1-2s hedefine ulaşıldı)
-
-### 🎯 Yeni Algoritmalar
-- ✅ **Beam Search Navigator** - Multi-path exploration
-- ✅ **A* Search Navigator** - Optimal pathfinding
-- ✅ **Algorithm Comparison Framework** - 3 algoritma karşılaştırması
-
-### 📚 Dokümantasyon
-- ✅ **docs/RULES.md** - Video kuralları ve değerlendirme
-- ✅ **docs/ROADMAP.md** - 4 haftalık geliştirme planı
-- ✅ **docs/WEEK1_SUMMARY.md** - Hafta 1 detaylı özet
-- ✅ **docs/FINAL_SUMMARY.md** - Proje genel özeti
-- ✅ **docs/PROJECT_STATUS.md** - Güncel durum raporu
-- ✅ **docs/ARCHITECTURE.md** - Sistem mimarisi
-- ✅ **docs/HYBRID_SETUP.md** - Hybrid navigator rehberi
-- ✅ **docs/USAGE.md** - Kullanım kılavuzu
-
-**Detaylı Bilgi:** [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md), [`docs/ROADMAP.md`](docs/ROADMAP.md)
-
----
-
-## 🆕 Önceki Yenilikler (v5.2.0)
-
-### Hybrid Navigator Sistemi (10K+ Edge için)
-- ✅ 3 katmanlı navigasyon (KG → Embedding → LLM)
-- ✅ %70-80 doğruluk hedefi
-- ✅ Claude API entegrasyonu (opsiyonel)
-- ✅ Maliyet kontrolü
-- ✅ Detaylı dokümantasyon ([`HYBRID_SETUP.md`](HYBRID_SETUP.md))
-
-**Hızlı Başlangıç:**
-```bash
-# Hybrid mode (Embedding only)
-python main.py Italy Rome --hybrid
-
-# Hybrid + LLM (en yüksek doğruluk)
-python main.py Italy Rome --hybrid --llm
-
-# Eğitim (Hybrid Navigator ile)
-python train.py --strategy strategic --workers 2 --iterations 100 --use-hybrid --use-llm
-```
-
-### v5.1.0 - Paralel Eğitim
-- ✅ Paralel Eğitim Sistemi
-- ✅ 4-5x daha hızlı öğrenme
-- ✅ Process-safe graph yönetimi
-
----
-
-## 📖 Detaylı Dokümantasyon
-
-### Core Dokümantasyon
-- **[`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md)** - Güncel proje durumu ve metrikler
-- **[`docs/ROADMAP.md`](docs/ROADMAP.md)** - 4 haftalık geliştirme planı
-- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** - Sistem mimarisi
-- **[`docs/USAGE.md`](docs/USAGE.md)** - Kullanım kılavuzu
-
-### Özellik Rehberleri
-- **[`docs/HYBRID_SETUP.md`](docs/HYBRID_SETUP.md)** - Hybrid navigator rehberi
-- **[`docs/VISUALIZATION.md`](docs/VISUALIZATION.md)** - 3D görselleştirme rehberi
-- **[`docs/BENCHMARK_GUIDE.md`](docs/BENCHMARK_GUIDE.md)** - Benchmark sistemi rehberi
-
-### Entegrasyon & Analiz 🆕
-- **[`docs/EXTERNAL_REPOS_ANALYSIS.md`](docs/EXTERNAL_REPOS_ANALYSIS.md)** - Wikipedia speedrun repoları analizi
-- **[`docs/INTEGRATION_GUIDE.md`](docs/INTEGRATION_GUIDE.md)** - Dış repo entegrasyon rehberi
-
-### Proje Özeti
-- **[`docs/RULES.md`](docs/RULES.md)** - Video kuralları ve değerlendirme
-- **[`docs/WEEK1_SUMMARY.md`](docs/WEEK1_SUMMARY.md)** - Hafta 1 detaylı özet
-- **[`docs/FINAL_SUMMARY.md`](docs/FINAL_SUMMARY.md)** - Proje genel özeti
+**Made with ❤️ for learning and fun!**

@@ -33,15 +33,20 @@ ENV/
 *.swo
 *~
 
-# Project specific
-cache/
-data/
-*.pkl
-*.log
-worker_*.log
-
 # Environment
 .env
+
+# Data (Knowledge Graph will be auto-created)
+data/*.pkl
+data/*_results_*.json
+
+# Keep dataset and gitkeep
+!data/benchmark_dataset.json
+!data/.gitkeep
+
+# Logs
+*.log
+worker_*.log
 
 # OS
 .DS_Store
@@ -55,9 +60,3 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Benchmark results
-benchmark/test_dataset.json
-benchmark/results_*.json
-benchmark/*.html
-benchmark/visualizations/
