@@ -33,8 +33,8 @@ ENV/
 *.swo
 *~
 
-# Environment
-.env
+# Environment (not needed - no API keys)
+# .env
 
 # Data (Knowledge Graph will be auto-created)
 data/*.pkl
