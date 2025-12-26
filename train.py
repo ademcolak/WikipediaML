@@ -41,7 +41,7 @@ class Trainer:
     
     def __init__(self):
         """Initialize trainer."""
-        self.navigator = Navigator()
+        self.navigator = Navigator(use_bidirectional=True, training_mode=True)
         self.running = True
         self.iterations = 0
         self.successful = 0
@@ -125,20 +125,34 @@ class Trainer:
         print(f"Challenge: {start} → {target}")
         print(f"{'='*60}")
         
-        # Find path
-        result = self.navigator.find_path(start, target, verbose=True)
+        try:
+            # Find path with timeout protection
+            result = self.navigator.find_path(start, target, verbose=True)
+            
+            # Update stats
+            if result.found:
+                self.successful += 1
+                # Add discovered pages to pool for future challenges
+                self.add_discovered_pages(result.path)
+            else:
+                self.failed += 1
         
-        # Update stats
-        if result.found:
-            self.successful += 1
-            # Add discovered pages to pool for future challenges
-            self.add_discovered_pages(result.path)
-        else:
+        except KeyboardInterrupt:
+            # Re-raise to stop training
+            raise
+        
+        except Exception as e:
+            # Catch any other errors, log and continue
+            print(f"\n⚠️  Error in iteration: {e}")
             self.failed += 1
         
-        # Auto-save every 100 iterations
-        if self.iterations % 100 == 0:
+        # Auto-save every 10 iterations (more frequent)
+        if self.iterations % 10 == 0:
             self.navigator.save()
+            print(f"\n💾 Auto-saved at iteration {self.iterations}")
+        
+        # Print stats every 100 iterations
+        if self.iterations % 100 == 0:
             self._print_stats()
     
     def _print_stats(self):

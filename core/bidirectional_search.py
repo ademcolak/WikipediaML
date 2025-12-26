@@ -1,12 +1,13 @@
 """
-Bidirectional Search - İki yönlü arama
-WikiSpeedrun2'den esinlenildi: https://github.com/wikispeedruns/wikipedia-speedruns
+Bidirectional Search - İki yönlü arama (Training Mode)
 
 Strateji:
-1. Start'tan forward search
-2. Target'tan reverse search
+1. Start'tan forward search (outgoing links)
+2. Target'tan reverse search (incoming links - Wikipedia API)
 3. Intersection bulunca path'leri birleştir
 4. ~50% daha hızlı (ortada buluşuyorlar)
+
+NOT: Sadece training'de kullan! Play mode'da forward-only kullan.
 """
 
 from typing import List, Dict, Tuple, Optional, Set
@@ -32,38 +33,45 @@ class BidirectionalResult:
 
 class BidirectionalSearcher:
     """
-    İki yönlü BFS arama.
+    İki yönlü BFS arama (Training Mode).
     
-    Avantajlar:
-    - Start ve target'tan aynı anda arama
+    Özellikler:
+    - Forward search: start → target (outgoing links)
+    - Reverse search: target → start (incoming links via Wikipedia API)
     - Ortada buluşunca path birleştirme
     - ~50% daha hızlı (depth/2 yerine depth)
-    - Timeout riskini azaltır
     
     Örnek:
     Start: Ancient_Egypt
     Target: Cryptocurrency
     
     Forward: Ancient_Egypt → History → Technology → ...
-    Reverse: Cryptocurrency → Bitcoin → Computer → ...
+    Reverse: Cryptocurrency ← Bitcoin ← Computer ← ...
     Intersection: Technology (buluşma noktası)
     Final Path: Ancient_Egypt → ... → Technology → ... → Cryptocurrency
+    
+    NOT: Sadece training'de kullan! Play mode'da forward-only kullan.
     """
     
-    def __init__(self, wiki: Wikipedia, max_depth: int = 6):
+    def __init__(self, wiki: Wikipedia, max_depth: int = 4, timeout: int = 30, training_mode: bool = False):
         """
         Initialize bidirectional searcher.
         
         Args:
             wiki: Wikipedia instance
-            max_depth: Maximum depth for each direction (total = 2*max_depth)
+            max_depth: Maximum depth for each direction (default: 4)
+            timeout: Maximum search time in seconds (default: 30)
+            training_mode: If True, use incoming links (training only)
+                          If False, forward-only (fair play)
         """
         self.wiki = wiki
         self.max_depth = max_depth
+        self.timeout = timeout
+        self.training_mode = training_mode
     
     def search(self, start: str, target: str, verbose: bool = True) -> BidirectionalResult:
         """
-        Bidirectional BFS search.
+        Bidirectional BFS search (Training Mode).
         
         Args:
             start: Start page
@@ -100,21 +108,33 @@ class BidirectionalSearcher:
         
         # Alternating search loop
         for depth in range(self.max_depth):
+            # Check timeout
+            if time.time() - start_time > self.timeout:
+                if verbose:
+                    print(f"\n⏱️  Timeout ({self.timeout}s) - stopping search")
+                break
+            
+            # Check queue size (prevent memory explosion)
+            if len(forward_queue) > 10000 or len(reverse_queue) > 10000:
+                if verbose:
+                    print(f"\n⚠️  Queue too large (>10k) - stopping search")
+                break
+            
             if verbose:
                 print(f"   Depth {depth + 1}/{self.max_depth} | Forward: {len(forward_queue)}, Reverse: {len(reverse_queue)}")
             
             # Forward search
             if forward_queue:
                 intersection = self._forward_bfs(
-                    start, target, 
-                    forward_visited, reverse_visited, 
+                    start, target,
+                    forward_visited, reverse_visited,
                     forward_queue
                 )
                 pages_explored += 1
                 
                 if intersection:
                     # Found intersection!
-                    path = self._trace_path(intersection, start, target, 
+                    path = self._trace_path(intersection, start, target,
                                           forward_visited, reverse_visited)
                     elapsed = time.time() - start_time
                     
@@ -285,13 +305,12 @@ class BidirectionalSearcher:
             current_depth = reverse_visited[current][1]
             
             # Get incoming links (reverse direction)
-            # Note: Wikipedia API doesn't directly support incoming links
-            # So we use outgoing links and check if they point to current
-            # This is a limitation - ideally we'd have a reverse index
-            
-            # For now, we'll use outgoing links as approximation
-            # In production, you'd want a proper reverse index
-            links = self.wiki.get_links(current)
+            if self.training_mode:
+                # Training mode: Use Wikipedia API backlinks (fast but not fair play)
+                links = self.wiki.get_incoming_links(current)
+            else:
+                # Play mode: No reverse search (fair play - forward only)
+                links = []
             if not links:
                 continue
             

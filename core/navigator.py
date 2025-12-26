@@ -39,23 +39,34 @@ class Navigator:
     - Greedy değil, exploration var
     """
     
-    def __init__(self, use_bidirectional: bool = True):
+    def __init__(self, use_bidirectional: bool = True, training_mode: bool = False):
         """
         Initialize navigator.
         
         Args:
-            use_bidirectional: Use bidirectional search (faster, recommended)
+            use_bidirectional: Use bidirectional search (faster)
+            training_mode: If True, use bidirectional with incoming links (training only)
+                          If False, use forward-only (fair play for actual games)
         """
         print("🚀 Initializing Navigator...")
         
         self.wiki = Wikipedia()
         self.knowledge = KnowledgeSystem()
         self.use_bidirectional = use_bidirectional
+        self.training_mode = training_mode
         
         # Initialize bidirectional searcher
         if use_bidirectional:
-            self.bidirectional = BidirectionalSearcher(self.wiki, max_depth=6)
-            print("   🔄 Bidirectional search: ENABLED")
+            self.bidirectional = BidirectionalSearcher(
+                self.wiki,
+                max_depth=4,
+                timeout=30,
+                training_mode=training_mode
+            )
+            if training_mode:
+                print("   🔄 Bidirectional search: ENABLED (training mode - uses incoming links)")
+            else:
+                print("   ➡️  Forward BFS search: ENABLED (fair play mode)")
         
         # Beam search parameters
         self.beam_width = 5
@@ -126,10 +137,13 @@ class Navigator:
         if verbose:
             print("❌ Not in Knowledge Graph")
         
-        # Tier 2: Try Bidirectional Search first (faster)
+        # Tier 2: Try Bidirectional/Forward BFS Search first (faster than beam search)
         if self.use_bidirectional:
             if verbose:
-                print(f"🔄 Starting Bidirectional Search (max_depth={self.max_depth})...")
+                if self.training_mode:
+                    print(f"🔄 Starting Bidirectional Search (max_depth={self.max_depth})...")
+                else:
+                    print(f"➡️  Starting Forward BFS Search (max_depth={self.max_depth})...")
             
             bi_result = self.bidirectional.search(start, target, verbose)
             
@@ -142,7 +156,7 @@ class Navigator:
                     path=bi_result.path,
                     steps=bi_result.steps,
                     time_seconds=bi_result.time_seconds,
-                    source='bidirectional_search',
+                    source='bidirectional_search' if self.training_mode else 'forward_bfs_search',
                     pages_explored=bi_result.pages_explored
                 )
                 
@@ -155,9 +169,9 @@ class Navigator:
                 
                 return search_result
             
-            # Bidirectional failed, try beam search as fallback
+            # BFS failed, try beam search as fallback
             if verbose:
-                print(f"⚠️  Bidirectional search failed, trying Beam Search...")
+                print(f"⚠️  BFS search failed, trying Beam Search...")
         
         # Tier 3: Beam Search (fallback or primary if bidirectional disabled)
         if verbose:

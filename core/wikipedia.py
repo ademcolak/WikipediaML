@@ -109,6 +109,44 @@ class Wikipedia:
                 unique_links.append(link)
         
         return unique_links[:100]  # Limit to first 100 links
+    @lru_cache(maxsize=512)
+    def get_incoming_links(self, page: str, limit: int = 100) -> List[str]:
+        """
+        Get pages that link TO this page (backlinks/incoming links).
+        Uses Wikipedia API backlinks query.
+        
+        Args:
+            page: Wikipedia page name
+            limit: Maximum number of backlinks to return (default: 100)
+        
+        Returns:
+            List of page names that link to this page
+        """
+        try:
+            url = "https://en.wikipedia.org/w/api.php"
+            params = {
+                "action": "query",
+                "list": "backlinks",
+                "bltitle": page,
+                "bllimit": min(limit, 500),  # API max is 500
+                "blnamespace": 0,  # Only article namespace
+                "format": "json"
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
+            data = response.json()
+            
+            backlinks = []
+            if "query" in data and "backlinks" in data["query"]:
+                for link in data["query"]["backlinks"]:
+                    backlinks.append(link["title"].replace(' ', '_'))
+            
+            return backlinks
+            
+        except Exception as e:
+            print(f"Error fetching backlinks for {page}: {e}")
+            return []
+    
     
     @lru_cache(maxsize=2048)
     def get_embedding(self, page: str) -> np.ndarray:

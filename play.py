@@ -92,9 +92,9 @@ def main():
     """Main entry point."""
     print_banner()
     
-    # Initialize navigator
+    # Initialize navigator (fair play mode - no incoming links)
     print("🚀 Loading Navigator...")
-    navigator = Navigator()
+    navigator = Navigator(use_bidirectional=True, training_mode=False)
     print()
     
     # Game loop
