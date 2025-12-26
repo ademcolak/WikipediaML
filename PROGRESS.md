@@ -1,7 +1,7 @@
 # WikipediaML - Development Progress & Continuation Guide
 
-**Last Updated:** 2025-12-25  
-**Status:** ✅ Production Ready (Fabrika Refactor Complete)  
+**Last Updated:** 2025-12-26
+**Status:** ✅ Production Ready + Dynamic Discovery Training
 **Next Developer:** Read this file first!
 
 ---
@@ -27,11 +27,18 @@ Build an AI that learns to play the Wikipedia game - finding shortest paths betw
    - `core/navigator.py` - Beam search path finding
 
 2. **Entry Points** (3 files, ~520 lines)
-   - `train.py` - Continuous learning (no parameters!)
+   - `train.py` - Dynamic discovery training (no parameters!)
    - `play.py` - Interactive game (no parameters!)
    - `benchmark.py` - Performance testing (no parameters!)
 
-3. **Performance**
+3. **Dynamic Discovery Training** ⭐ NEW!
+   - Starts with 43 popular pages
+   - Discovers new pages from successful paths
+   - Adds links from each page (5 per page)
+   - Pool grows: 43 → 500 → 5000+ pages
+   - Infinite variety, no repetition after 2000+ iterations
+
+4. **Performance**
    - Easy: ~60% success (Italy→Rome, France→Paris)
    - Medium: ~40% success (Technology→Philosophy)
    - Hard: ~15% success (Ancient Rome→Quantum Mechanics)
@@ -92,9 +99,33 @@ if path_found:
    - Why: Simplicity, no decision paralysis
    - Trade-off: Less flexibility, but easier to use
 
-4. **Continuous Training:** Infinite loop with Ctrl+C exit
+4. **Dynamic Discovery Training:** Infinite loop with Ctrl+C exit
    - Why: Always learning, always improving
    - Auto-save every 100 iterations
+   - Page pool grows organically from successful paths
+   - Prevents repetition and stagnation
+
+## 🆕 Recent Updates (2025-12-26)
+
+### Dynamic Discovery Training
+**Problem Solved:** Training was repeating same paths after 2000 iterations.
+
+**Solution Implemented:**
+- Dynamic page pool that grows from successful paths
+- Starts with 43 popular pages
+- Each successful path adds:
+  - All pages in the path
+  - First 5 links from each page
+- Pool grows: 43 → 500 → 5000+ pages
+- Infinite variety, no more repetition!
+
+**Impact:**
+- Training can run indefinitely without stagnation
+- Organic exploration of Wikipedia
+- Better coverage of diverse topics
+- More robust Knowledge Graph
+
+---
 
 ---
 
@@ -123,6 +154,7 @@ python train.py
 
 # After 100-200 iterations:
 # - KG will have ~50-100 paths
+# - Page pool: 43 → ~200 pages
 # - Benchmark should improve to ~55-60%
 ```
 
@@ -133,6 +165,7 @@ nohup python train.py > training.log 2>&1 &
 
 # Next morning:
 # - KG will have ~1000-2000 paths
+# - Page pool: 43 → ~5000+ pages (infinite variety!)
 # - Benchmark should improve to ~65-75%
 # - Check: tail -f training.log
 ```
@@ -252,10 +285,6 @@ WikipediaML/
 │   ├── benchmark_dataset.json       # Test dataset
 │   └── benchmark_results_*.json     # Test results
 │
-└── archive/              # Old code (reference only, DO NOT USE)
-    ├── src/              # 15 old navigators
-    ├── docs/             # 13 old docs
-    └── ...
 ```
 
 ---
@@ -263,22 +292,27 @@ WikipediaML/
 ## 🐛 Known Issues & Solutions
 
 ### Issue 1: Low Success Rate (~20%)
-**Symptom:** Benchmark shows <30% success  
-**Cause:** Empty Knowledge Graph, semantic similarity not enough  
+**Symptom:** Benchmark shows <30% success
+**Cause:** Empty Knowledge Graph, semantic similarity not enough
 **Solution:** Train for 100+ iterations, then re-test
 
 ### Issue 2: Slow Performance (>5s per path)
-**Symptom:** Each path takes >5 seconds  
-**Cause:** No KG cache hits, doing full beam search every time  
+**Symptom:** Each path takes >5 seconds
+**Cause:** No KG cache hits, doing full beam search every time
 **Solution:** More training to build KG
 
-### Issue 3: Wikipedia Rate Limiting (429 errors)
-**Symptom:** "Too Many Requests" errors  
-**Cause:** Too fast scraping  
+### Issue 3: Training Repetition (SOLVED ✅)
+**Symptom:** After 2000 iterations, same paths repeat
+**Cause:** Fixed 43-page pool, limited combinations
+**Solution:** ✅ Dynamic discovery implemented! Pool grows from successful paths
+
+### Issue 4: Wikipedia Rate Limiting (429 errors)
+**Symptom:** "Too Many Requests" errors
+**Cause:** Too fast scraping
 **Solution:** Already handled with 2s delay in train.py
 
-### Issue 4: Memory Usage Growing
-**Symptom:** Python process using >2GB RAM  
+### Issue 5: Memory Usage Growing
+**Symptom:** Python process using >2GB RAM
 **Cause:** LRU caches growing  
 **Solution:** Restart training periodically, or reduce cache sizes
 

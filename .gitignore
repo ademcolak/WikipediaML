@@ -34,7 +34,7 @@ ENV/
 *~
 
 # Environment (not needed - no API keys)
-# .env
+.env
 
 # Data (Knowledge Graph will be auto-created)
 data/*.pkl
