@@ -1,14 +1,16 @@
 """
 Navigator - Path Finding
-Beam search ile optimal path bulma.
+Beam search ve bidirectional search ile optimal path bulma.
 """
 
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .wikipedia import Wikipedia
 from .knowledge import KnowledgeSystem
+from .bidirectional_search import BidirectionalSearcher
 
 
 @dataclass
@@ -37,12 +39,23 @@ class Navigator:
     - Greedy değil, exploration var
     """
     
-    def __init__(self):
-        """Initialize navigator."""
+    def __init__(self, use_bidirectional: bool = True):
+        """
+        Initialize navigator.
+        
+        Args:
+            use_bidirectional: Use bidirectional search (faster, recommended)
+        """
         print("🚀 Initializing Navigator...")
         
         self.wiki = Wikipedia()
         self.knowledge = KnowledgeSystem()
+        self.use_bidirectional = use_bidirectional
+        
+        # Initialize bidirectional searcher
+        if use_bidirectional:
+            self.bidirectional = BidirectionalSearcher(self.wiki, max_depth=6)
+            print("   🔄 Bidirectional search: ENABLED")
         
         # Beam search parameters
         self.beam_width = 5
@@ -52,6 +65,7 @@ class Navigator:
         self.searches_performed = 0
         self.kg_hits = 0
         self.search_hits = 0
+        self.bidirectional_hits = 0
         
         print(f"✅ Navigator ready!")
         print(f"   Knowledge Graph: {self.knowledge.graph.number_of_nodes()} nodes, {self.knowledge.graph.number_of_edges()} edges")
@@ -111,12 +125,47 @@ class Navigator:
         
         if verbose:
             print("❌ Not in Knowledge Graph")
+        
+        # Tier 2: Try Bidirectional Search first (faster)
+        if self.use_bidirectional:
+            if verbose:
+                print(f"🔄 Starting Bidirectional Search (max_depth={self.max_depth})...")
+            
+            bi_result = self.bidirectional.search(start, target, verbose)
+            
+            if bi_result.found:
+                self.bidirectional_hits += 1
+                
+                # Convert to PathResult
+                search_result = PathResult(
+                    found=True,
+                    path=bi_result.path,
+                    steps=bi_result.steps,
+                    time_seconds=bi_result.time_seconds,
+                    source='bidirectional_search',
+                    pages_explored=bi_result.pages_explored
+                )
+                
+                # Save to Knowledge Graph
+                quality = 1.0 / len(search_result.path)
+                self.knowledge.add_path(search_result.path, quality)
+                
+                if verbose:
+                    print(f"💾 Saved to Knowledge Graph")
+                
+                return search_result
+            
+            # Bidirectional failed, try beam search as fallback
+            if verbose:
+                print(f"⚠️  Bidirectional search failed, trying Beam Search...")
+        
+        # Tier 3: Beam Search (fallback or primary if bidirectional disabled)
+        if verbose:
             print(f"🔎 Starting Beam Search (width={self.beam_width}, depth={self.max_depth})...")
         
-        # Tier 2: Beam Search
         search_result = self._beam_search(start, target, verbose)
         
-        # Tier 3: Save to Knowledge Graph
+        # Tier 4: Save to Knowledge Graph
         if search_result.found:
             self.search_hits += 1
             quality = 1.0 / len(search_result.path)  # Shorter = better
@@ -153,35 +202,21 @@ class Navigator:
             
             candidates = []
             
-            # Expand each path in beam
-            for current, path, score in beam:
+            # Parallel beam expansion
+            def expand_beam_path(beam_item):
+                """Expand a single beam path (for parallel processing)."""
+                current, path, score = beam_item
+                local_candidates = []
+                
                 # Get links
                 links = self.wiki.get_links(current)
-                pages_explored += 1
-                
                 if not links:
-                    continue
+                    return None, local_candidates
                 
-                # Check if target in links
+                # Check if target in links (early termination)
                 if target in links:
                     final_path = path + [target]
-                    elapsed = time.time() - start_time
-                    
-                    if verbose:
-                        print(f"\n✅ Path found!")
-                        print(f"   Path: {' → '.join(final_path)}")
-                        print(f"   Steps: {len(final_path) - 1}")
-                        print(f"   Time: {elapsed:.2f}s")
-                        print(f"   Pages explored: {pages_explored}")
-                    
-                    return PathResult(
-                        found=True,
-                        path=final_path,
-                        steps=len(final_path) - 1,
-                        time_seconds=elapsed,
-                        source='search',
-                        pages_explored=pages_explored
-                    )
+                    return final_path, []
                 
                 # Score links by similarity to target
                 scored_links = self.wiki.batch_similarity(current, links, target)
@@ -191,8 +226,43 @@ class Navigator:
                     if link not in visited:
                         new_path = path + [link]
                         new_score = score + similarity
-                        candidates.append((link, new_path, new_score))
-                        visited.add(link)
+                        local_candidates.append((link, new_path, new_score))
+                
+                return None, local_candidates
+            
+            # Process beam paths in parallel
+            with ThreadPoolExecutor(max_workers=min(len(beam), 5)) as executor:
+                futures = {executor.submit(expand_beam_path, item): item for item in beam}
+                
+                for future in as_completed(futures):
+                    pages_explored += 1
+                    final_path, local_candidates = future.result()
+                    
+                    # Early termination if path found
+                    if final_path:
+                        elapsed = time.time() - start_time
+                        
+                        if verbose:
+                            print(f"\n✅ Path found!")
+                            print(f"   Path: {' → '.join(final_path)}")
+                            print(f"   Steps: {len(final_path) - 1}")
+                            print(f"   Time: {elapsed:.2f}s")
+                            print(f"   Pages explored: {pages_explored}")
+                        
+                        return PathResult(
+                            found=True,
+                            path=final_path,
+                            steps=len(final_path) - 1,
+                            time_seconds=elapsed,
+                            source='search',
+                            pages_explored=pages_explored
+                        )
+                    
+                    # Add candidates and mark as visited
+                    for link, new_path, new_score in local_candidates:
+                        if link not in visited:
+                            candidates.append((link, new_path, new_score))
+                            visited.add(link)
             
             if not candidates:
                 break
@@ -226,6 +296,7 @@ class Navigator:
         """Get navigator statistics."""
         return {
             'searches_performed': self.searches_performed,
+            'bidirectional_hits': self.bidirectional_hits,
             'kg_hits': self.kg_hits,
             'search_hits': self.search_hits,
             'kg_hit_rate': (self.kg_hits / self.searches_performed * 100) if self.searches_performed > 0 else 0,
