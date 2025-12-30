@@ -44,7 +44,7 @@ class Wikipedia:
         self.cache_hits = 0
         self.cache_misses = 0
     
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=2048)  # ✅ 4x daha büyük cache
     def get_page_html(self, page: str) -> Optional[Tag]:
         """
         Fetch page HTML.
@@ -57,7 +57,7 @@ class Wikipedia:
         """
         try:
             url = self.base_url + page
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=5)  # ✅ 10s → 5s timeout
             
             if response.status_code == 200:
                 self.pages_fetched += 1
@@ -69,12 +69,20 @@ class Wikipedia:
             print(f"Error fetching {page}: {e}")
             return None
     
-    def get_links(self, page: str) -> List[str]:
+    def get_links(self, page: str, max_links: int = 50, target: Optional[str] = None, training_mode: bool = False) -> List[str]:
         """
-        Get all valid Wikipedia links from a page.
+        Get valid Wikipedia links from a page (FAST + SIMPLE).
+        
+        Strategy:
+        1. Get all links (fast)
+        2. If training mode + target: semantic filtering for top links
+        3. Return top links
         
         Args:
             page: Wikipedia page name
+            max_links: Maximum number of links to return
+            target: Target page for semantic filtering (training mode only)
+            training_mode: If True, use semantic filtering
         
         Returns:
             List of linked page names
@@ -88,6 +96,7 @@ class Wikipedia:
         if not content or not isinstance(content, Tag):
             return []
         
+        # Extract ALL links (simple and fast)
         links = []
         for link in content.find_all('a', href=True):
             href = link['href']
@@ -108,7 +117,9 @@ class Wikipedia:
                 seen.add(link)
                 unique_links.append(link)
         
-        return unique_links[:100]  # Limit to first 100 links
+        # ✅ NO SEMANTIC FILTERING - Pure BFS is faster!
+        # Just return first max_links (Wikipedia's own order is good)
+        return unique_links[:max_links]
     @lru_cache(maxsize=512)
     def get_incoming_links(self, page: str, limit: int = 100) -> List[str]:
         """

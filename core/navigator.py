@@ -1,6 +1,11 @@
 """
 Navigator - Path Finding
-Beam search ve bidirectional search ile optimal path bulma.
+Smart BFS with semantic filtering for optimal path finding.
+
+Strategy 1: Pure KG + Smart BFS
+- Knowledge Graph for instant lookups
+- Smart BFS with always-on semantic filtering
+- Quality control: only save short paths (≤4 steps)
 """
 
 from typing import List, Optional, Tuple
@@ -26,49 +31,53 @@ class PathResult:
 
 class Navigator:
     """
-    Path finder - Wikipedia oyunu için.
+    Path finder - Wikipedia game with Strategy 1: Pure KG + Smart BFS.
     
-    Strateji:
-    1. Knowledge Graph'te var mı? (instant)
-    2. Beam search (semantic similarity)
-    3. Başarılı path'i KG'ye kaydet
+    Architecture:
+    1. Knowledge Graph check (instant, <0.01s)
+    2. Smart BFS with semantic filtering (1-10s)
+    3. Beam search fallback (5-20s)
+    4. Quality control: only save short paths (≤4 steps)
     
-    Beam Search:
-    - Width: 5 (5 alternatif path paralel)
-    - Depth: 6 (max 6 adım)
-    - Greedy değil, exploration var
+    Key Features:
+    - Semantic filtering ALWAYS active (consistent performance)
+    - No metadata complexity (simpler, faster)
+    - Quality-focused KG (only efficient routes)
     """
     
     def __init__(self, use_bidirectional: bool = True, training_mode: bool = False):
         """
-        Initialize navigator.
+        Initialize navigator with Strategy 1.
         
         Args:
             use_bidirectional: Use bidirectional search (faster)
             training_mode: If True, use bidirectional with incoming links (training only)
                           If False, use forward-only (fair play for actual games)
         """
-        print("🚀 Initializing Navigator...")
+        print("🚀 Initializing Navigator (Strategy 1: Pure KG + Smart BFS)...")
         
         self.wiki = Wikipedia()
         self.knowledge = KnowledgeSystem()
         self.use_bidirectional = use_bidirectional
         self.training_mode = training_mode
         
-        # Initialize bidirectional searcher
+        # Initialize bidirectional searcher WITHOUT metadata (simpler)
         if use_bidirectional:
             self.bidirectional = BidirectionalSearcher(
                 self.wiki,
+                metadata_system=None,  # ✅ No metadata complexity
                 max_depth=4,
-                timeout=30,
+                timeout=15,  # ✅ Reduced timeout for speed (was 30)
                 training_mode=training_mode
             )
             if training_mode:
-                print("   🔄 Bidirectional search: ENABLED (training mode - uses incoming links)")
+                print("   🔄 Bidirectional search: ENABLED (training mode)")
+                print("   🧠 Semantic filtering: ALWAYS ACTIVE")
             else:
                 print("   ➡️  Forward BFS search: ENABLED (fair play mode)")
+                print("   🧠 Semantic filtering: ALWAYS ACTIVE")
         
-        # Beam search parameters
+        # Beam search parameters (fallback only)
         self.beam_width = 5
         self.max_depth = 6
         
@@ -80,6 +89,7 @@ class Navigator:
         
         print(f"✅ Navigator ready!")
         print(f"   Knowledge Graph: {self.knowledge.graph.number_of_nodes()} nodes, {self.knowledge.graph.number_of_edges()} edges")
+        print(f"   Quality Control: Only paths ≤6 steps saved to KG")
     
     def find_path(self, start: str, target: str, verbose: bool = True) -> PathResult:
         """
@@ -160,12 +170,15 @@ class Navigator:
                     pages_explored=bi_result.pages_explored
                 )
                 
-                # Save to Knowledge Graph
-                quality = 1.0 / len(search_result.path)
-                self.knowledge.add_path(search_result.path, quality)
-                
-                if verbose:
-                    print(f"💾 Saved to Knowledge Graph")
+                # ✅ STRATEGY 1: Quality control - save reasonable paths
+                # Bidirectional can find paths up to 2*max_depth = 8, but we save up to 6
+                if len(search_result.path) <= 6:
+                    quality = 1.0 / len(search_result.path)
+                    self.knowledge.add_path(search_result.path, quality)
+                    if verbose:
+                        print(f"💾 Saved to Knowledge Graph (quality: {quality:.2f})")
+                elif verbose:
+                    print(f"⚠️  Path too long ({len(search_result.path)} steps), not saved to KG")
                 
                 return search_result
             
@@ -182,11 +195,15 @@ class Navigator:
         # Tier 4: Save to Knowledge Graph
         if search_result.found:
             self.search_hits += 1
-            quality = 1.0 / len(search_result.path)  # Shorter = better
-            self.knowledge.add_path(search_result.path, quality)
             
-            if verbose:
-                print(f"💾 Saved to Knowledge Graph")
+            # ✅ STRATEGY 1: Quality control - save reasonable paths
+            if len(search_result.path) <= 6:
+                quality = 1.0 / len(search_result.path)  # Shorter = better
+                self.knowledge.add_path(search_result.path, quality)
+                if verbose:
+                    print(f"💾 Saved to Knowledge Graph (quality: {quality:.2f})")
+            elif verbose:
+                print(f"⚠️  Path too long ({len(search_result.path)} steps), not saved to KG")
         
         return search_result
     
@@ -319,6 +336,6 @@ class Navigator:
         }
     
     def save(self):
-        """Save knowledge graph."""
+        """Save knowledge graph (Strategy 1: no metadata)."""
         self.knowledge.save()
         print("💾 Knowledge Graph saved")

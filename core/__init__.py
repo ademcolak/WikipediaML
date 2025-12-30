@@ -1,5 +1,6 @@
 """
 WikipediaML Core - Basit, temiz, etkili.
+Pure KG + Smart BFS Strategy
 """
 
 from .wikipedia import Wikipedia

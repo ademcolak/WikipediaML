@@ -65,9 +65,12 @@ class Trainer:
         signal.signal(signal.SIGINT, self._signal_handler)
     
     def _signal_handler(self, sig, frame):
-        """Handle Ctrl+C gracefully."""
-        print("\n\n⚠️  Stopping training...")
+        """Handle Ctrl+C gracefully - interrupt current search immediately."""
+        print("\n\n⚠️  Ctrl+C detected - interrupting current search...")
         self.running = False
+        # Interrupt current search immediately
+        if hasattr(self.navigator, 'bidirectional'):
+            self.navigator.bidirectional.interrupted = True
     
     def add_discovered_pages(self, path: list[str]):
         """
@@ -126,6 +129,10 @@ class Trainer:
         print(f"{'='*60}")
         
         try:
+            # Reset interrupt flag before search
+            if hasattr(self.navigator, 'bidirectional'):
+                self.navigator.bidirectional.interrupted = False
+            
             # Find path with timeout protection
             result = self.navigator.find_path(start, target, verbose=True)
             
@@ -138,6 +145,10 @@ class Trainer:
                 self.failed += 1
         
         except KeyboardInterrupt:
+            # Immediate save on Ctrl+C
+            print(f"\n\n⚠️  Saving immediately...")
+            self.navigator.save()
+            print(f"✅ Saved successfully!")
             # Re-raise to stop training
             raise
         
@@ -146,8 +157,8 @@ class Trainer:
             print(f"\n⚠️  Error in iteration: {e}")
             self.failed += 1
         
-        # Auto-save every 10 iterations (more frequent)
-        if self.iterations % 10 == 0:
+        # Auto-save every 5 iterations (frequent saves)
+        if self.iterations % 5 == 0:
             self.navigator.save()
             print(f"\n💾 Auto-saved at iteration {self.iterations}")
         
