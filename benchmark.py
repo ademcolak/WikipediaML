@@ -94,8 +94,14 @@ class Benchmark:
         print(f"Test #{test_id}: {start} → {target} ({difficulty})")
         print(f"{'='*60}")
         
+        # ✅ Measure actual wall-clock time (includes all overhead)
+        wall_start = time.time()
+        
         # Run test
         result = self.navigator.find_path(start, target, verbose=False)
+        
+        # Calculate actual elapsed time
+        wall_time = time.time() - wall_start
         
         # Create result dict
         test_result = {
@@ -104,7 +110,8 @@ class Benchmark:
             'target': target,
             'difficulty': difficulty,
             'success': result.found,
-            'time': result.time_seconds,
+            'time': result.time_seconds,  # Internal search time
+            'wall_time': wall_time,  # Actual elapsed time
             'steps': result.steps,
             'path': result.path,
             'source': result.source
@@ -112,10 +119,17 @@ class Benchmark:
         
         # Print result
         if result.found:
-            print(f"✅ Success! {result.steps} steps, {result.time_seconds:.2f}s")
-            print(f"   Path: {' → '.join(result.path[:3])}{'...' if len(result.path) > 3 else ''}")
+            print(f"✅ Success! {result.steps} steps")
+            print(f"   Search Time: {result.time_seconds:.2f}s | Wall Time: {wall_time:.2f}s")
+            print(f"   Source: {result.source}")
+            # ✅ Show full path (not truncated)
+            print(f"   Path ({len(result.path)} pages):")
+            print(f"      {' → '.join(result.path)}")
         else:
-            print(f"❌ Failed")
+            # ✅ Show failure details
+            print(f"❌ Failed after {wall_time:.2f}s")
+            print(f"   Reason: Timeout or no path found within depth limit")
+            print(f"   Pages explored: {result.pages_explored}")
         
         return test_result
     
@@ -167,13 +181,24 @@ class Benchmark:
         print(f"⏱️  Total Time: {total_time:.2f}s")
         
         if successful:
-            times = [r['time'] for r in successful]
+            search_times = [r['time'] for r in successful]
+            wall_times = [r['wall_time'] for r in successful]
             steps = [r['steps'] for r in successful]
             
             print(f"\n📈 Performance Metrics:")
-            print(f"   Avg Time: {statistics.mean(times):.2f}s (±{statistics.stdev(times) if len(times) > 1 else 0:.2f}s)")
-            print(f"   Median Time: {statistics.median(times):.2f}s")
-            print(f"   Min/Max Time: {min(times):.2f}s / {max(times):.2f}s")
+            print(f"   Search Time (internal):")
+            print(f"      Avg: {statistics.mean(search_times):.2f}s (±{statistics.stdev(search_times) if len(search_times) > 1 else 0:.2f}s)")
+            print(f"      Median: {statistics.median(search_times):.2f}s")
+            print(f"      Min/Max: {min(search_times):.2f}s / {max(search_times):.2f}s")
+            
+            print(f"\n   Wall Time (actual elapsed):")
+            print(f"      Avg: {statistics.mean(wall_times):.2f}s (±{statistics.stdev(wall_times) if len(wall_times) > 1 else 0:.2f}s)")
+            print(f"      Median: {statistics.median(wall_times):.2f}s")
+            print(f"      Min/Max: {min(wall_times):.2f}s / {max(wall_times):.2f}s")
+            
+            # Overhead analysis
+            overhead = statistics.mean(wall_times) - statistics.mean(search_times)
+            print(f"\n   Overhead: {overhead:.2f}s avg ({overhead/statistics.mean(wall_times)*100:.1f}% of wall time)")
             
             print(f"\n🎯 Path Metrics:")
             print(f"   Avg Steps: {statistics.mean(steps):.2f}")
@@ -191,16 +216,22 @@ class Benchmark:
             diff_results = [r for r in self.results if r['difficulty'] == difficulty]
             if diff_results:
                 diff_success = [r for r in diff_results if r['success']]
+                diff_failed = [r for r in diff_results if not r['success']]
                 rate = len(diff_success) / len(diff_results) * 100
                 
                 print(f"\n   {difficulty.upper()}:")
                 print(f"      Success: {len(diff_success)}/{len(diff_results)} ({rate:.1f}%)")
                 
                 if diff_success:
-                    avg_time = statistics.mean([r['time'] for r in diff_success])
+                    avg_search_time = statistics.mean([r['time'] for r in diff_success])
+                    avg_wall_time = statistics.mean([r['wall_time'] for r in diff_success])
                     avg_steps = statistics.mean([r['steps'] for r in diff_success])
-                    print(f"      Avg Time: {avg_time:.2f}s")
+                    print(f"      Avg Search Time: {avg_search_time:.2f}s")
+                    print(f"      Avg Wall Time: {avg_wall_time:.2f}s")
                     print(f"      Avg Steps: {avg_steps:.2f}")
+                
+                if diff_failed:
+                    print(f"      Failed tests: {', '.join(f'#{r['id']}' for r in diff_failed)}")
         
         print("\n" + "="*60)
     

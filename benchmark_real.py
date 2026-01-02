@@ -108,27 +108,40 @@ class RealChallengeBenchmark:
         print(f"Challenge #{challenge_id}: {start} → {target}")
         print(f"{'='*60}")
         
+        # ✅ Measure actual wall-clock time (includes all overhead)
+        wall_start = time.time()
+        
         # Find path (verbose=True to see progress)
-        start_time = time.time()
         result = self.navigator.find_path(start, target, verbose=True)
-        elapsed = time.time() - start_time
+        
+        # Calculate actual elapsed time
+        wall_time = time.time() - wall_start
         
         # Print result
         if result.found:
-            print(f"✅ Success! {result.steps} steps, {elapsed:.2f}s")
-            print(f"   Path: {' → '.join(result.path[:3])}{'...' if len(result.path) > 3 else ''}")
+            print(f"\n✅ Success! {result.steps} steps")
+            print(f"   Search Time: {result.time_seconds:.2f}s | Wall Time: {wall_time:.2f}s")
+            print(f"   Source: {result.source}")
+            # ✅ Show full path (not truncated)
+            print(f"   Path ({len(result.path)} pages):")
+            print(f"      {' → '.join(result.path)}")
         else:
-            print(f"❌ Failed! {elapsed:.2f}s")
+            # ✅ Show failure details
+            print(f"\n❌ Failed after {wall_time:.2f}s")
+            print(f"   Reason: Timeout or no path found within depth limit")
+            print(f"   Pages explored: {result.pages_explored}")
         
         return {
             'id': challenge_id,
             'start': start,
             'target': target,
             'success': result.found,
-            'time': elapsed,
+            'time': result.time_seconds,  # Internal search time
+            'wall_time': wall_time,  # Actual elapsed time
             'steps': result.steps if result.found else 0,
             'path': result.path if result.found else [],
-            'source': result.source
+            'source': result.source,
+            'pages_explored': result.pages_explored
         }
     
     def run(self):
@@ -188,13 +201,25 @@ class RealChallengeBenchmark:
         print(f"❌ Failed: {fail_count}/{total}")
         
         if successful:
-            times = [r['time'] for r in successful]
+            search_times = [r['time'] for r in successful]
+            wall_times = [r['wall_time'] for r in successful]
             steps = [r['steps'] for r in successful]
             
             print(f"\n⏱️  Time Statistics:")
-            print(f"   Avg: {sum(times)/len(times):.2f}s")
-            print(f"   Min: {min(times):.2f}s")
-            print(f"   Max: {max(times):.2f}s")
+            print(f"   Search Time (internal):")
+            print(f"      Avg: {sum(search_times)/len(search_times):.2f}s")
+            print(f"      Min: {min(search_times):.2f}s")
+            print(f"      Max: {max(search_times):.2f}s")
+            
+            print(f"\n   Wall Time (actual elapsed):")
+            print(f"      Avg: {sum(wall_times)/len(wall_times):.2f}s")
+            print(f"      Min: {min(wall_times):.2f}s")
+            print(f"      Max: {max(wall_times):.2f}s")
+            
+            # Overhead analysis
+            avg_overhead = sum(wall_times)/len(wall_times) - sum(search_times)/len(search_times)
+            overhead_pct = avg_overhead / (sum(wall_times)/len(wall_times)) * 100
+            print(f"\n   Overhead: {avg_overhead:.2f}s avg ({overhead_pct:.1f}% of wall time)")
             
             print(f"\n🎯 Path Statistics:")
             print(f"   Avg Steps: {sum(steps)/len(steps):.1f}")
@@ -211,6 +236,13 @@ class RealChallengeBenchmark:
             for source, count in sorted(sources.items(), key=lambda x: x[1], reverse=True):
                 print(f"   {source}: {count}/{success_count} ({count/success_count*100:.1f}%)")
         
+        # Failed challenges details
+        if failed:
+            print(f"\n❌ Failed Challenges:")
+            for r in failed:
+                print(f"   #{r['id']}: {r['start']} → {r['target']}")
+                print(f"      Wall Time: {r['wall_time']:.2f}s | Pages Explored: {r['pages_explored']}")
+        
         # Show some interesting challenges
         if successful:
             print(f"\n🌟 Interesting Challenges:")
@@ -219,17 +251,19 @@ class RealChallengeBenchmark:
             longest = max(successful, key=lambda x: x['steps'])
             print(f"\n   Longest Path ({longest['steps']} steps):")
             print(f"   {longest['start']} → {longest['target']}")
-            print(f"   Path: {' → '.join(longest['path'][:5])}{'...' if len(longest['path']) > 5 else ''}")
+            print(f"   Full Path: {' → '.join(longest['path'])}")
             
-            # Fastest
-            fastest = min(successful, key=lambda x: x['time'])
-            print(f"\n   Fastest ({fastest['time']:.3f}s):")
+            # Fastest (by wall time)
+            fastest = min(successful, key=lambda x: x['wall_time'])
+            print(f"\n   Fastest ({fastest['wall_time']:.3f}s wall time):")
             print(f"   {fastest['start']} → {fastest['target']}")
+            print(f"   Path: {' → '.join(fastest['path'])}")
             
-            # Slowest
-            slowest = max(successful, key=lambda x: x['time'])
-            print(f"\n   Slowest ({slowest['time']:.2f}s):")
+            # Slowest (by wall time)
+            slowest = max(successful, key=lambda x: x['wall_time'])
+            print(f"\n   Slowest ({slowest['wall_time']:.2f}s wall time):")
             print(f"   {slowest['start']} → {slowest['target']}")
+            print(f"   Path: {' → '.join(slowest['path'])}")
         
         print("\n" + "="*60)
     

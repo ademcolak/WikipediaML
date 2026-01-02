@@ -66,7 +66,9 @@ class Wikipedia:
             return None
             
         except Exception as e:
-            print(f"Error fetching {page}: {e}")
+            # ✅ Silent error handling - don't spam console
+            # SSL errors, timeouts, etc. are common with parallel requests
+            # Just return None and let the search continue
             return None
     
     def get_links(self, page: str, max_links: int = 50, target: Optional[str] = None, training_mode: bool = False) -> List[str]:

@@ -43,6 +43,9 @@ class Trainer:
         """Initialize trainer."""
         self.navigator = Navigator(use_bidirectional=True, training_mode=True)
         self.running = True
+        self.state_file = Path("data/training_state.pkl")
+        
+        # Default initial state
         self.iterations = 0
         self.successful = 0
         self.failed = 0
@@ -61,8 +64,55 @@ class Trainer:
             'New_York_City', 'London', 'Paris', 'Tokyo', 'Rome'
         ])
         
+        # ✅ Load previous training state if exists
+        self._load_state()
+        
         # Setup signal handler for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
+    
+    def _load_state(self):
+        """Load previous training state."""
+        if not self.state_file.exists():
+            print("🆕 Starting fresh training session")
+            return
+        
+        try:
+            import pickle
+            with open(self.state_file, 'rb') as f:
+                state = pickle.load(f)
+            
+            self.iterations = state.get('iterations', 0)
+            self.successful = state.get('successful', 0)
+            self.failed = state.get('failed', 0)
+            self.page_pool = state.get('page_pool', self.page_pool)
+            
+            print(f"📂 Loaded previous training state:")
+            print(f"   Iterations: {self.iterations}")
+            print(f"   Success: {self.successful} | Failed: {self.failed}")
+            print(f"   Page pool: {len(self.page_pool)} pages")
+            
+        except Exception as e:
+            print(f"⚠️  Error loading training state: {e}")
+            print("🆕 Starting fresh training session")
+    
+    def _save_state(self):
+        """Save current training state."""
+        try:
+            import pickle
+            self.state_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            state = {
+                'iterations': self.iterations,
+                'successful': self.successful,
+                'failed': self.failed,
+                'page_pool': self.page_pool
+            }
+            
+            with open(self.state_file, 'wb') as f:
+                pickle.dump(state, f)
+            
+        except Exception as e:
+            print(f"⚠️  Error saving training state: {e}")
     
     def _signal_handler(self, sig, frame):
         """Handle Ctrl+C gracefully - interrupt current search immediately."""
@@ -148,6 +198,7 @@ class Trainer:
             # Immediate save on Ctrl+C
             print(f"\n\n⚠️  Saving immediately...")
             self.navigator.save()
+            self._save_state()
             print(f"✅ Saved successfully!")
             # Re-raise to stop training
             raise
@@ -160,6 +211,7 @@ class Trainer:
         # Auto-save every 5 iterations (frequent saves)
         if self.iterations % 5 == 0:
             self.navigator.save()
+            self._save_state()
             print(f"\n💾 Auto-saved at iteration {self.iterations}")
         
         # Print stats every 100 iterations
@@ -210,6 +262,7 @@ class Trainer:
             # Final save
             print("\n\n💾 Saving final state...")
             self.navigator.save()
+            self._save_state()
             self._print_stats()
             print("\n✅ Training complete!")
 
