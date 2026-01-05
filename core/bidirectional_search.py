@@ -54,7 +54,7 @@ class BidirectionalSearcher:
     NOT: Sadece training'de kullan! Play mode'da forward-only kullan.
     """
     
-    def __init__(self, wiki: Wikipedia, metadata_system=None, max_depth: int = 4, timeout: int = 15, training_mode: bool = False):
+    def __init__(self, wiki: Wikipedia, metadata_system=None, max_depth: int = 4, timeout: int = 15, training_mode: bool = False, knowledge_system=None):
         """
         Initialize bidirectional searcher.
         
@@ -65,9 +65,11 @@ class BidirectionalSearcher:
             timeout: Maximum search time in seconds (default: 15, reduced for speed)
             training_mode: If True, use incoming links (training only)
                           If False, forward-only (fair play)
+            knowledge_system: KnowledgeSystem for PageRank-based pruning
         """
         self.wiki = wiki
         self.metadata = metadata_system
+        self.knowledge = knowledge_system
         self.max_depth = max_depth
         self.timeout = timeout
         self.training_mode = training_mode
@@ -120,9 +122,20 @@ class BidirectionalSearcher:
             if link in reverse_visited_set:
                 return (link, [(link, page, current_depth + 1)])
         
-        # ✅ PURE BFS: No semantic filtering (too slow!)
-        # BFS order is good enough, and MUCH faster
-        links = all_links[:max_links]
+        # ✅ SMART PRUNING: Use PageRank if available
+        if self.knowledge and hasattr(self.knowledge, 'pagerank') and self.knowledge.pagerank:
+            # Score links by PageRank (hub pages are more likely to lead to target)
+            scored_links = []
+            for link in all_links[:max_links * 2]:  # Consider 2x links for pruning
+                pr_score = self.knowledge.pagerank.get(link, 0.0)
+                scored_links.append((link, pr_score))
+            
+            # Sort by PageRank and take top max_links
+            scored_links.sort(key=lambda x: x[1], reverse=True)
+            links = [link for link, score in scored_links[:max_links]]
+        else:
+            # Fallback to pure BFS
+            links = all_links[:max_links]
         
         # Add new links
         new_links = []
@@ -163,9 +176,20 @@ class BidirectionalSearcher:
             if link in forward_visited_set:
                 return (link, [(link, page, current_depth + 1)])
         
-        # ✅ PURE BFS: No semantic filtering (too slow!)
-        # BFS order is good enough, and MUCH faster
-        links = all_links[:max_links]
+        # ✅ SMART PRUNING: Use PageRank if available
+        if self.knowledge and hasattr(self.knowledge, 'pagerank') and self.knowledge.pagerank:
+            # Score links by PageRank
+            scored_links = []
+            for link in all_links[:max_links * 2]:
+                pr_score = self.knowledge.pagerank.get(link, 0.0)
+                scored_links.append((link, pr_score))
+            
+            # Sort by PageRank and take top max_links
+            scored_links.sort(key=lambda x: x[1], reverse=True)
+            links = [link for link, score in scored_links[:max_links]]
+        else:
+            # Fallback to pure BFS
+            links = all_links[:max_links]
         
         # Add new links
         new_links = []

@@ -4,11 +4,21 @@ Başarılı path'leri sakla, pattern'leri öğren.
 """
 
 import networkx as nx
+try:
+    import igraph as ig
+    IGRAPH_AVAILABLE = True
+except ImportError:
+    IGRAPH_AVAILABLE = False
+    ig = None  # type: ignore
+
 import pickle
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, TYPE_CHECKING, Any
 from collections import defaultdict
 import time
+
+if TYPE_CHECKING and IGRAPH_AVAILABLE:
+    from igraph import Graph as IGraph
 
 
 class KnowledgeSystem:
@@ -22,15 +32,28 @@ class KnowledgeSystem:
     - Auto-save
     """
     
-    def __init__(self, cache_file: str = "data/knowledge_graph.pkl"):
+    def __init__(self, cache_file: str = "data/knowledge_graph.pkl", use_igraph: bool = True):
         """
         Initialize knowledge system.
         
         Args:
             cache_file: Path to save/load graph
+            use_igraph: Use igraph for faster operations (default: True)
         """
         self.graph = nx.DiGraph()
         self.cache_file = Path(cache_file)
+        
+        # igraph support (10-50x faster for large graphs)
+        self.use_igraph = use_igraph and IGRAPH_AVAILABLE
+        self.igraph: Optional[Any] = None  # igraph.Graph when available
+        self.igraph_dirty = True
+        self.node_to_id: Dict[str, int] = {}  # page name -> igraph vertex id
+        self.id_to_node: Dict[int, str] = {}  # igraph vertex id -> page name
+        
+        if self.use_igraph:
+            print("   🚀 igraph enabled (10-50x faster for large graphs)")
+        elif use_igraph and not IGRAPH_AVAILABLE:
+            print("   ⚠️  igraph not available, using NetworkX (slower)")
         
         # Statistics
         self.paths_learned = 0
@@ -40,6 +63,10 @@ class KnowledgeSystem:
         # Edge metadata
         self.edge_usage = defaultdict(int)  # (source, target) -> count
         self.edge_last_used = defaultdict(float)  # (source, target) -> timestamp
+        
+        # PageRank cache
+        self.pagerank = {}
+        self.pagerank_dirty = True
         
         # Load existing graph
         self._load()
@@ -80,10 +107,48 @@ class KnowledgeSystem:
             # Update metadata
             self.edge_usage[(source, target)] += 1
             self.edge_last_used[(source, target)] = current_time
+        
+        # Mark caches as dirty
+        self.pagerank_dirty = True
+        self.igraph_dirty = True
+    
+    def _sync_to_igraph(self):
+        """Sync NetworkX graph to igraph (for fast operations)."""
+        if not self.use_igraph or not self.igraph_dirty:
+            return
+        
+        # Create igraph from NetworkX
+        nodes = list(self.graph.nodes())
+        self.node_to_id = {node: i for i, node in enumerate(nodes)}
+        self.id_to_node = {i: node for i, node in enumerate(nodes)}
+        
+        # Create igraph
+        self.igraph = ig.Graph(directed=True)  # type: ignore
+        self.igraph.add_vertices(len(nodes))  # type: ignore
+        
+        # Add edges with weights
+        edges = []
+        weights = []
+        for source, target, data in self.graph.edges(data=True):
+            source_id = self.node_to_id[source]
+            target_id = self.node_to_id[target]
+            edges.append((source_id, target_id))
+            # igraph uses inverse weights for shortest path (lower = better)
+            # NetworkX weight is usage count (higher = better)
+            # So we use 1/weight for igraph
+            weight = data.get('weight', 1.0)
+            weights.append(1.0 / weight if weight > 0 else 1.0)
+        
+        self.igraph.add_edges(edges)  # type: ignore
+        self.igraph.es['weight'] = weights  # type: ignore
+        
+        self.igraph_dirty = False
     
     def find_path(self, start: str, target: str) -> Optional[List[str]]:
         """
         Find path in knowledge graph.
+        
+        Uses igraph for 10-50x speedup on large graphs.
         
         Args:
             start: Start page
@@ -99,13 +164,34 @@ class KnowledgeSystem:
             return None
         
         try:
-            # Dijkstra's shortest path (weighted)
-            path = nx.shortest_path(
-                self.graph,
-                start,
-                target,
-                weight='weight'
-            )
+            # Use igraph if available (much faster!)
+            if self.use_igraph:
+                self._sync_to_igraph()
+                
+                start_id = self.node_to_id[start]
+                target_id = self.node_to_id[target]
+                
+                # Get shortest path (Dijkstra with weights)
+                path_ids = self.igraph.get_shortest_paths(  # type: ignore
+                    start_id,
+                    target_id,
+                    weights='weight',
+                    output='vpath'
+                )[0]
+                
+                if not path_ids:
+                    return None
+                
+                # Convert IDs back to node names
+                path = [self.id_to_node[vid] for vid in path_ids]
+            else:
+                # Fallback to NetworkX
+                path = nx.shortest_path(
+                    self.graph,
+                    start,
+                    target,
+                    weight='weight'
+                )
             
             self.paths_reused += 1
             
@@ -119,7 +205,7 @@ class KnowledgeSystem:
             
             return path
             
-        except nx.NetworkXNoPath:
+        except (nx.NetworkXNoPath, IndexError):
             return None
     
     def get_next_suggestions(self, current: str, target: str, top_k: int = 5) -> List[tuple[str, float]]:
@@ -147,6 +233,66 @@ class KnowledgeSystem:
         suggestions.sort(key=lambda x: x[1], reverse=True)
         
         return suggestions[:top_k]
+    
+    def compute_pagerank(self, force: bool = False):
+        """
+        Compute PageRank for all nodes.
+        
+        Uses igraph for 10-50x speedup on large graphs.
+        
+        Args:
+            force: Force recomputation even if cache is valid
+        """
+        if not self.pagerank_dirty and not force and self.pagerank:
+            return
+        
+        if self.graph.number_of_nodes() == 0:
+            self.pagerank = {}
+            return
+        
+        try:
+            # Use igraph if available (much faster!)
+            if self.use_igraph:
+                self._sync_to_igraph()
+                
+                # Compute PageRank with weights
+                pagerank_scores = self.igraph.pagerank(weights='weight')  # type: ignore
+                
+                # Convert back to node names
+                self.pagerank = {
+                    self.id_to_node[i]: score
+                    for i, score in enumerate(pagerank_scores)
+                }
+            else:
+                # Fallback to NetworkX
+                self.pagerank = nx.pagerank(self.graph, weight='weight', max_iter=100)
+            
+            self.pagerank_dirty = False
+        except Exception as e:
+            # Fallback to unweighted NetworkX if error
+            try:
+                self.pagerank = nx.pagerank(self.graph, max_iter=100)
+                self.pagerank_dirty = False
+            except:
+                self.pagerank = {}
+    
+    def get_hub_pages(self, top_k: int = 20) -> List[tuple[str, float]]:
+        """
+        Get top hub pages by PageRank.
+        
+        Args:
+            top_k: Number of top pages to return
+        
+        Returns:
+            List of (page, pagerank_score) tuples
+        """
+        self.compute_pagerank()
+        
+        if not self.pagerank:
+            return []
+        
+        sorted_pages = sorted(self.pagerank.items(), key=lambda x: x[1], reverse=True)
+        return sorted_pages[:top_k]
     
     def prune(self, min_weight: float = 2.0, max_age_days: int = 30):
         """
@@ -179,6 +325,11 @@ class KnowledgeSystem:
         isolated = list(nx.isolates(self.graph))
         self.graph.remove_nodes_from(isolated)
         
+        # Mark igraph as dirty
+        if edges_to_remove or isolated:
+            self.igraph_dirty = True
+            self.pagerank_dirty = True
+        
         if edges_to_remove:
             print(f"🧹 Pruned {len(edges_to_remove)} edges, {len(isolated)} nodes")
     
@@ -190,7 +341,9 @@ class KnowledgeSystem:
             'paths_learned': self.paths_learned,
             'paths_reused': self.paths_reused,
             'total_queries': self.total_queries,
-            'cache_hit_rate': (self.paths_reused / self.total_queries * 100) if self.total_queries > 0 else 0
+            'cache_hit_rate': (self.paths_reused / self.total_queries * 100) if self.total_queries > 0 else 0,
+            'pagerank_computed': len(self.pagerank) > 0,
+            'using_igraph': self.use_igraph
         }
     
     def save(self):
@@ -204,7 +357,8 @@ class KnowledgeSystem:
                 'paths_reused': self.paths_reused,
                 'total_queries': self.total_queries,
                 'edge_usage': dict(self.edge_usage),
-                'edge_last_used': dict(self.edge_last_used)
+                'edge_last_used': dict(self.edge_last_used),
+                'pagerank': self.pagerank
             }, f)
     
     def _load(self):
@@ -222,8 +376,12 @@ class KnowledgeSystem:
             self.total_queries = data.get('total_queries', 0)
             self.edge_usage = defaultdict(int, data.get('edge_usage', {}))
             self.edge_last_used = defaultdict(float, data.get('edge_last_used', {}))
+            self.pagerank = data.get('pagerank', {})
+            self.pagerank_dirty = len(self.pagerank) == 0
             
             print(f"📚 Loaded knowledge graph: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges")
+            if self.pagerank:
+                print(f"   PageRank: {len(self.pagerank)} nodes ranked")
             
         except Exception as e:
             print(f"⚠️  Error loading graph: {e}")

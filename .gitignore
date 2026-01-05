@@ -40,6 +40,11 @@ ENV/
 data/*.pkl
 data/*_results_*.json
 
+# Cache directories (disk cache - can be large!)
+data/cache/
+data/cache/html/
+data/cache/embeddings/
+
 # Keep dataset and gitkeep
 !data/benchmark_dataset.json
 !data/.gitkeep

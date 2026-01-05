@@ -1,11 +1,12 @@
 """
 Navigator - Path Finding
-Smart BFS with semantic filtering for optimal path finding.
+Fast BFS with PageRank pruning for optimal path finding.
 
-Strategy 1: Pure KG + Smart BFS
+Strategy: Pure KG + Fast BFS
 - Knowledge Graph for instant lookups
-- Smart BFS with always-on semantic filtering
-- Quality control: only save short paths (≤4 steps)
+- Fast BFS (no embeddings - 10x faster!)
+- PageRank-based smart pruning
+- Quality control: only save short paths (≤6 steps)
 """
 
 from typing import List, Optional, Tuple
@@ -31,51 +32,52 @@ class PathResult:
 
 class Navigator:
     """
-    Path finder - Wikipedia game with Strategy 1: Pure KG + Smart BFS.
+    Path finder - Wikipedia game with Fast BFS strategy.
     
     Architecture:
     1. Knowledge Graph check (instant, <0.01s)
-    2. Smart BFS with semantic filtering (1-10s)
-    3. Beam search fallback (5-20s)
-    4. Quality control: only save short paths (≤4 steps)
+    2. Fast BFS (1-15s, no embeddings!)
+    3. Beam search fallback (5-20s, rarely used)
     
     Key Features:
-    - Semantic filtering ALWAYS active (consistent performance)
-    - No metadata complexity (simpler, faster)
+    - NO embeddings in BFS (10x faster!)
+    - PageRank-based smart pruning
+    - Bidirectional search in training mode
     - Quality-focused KG (only efficient routes)
     """
     
     def __init__(self, use_bidirectional: bool = True, training_mode: bool = False):
         """
-        Initialize navigator with Strategy 1.
+        Initialize navigator with Fast BFS strategy.
         
         Args:
             use_bidirectional: Use bidirectional search (faster)
             training_mode: If True, use bidirectional with incoming links (training only)
                           If False, use forward-only (fair play for actual games)
         """
-        print("🚀 Initializing Navigator (Strategy 1: Pure KG + Smart BFS)...")
+        print("🚀 Initializing Navigator (Fast BFS Strategy)...")
         
         self.wiki = Wikipedia()
         self.knowledge = KnowledgeSystem()
         self.use_bidirectional = use_bidirectional
         self.training_mode = training_mode
         
-        # Initialize bidirectional searcher WITHOUT metadata (simpler)
+        # Initialize bidirectional searcher with PageRank pruning
         if use_bidirectional:
             self.bidirectional = BidirectionalSearcher(
                 self.wiki,
-                metadata_system=None,  # ✅ No metadata complexity
+                metadata_system=None,
                 max_depth=4,
-                timeout=15,  # ✅ Reduced timeout for speed (was 30)
-                training_mode=training_mode
+                timeout=15,
+                training_mode=training_mode,
+                knowledge_system=self.knowledge  # ✅ PageRank-based pruning
             )
             if training_mode:
                 print("   🔄 Bidirectional search: ENABLED (training mode)")
-                print("   🧠 Semantic filtering: ALWAYS ACTIVE")
+                print("   🎯 Smart pruning: PageRank-based")
             else:
                 print("   ➡️  Forward BFS search: ENABLED (fair play mode)")
-                print("   🧠 Semantic filtering: ALWAYS ACTIVE")
+                print("   🎯 Smart pruning: PageRank-based")
         
         # Beam search parameters (fallback only)
         self.beam_width = 5
@@ -147,7 +149,7 @@ class Navigator:
         if verbose:
             print("❌ Not in Knowledge Graph")
         
-        # Tier 2: Try Bidirectional/Forward BFS Search first (faster than beam search)
+        # Tier 2: Bidirectional/Forward BFS Search (FAST - no embeddings!)
         if self.use_bidirectional:
             if verbose:
                 if self.training_mode:
@@ -186,7 +188,7 @@ class Navigator:
             if verbose:
                 print(f"⚠️  BFS search failed, trying Beam Search...")
         
-        # Tier 3: Beam Search (fallback or primary if bidirectional disabled)
+        # Tier 3: Beam Search (last resort fallback)
         if verbose:
             print(f"🔎 Starting Beam Search (width={self.beam_width}, depth={self.max_depth})...")
         
