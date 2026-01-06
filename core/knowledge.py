@@ -208,32 +208,6 @@ class KnowledgeSystem:
         except (nx.NetworkXNoPath, IndexError):
             return None
     
-    def get_next_suggestions(self, current: str, target: str, top_k: int = 5) -> List[tuple[str, float]]:
-        """
-        Get best next pages from current page.
-        
-        Args:
-            current: Current page
-            target: Target page (for future ML model)
-            top_k: Number of suggestions
-        
-        Returns:
-            List of (page, score) tuples
-        """
-        if not self.graph.has_node(current):
-            return []
-        
-        # Get successors with weights
-        suggestions = []
-        for neighbor in self.graph.successors(current):
-            weight = self.graph[current][neighbor]['weight']
-            suggestions.append((neighbor, weight))
-        
-        # Sort by weight (descending)
-        suggestions.sort(key=lambda x: x[1], reverse=True)
-        
-        return suggestions[:top_k]
-    
     def compute_pagerank(self, force: bool = False):
         """
         Compute PageRank for all nodes.
@@ -293,45 +267,6 @@ class KnowledgeSystem:
         
         sorted_pages = sorted(self.pagerank.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:top_k]
-    
-    def prune(self, min_weight: float = 2.0, max_age_days: int = 30):
-        """
-        Remove low-quality or old edges.
-        
-        Args:
-            min_weight: Minimum weight to keep
-            max_age_days: Maximum age in days
-        """
-        current_time = time.time()
-        max_age_seconds = max_age_days * 24 * 3600
-        
-        edges_to_remove = []
-        
-        for source, target, data in self.graph.edges(data=True):
-            weight = data.get('weight', 0)
-            last_used = data.get('last_used', data.get('created', 0))
-            
-            # Remove if:
-            # 1. Weight too low
-            # 2. Not used recently
-            if weight < min_weight or (current_time - last_used) > max_age_seconds:
-                edges_to_remove.append((source, target))
-        
-        # Remove edges
-        for source, target in edges_to_remove:
-            self.graph.remove_edge(source, target)
-        
-        # Remove isolated nodes
-        isolated = list(nx.isolates(self.graph))
-        self.graph.remove_nodes_from(isolated)
-        
-        # Mark igraph as dirty
-        if edges_to_remove or isolated:
-            self.igraph_dirty = True
-            self.pagerank_dirty = True
-        
-        if edges_to_remove:
-            print(f"🧹 Pruned {len(edges_to_remove)} edges, {len(isolated)} nodes")
     
     def get_stats(self) -> Dict:
         """Get knowledge system statistics."""

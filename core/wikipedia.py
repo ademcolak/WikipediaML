@@ -4,8 +4,6 @@ Tek class, basit, etkili.
 """
 
 import requests
-import aiohttp
-import asyncio
 from bs4 import BeautifulSoup, Tag
 from sentence_transformers import SentenceTransformer
 import diskcache
@@ -43,9 +41,6 @@ class Wikipedia:
         self.session.headers.update({
             'User-Agent': 'WikipediaML/2.0 (Educational Project)'
         })
-        
-        # Async session (created on demand)
-        self._async_session: Optional[aiohttp.ClientSession] = None
         
         # Disk cache setup (10GB limit, 7 days expiry)
         Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -265,130 +260,3 @@ class Wikipedia:
             }
         }
     
-    async def _get_async_session(self) -> aiohttp.ClientSession:
-        """Get or create async session."""
-        if self._async_session is None or self._async_session.closed:
-            self._async_session = aiohttp.ClientSession(
-                headers={'User-Agent': 'WikipediaML/2.0 (Educational Project)'},
-                timeout=aiohttp.ClientTimeout(total=5)
-            )
-        return self._async_session
-    
-    async def async_get_page_html(self, page: str) -> Optional[Tag]:
-        """
-        Async fetch page HTML with disk cache.
-        
-        Args:
-            page: Wikipedia page name
-        
-        Returns:
-            BeautifulSoup object or None if error
-        """
-        # Check disk cache first (synchronous, but fast)
-        cache_key = f"html:{page}"
-        cached_html = self.html_cache.get(cache_key, default=None)
-        if cached_html is not None and isinstance(cached_html, bytes):
-            self.cache_hits += 1
-            return BeautifulSoup(cached_html, 'html.parser')
-        
-        self.cache_misses += 1
-        
-        try:
-            session = await self._get_async_session()
-            url = self.base_url + page
-            
-            async with session.get(url) as response:
-                if response.status == 200:
-                    content = await response.read()
-                    self.pages_fetched += 1
-                    # Cache HTML content (expires in 7 days)
-                    self.html_cache.set(cache_key, content, expire=86400 * 7)
-                    return BeautifulSoup(content, 'html.parser')
-            
-            return None
-            
-        except Exception as e:
-            # Silent error handling
-            return None
-    
-    async def async_get_links(self, page: str, max_links: int = 50) -> List[str]:
-        """
-        Async get valid Wikipedia links from a page.
-        
-        Args:
-            page: Wikipedia page name
-            max_links: Maximum number of links to return
-        
-        Returns:
-            List of linked page names
-        """
-        soup = await self.async_get_page_html(page)
-        if not soup:
-            return []
-        
-        # Find main content
-        content = soup.find('div', {'id': 'mw-content-text'})
-        if not content or not isinstance(content, Tag):
-            return []
-        
-        # Extract ALL links (simple and fast)
-        links = []
-        for link in content.find_all('a', href=True):
-            href = link['href']
-            
-            # Valid Wikipedia article link
-            if href.startswith('/wiki/') and ':' not in href:
-                page_name = href[6:]  # Remove '/wiki/'
-                
-                # Filter out special pages
-                if not any(x in page_name for x in ['#', 'File:', 'Special:', 'Help:', 'Wikipedia:']):
-                    links.append(page_name)
-        
-        # Remove duplicates, keep order
-        seen = set()
-        unique_links = []
-        for link in links:
-            if link not in seen:
-                seen.add(link)
-                unique_links.append(link)
-        
-        return unique_links[:max_links]
-    
-    async def async_batch_fetch(self, pages: List[str], max_concurrent: int = 10) -> dict[str, Optional[Tag]]:
-        """
-        Fetch multiple pages concurrently (FAST!).
-        
-        This is the main benefit of async - fetch 10 pages at once instead of sequentially.
-        
-        Args:
-            pages: List of page names to fetch
-            max_concurrent: Maximum concurrent requests (default: 10)
-        
-        Returns:
-            Dictionary mapping page names to BeautifulSoup objects
-        """
-        # Create semaphore to limit concurrent requests
-        semaphore = asyncio.Semaphore(max_concurrent)
-        
-        async def fetch_with_semaphore(page: str) -> tuple[str, Optional[Tag]]:
-            async with semaphore:
-                soup = await self.async_get_page_html(page)
-                return page, soup
-        
-        # Fetch all pages concurrently
-        tasks = [fetch_with_semaphore(page) for page in pages]
-        results = await asyncio.gather(*tasks)
-        
-        # Convert to dictionary
-        return {page: soup for page, soup in results}
-    
-    async def close_async_session(self):
-        """Close async session."""
-        if self._async_session and not self._async_session.closed:
-            await self._async_session.close()
-    
-    def clear_cache(self):
-        """Clear all disk caches."""
-        self.html_cache.clear()
-        self.embedding_cache.clear()
-        print("🧹 Disk caches cleared")
