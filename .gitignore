@@ -33,25 +33,30 @@ ENV/
 *.swo
 *~
 
-# Environment (not needed - no API keys)
-.env
-
-# Data (Knowledge Graph will be auto-created)
+# Data Files (generated during training)
 data/*.pkl
-data/*_results_*.json
-
-# Cache directories (disk cache - can be large!)
+data/*.npz
+data/*.npy
+data/*.bin
+data/*.json
 data/cache/
-data/cache/html/
-data/cache/embeddings/
+data/parsed/
+data/training/
+data/models/
 
-# Keep dataset and gitkeep
-!data/benchmark_dataset.json
+# Keep essential files
 !data/.gitkeep
+!data/wikipedia_dumps/.gitkeep
+
+# Model Checkpoints
+models/*.pt
+models/*.pth
+models/*.ckpt
+models/checkpoints/
 
 # Logs
 *.log
-worker_*.log
+logs/
 
 # OS
 .DS_Store
@@ -59,9 +64,13 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Results & Outputs
+results/
+outputs/
+*.zip
