@@ -44,6 +44,11 @@ data/parsed/
 data/training/
 data/models/
 
+# Wikipedia dumps (large files)
+data/wikipedia_dumps/*.gz
+data/wikipedia_dumps/*.sql
+data/wikipedia_dumps/*.bz2
+
 # Keep essential files
 !data/.gitkeep
 !data/wikipedia_dumps/.gitkeep
