@@ -65,28 +65,21 @@ def main():
     print(f"\nDownload directory: {data_dir.absolute()}")
     print(f"Files to download: {len(REQUIRED_FILES)}")
     
-    # Check existing files
+    # Check existing files and auto-skip
     existing_files = []
     for filename in REQUIRED_FILES:
         filepath = data_dir / filename
         if filepath.exists():
             size_mb = filepath.stat().st_size / (1024 * 1024)
             existing_files.append(filename)
-            print(f"\n⚠ File already exists: {filename} ({size_mb:.2f} MB)")
+            print(f"⊘ File already exists: {filename} ({size_mb:.2f} MB) - skipping")
     
-    if existing_files:
-        response = input("\nSkip existing files? (y/n): ").lower()
-        skip_existing = response == 'y'
-    else:
-        skip_existing = False
-    
-    # Download files
+    # Download files (auto-skip existing)
     success_count = 0
     for filename in REQUIRED_FILES:
         filepath = data_dir / filename
         
-        if skip_existing and filepath.exists():
-            print(f"\n⊘ Skipping: {filename}")
+        if filepath.exists():
             success_count += 1
             continue
         

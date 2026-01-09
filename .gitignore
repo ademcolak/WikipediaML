@@ -79,3 +79,11 @@ htmlcov/
 results/
 outputs/
 *.zip
+
+# AWS Configuration
+aws/config.sh
+*.pem
+*.key
+
+# Checkpoints and Backups
+data/checkpoints/*.tar.gz

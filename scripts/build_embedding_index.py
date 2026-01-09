@@ -237,6 +237,14 @@ def main():
     data_dir = Path("data/cleaned")
     output_dir = Path("data/embeddings")
     
+    # Check if output already exists (auto-skip)
+    embeddings_file = output_dir / "embeddings.npy"
+    index_file = output_dir / "faiss_index.bin"
+    if embeddings_file.exists() and index_file.exists():
+        print(f"⊘ Embeddings already exist in {output_dir}")
+        print("  Skipping build step. Delete output files to re-run.")
+        return 0
+    
     # Check if cleaned data exists
     if not data_dir.exists():
         print(f"✗ Error: {data_dir} not found!")

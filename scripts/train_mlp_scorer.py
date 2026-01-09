@@ -98,6 +98,10 @@ class MLPScorerTrainer:
             'train_mae': [],
             'val_mae': []
         }
+        
+        # Checkpoint tracking
+        self.start_epoch = 0
+        self.best_val_loss = float('inf')
     
     def train_epoch(self, train_loader: DataLoader) -> Tuple[float, float]:
         """
@@ -198,20 +202,33 @@ class MLPScorerTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         n_epochs: int = 50,
-        early_stopping_patience: int = 10
+        early_stopping_patience: int = 10,
+        checkpoint_dir: Path = Path("models/checkpoints"),
+        checkpoint_interval: int = 5,
+        resume_from_checkpoint: bool = True
     ) -> Dict:
         """
-        Train the model.
+        Train the model with automatic checkpointing and resume capability.
         
         Args:
             train_loader: Training data loader
             val_loader: Validation data loader
             n_epochs: Number of epochs to train
             early_stopping_patience: Patience for early stopping
+            checkpoint_dir: Directory to save checkpoints
+            checkpoint_interval: Save checkpoint every N epochs
+            resume_from_checkpoint: Whether to resume from last checkpoint
             
         Returns:
             Training history
         """
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        last_checkpoint = checkpoint_dir / "last_checkpoint.pt"
+        
+        # Try to resume from checkpoint
+        if resume_from_checkpoint and last_checkpoint.exists():
+            self.start_epoch = self.load_checkpoint(last_checkpoint)
+        
         print(f"\n{'='*80}")
         print("Starting training...")
         print(f"{'='*80}")
@@ -220,12 +237,13 @@ class MLPScorerTrainer:
         print(f"Training samples: {len(train_loader.dataset):,}")  # type: ignore
         print(f"Validation samples: {len(val_loader.dataset):,}")  # type: ignore
         print(f"Batch size: {train_loader.batch_size}")
-        print(f"Epochs: {n_epochs}")
+        print(f"Total epochs: {n_epochs}")
+        print(f"Starting from epoch: {self.start_epoch + 1}")
+        print(f"Checkpoint interval: every {checkpoint_interval} epochs")
         
-        best_val_loss = float('inf')
         patience_counter = 0
         
-        for epoch in range(1, n_epochs + 1):
+        for epoch in range(self.start_epoch + 1, n_epochs + 1):
             print(f"\n{'='*80}")
             print(f"Epoch {epoch}/{n_epochs}")
             print(f"{'='*80}")
@@ -250,10 +268,12 @@ class MLPScorerTrainer:
             print(f"  Train Loss: {train_loss:.4f} | Train MAE: {train_mae:.4f}")
             print(f"  Val Loss:   {val_loss:.4f} | Val MAE:   {val_mae:.4f}")
             
-            # Early stopping
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
+            # Early stopping and checkpointing
+            is_best = False
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
                 patience_counter = 0
+                is_best = True
                 print(f"  ✓ New best validation loss!")
             else:
                 patience_counter += 1
@@ -261,33 +281,89 @@ class MLPScorerTrainer:
                 
                 if patience_counter >= early_stopping_patience:
                     print(f"\n✓ Early stopping triggered after {epoch} epochs")
+                    # Save final checkpoint before stopping
+                    self.save_checkpoint(last_checkpoint, epoch, is_best=is_best)
                     break
+            
+            # Save checkpoint periodically
+            if epoch % checkpoint_interval == 0 or is_best:
+                self.save_checkpoint(last_checkpoint, epoch, is_best=is_best)
         
         print(f"\n{'='*80}")
         print("Training completed!")
         print(f"{'='*80}")
-        print(f"Best validation loss: {best_val_loss:.4f}")
+        print(f"Best validation loss: {self.best_val_loss:.4f}")
         
         return self.history
     
-    def save_model(self, save_path: Path) -> None:
+    def save_checkpoint(self, save_path: Path, epoch: int, is_best: bool = False) -> None:
         """
-        Save model checkpoint.
+        Save training checkpoint with resume capability.
         
         Args:
-            save_path: Path to save the model
+            save_path: Path to save the checkpoint
+            epoch: Current epoch number
+            is_best: Whether this is the best model so far
         """
         save_path.parent.mkdir(parents=True, exist_ok=True)
         
         checkpoint = {
+            'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
-            'history': self.history
+            'history': self.history,
+            'best_val_loss': self.best_val_loss,
+            'learning_rate': self.learning_rate,
+            'weight_decay': self.weight_decay
         }
         
         torch.save(checkpoint, save_path)
-        print(f"✓ Model saved to {save_path}")
+        print(f"✓ Checkpoint saved to {save_path} (epoch {epoch})")
+        
+        # Save best model separately
+        if is_best:
+            best_path = save_path.parent / "mlp_scorer_best.pt"
+            torch.save(checkpoint, best_path)
+            print(f"✓ Best model saved to {best_path}")
+    
+    def load_checkpoint(self, checkpoint_path: Path) -> int:
+        """
+        Load checkpoint and resume training.
+        
+        Args:
+            checkpoint_path: Path to checkpoint file
+            
+        Returns:
+            Epoch number to resume from
+        """
+        if not checkpoint_path.exists():
+            print(f"⚠️  No checkpoint found at {checkpoint_path}")
+            return 0
+        
+        print(f"📥 Loading checkpoint from {checkpoint_path}...")
+        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+        
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        self.history = checkpoint['history']
+        self.best_val_loss = checkpoint.get('best_val_loss', float('inf'))
+        self.start_epoch = checkpoint['epoch']
+        
+        print(f"✓ Resumed from epoch {self.start_epoch}")
+        print(f"✓ Best validation loss so far: {self.best_val_loss:.4f}")
+        
+        return self.start_epoch
+    
+    def save_model(self, save_path: Path) -> None:
+        """
+        Save model checkpoint (legacy method for compatibility).
+        
+        Args:
+            save_path: Path to save the model
+        """
+        self.save_checkpoint(save_path, epoch=self.start_epoch, is_best=True)
 
 
 def load_training_data(data_dir: Path) -> List[Dict]:
@@ -320,9 +396,30 @@ def split_data(samples: List[Dict], train_ratio: float = 0.8) -> Tuple[List[Dict
 
 def main():
     """Main training function."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description='Train MLP Scorer with checkpoint support',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument('--epochs', type=int, default=50,
+                       help='Number of training epochs')
+    parser.add_argument('--batch-size', type=int, default=256,
+                       help='Training batch size')
+    parser.add_argument('--lr', type=float, default=0.001,
+                       help='Learning rate')
+    parser.add_argument('--checkpoint-interval', type=int, default=5,
+                       help='Save checkpoint every N epochs')
+    parser.add_argument('--data-dir', type=str, default='data/training',
+                       help='Training data directory')
+    parser.add_argument('--output-dir', type=str, default='models/checkpoints',
+                       help='Checkpoint output directory')
+    
+    args = parser.parse_args()
+    
     # Paths
-    data_dir = Path("data/training")
-    output_dir = Path("models/checkpoints")
+    data_dir = Path(args.data_dir)
+    output_dir = Path(args.output_dir)
     
     # Check if training data exists
     if not data_dir.exists():
@@ -342,14 +439,14 @@ def main():
         # Create data loaders
         train_loader = DataLoader(
             train_dataset,
-            batch_size=256,
+            batch_size=args.batch_size,
             shuffle=True,
             num_workers=4,
             pin_memory=True
         )
         val_loader = DataLoader(
             val_dataset,
-            batch_size=256,
+            batch_size=args.batch_size,
             shuffle=False,
             num_workers=4,
             pin_memory=True
@@ -366,20 +463,23 @@ def main():
         # Create trainer
         trainer = MLPScorerTrainer(
             model=model,
-            learning_rate=0.001,
+            learning_rate=args.lr,
             weight_decay=1e-5
         )
         
-        # Train
+        # Train with checkpointing (always auto-resume)
         history = trainer.train(
             train_loader=train_loader,
             val_loader=val_loader,
-            n_epochs=50,
-            early_stopping_patience=10
+            n_epochs=args.epochs,
+            early_stopping_patience=10,
+            checkpoint_dir=output_dir,
+            checkpoint_interval=args.checkpoint_interval,
+            resume_from_checkpoint=True  # Always auto-resume
         )
         
-        # Save model
-        trainer.save_model(output_dir / "mlp_scorer_best.pt")
+        # Save final model
+        trainer.save_model(output_dir / "mlp_scorer_final.pt")
         
         # Save history
         history_file = output_dir / "training_history.json"
@@ -388,10 +488,14 @@ def main():
         print(f"✓ Training history saved to {history_file}")
         
         print("\n✓ Training completed successfully!")
+        print("\nSaved files:")
+        print(f"  - Best model: {output_dir}/mlp_scorer_best.pt")
+        print(f"  - Final model: {output_dir}/mlp_scorer_final.pt")
+        print(f"  - Last checkpoint: {output_dir}/last_checkpoint.pt")
         print("\nNext steps:")
-        print("1. Validate model on unseen page pairs")
-        print("2. Integrate model into navigation system")
-        print("3. Test with real Wikipedia navigation tasks")
+        print("1. Validate model: python3 scripts/validate_mlp_scorer.py")
+        print("2. Run benchmark: python3 scripts/benchmark_navigator.py")
+        print("3. Test navigation: python3 test_new_system.py")
         
         return 0
         

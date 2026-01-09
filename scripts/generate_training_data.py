@@ -310,6 +310,14 @@ def main():
     embeddings_dir = Path("data/embeddings")
     output_dir = Path("data/training")
     
+    # Check if output already exists (auto-skip)
+    samples_file = output_dir / "training_samples.json"
+    stats_file = output_dir / "dataset_statistics.json"
+    if samples_file.exists() and stats_file.exists():
+        print(f"⊘ Training data already exists in {output_dir}")
+        print("  Skipping generation step. Delete output files to re-run.")
+        return 0
+    
     # Check if required data exists
     if not graph_dir.exists():
         print(f"✗ Error: {graph_dir} not found!")

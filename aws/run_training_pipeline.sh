@@ -1,0 +1,144 @@
+#!/bin/bash
+################################################################################
+# AWS EC2 Training Pipeline for WikipediaML
+# This script runs the complete training pipeline on EC2
+# Includes automatic checkpointing and resume capability
+################################################################################
+
+set -e  # Exit on error
+
+# Configuration
+PROJECT_DIR="$HOME/WikipediaML"
+LOG_DIR="$PROJECT_DIR/logs"
+DATA_DIR="$PROJECT_DIR/data"
+CHECKPOINT_DIR="$DATA_DIR/checkpoints"
+
+# Create log directory
+mkdir -p "$LOG_DIR"
+mkdir -p "$CHECKPOINT_DIR"
+
+# Logging function
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/training.log"
+}
+
+# Error handler
+error_handler() {
+    log "❌ ERROR: Pipeline failed at step: $1"
+    log "Creating emergency checkpoint..."
+    cd "$PROJECT_DIR"
+    tar -czf "$CHECKPOINT_DIR/emergency_backup_$(date +%Y%m%d_%H%M%S).tar.gz" data/*.pkl models/*.pt 2>/dev/null || true
+    exit 1
+}
+
+# Activate virtual environment
+cd "$PROJECT_DIR"
+source venv/bin/activate
+
+log "=================================="
+log "WikipediaML Training Pipeline"
+log "=================================="
+log "Instance: $(hostname)"
+log "Start time: $(date)"
+log "=================================="
+
+# Step 1: Download Wikipedia dumps
+log "📥 Step 1/7: Downloading Wikipedia dumps..."
+if [ ! -f "$DATA_DIR/wikipedia_dumps/enwiki-latest-page.sql.gz" ] || \
+   [ ! -f "$DATA_DIR/wikipedia_dumps/enwiki-latest-pagelinks.sql.gz" ]; then
+    python3 scripts/download_wikipedia_dumps.py || error_handler "Download"
+    log "✅ Wikipedia dumps downloaded"
+else
+    log "⊘ Wikipedia dumps already exist, skipping download"
+fi
+
+# Step 2: Parse Wikipedia dumps
+log "🔍 Step 2/7: Parsing Wikipedia dumps..."
+if [ ! -f "$DATA_DIR/parsed_pages.pkl" ]; then
+    python3 scripts/parse_wikipedia_dumps.py || error_handler "Parse"
+    log "✅ Wikipedia dumps parsed"
+    # Create checkpoint
+    tar -czf "$CHECKPOINT_DIR/checkpoint_parse_$(date +%Y%m%d_%H%M%S).tar.gz" "$DATA_DIR/parsed_pages.pkl"
+else
+    log "⊘ Parsed data already exists, skipping parse"
+fi
+
+# Step 3: Build adjacency map
+log "🗺️  Step 3/7: Building adjacency map (Knowledge Graph)..."
+if [ ! -f "$DATA_DIR/adjacency_map.npz" ]; then
+    python3 scripts/build_adjacency_map.py || error_handler "Adjacency Map"
+    log "✅ Adjacency map built"
+    # Create checkpoint
+    tar -czf "$CHECKPOINT_DIR/checkpoint_adjacency_$(date +%Y%m%d_%H%M%S).tar.gz" \
+        "$DATA_DIR/adjacency_map.npz" "$DATA_DIR/page_mappings.pkl"
+else
+    log "⊘ Adjacency map already exists, skipping build"
+fi
+
+# Step 4: Build embedding index
+log "🧠 Step 4/7: Generating embeddings and FAISS index..."
+if [ ! -f "$DATA_DIR/embeddings.npy" ]; then
+    python3 scripts/build_embedding_index.py || error_handler "Embeddings"
+    log "✅ Embeddings generated"
+    # Create checkpoint
+    tar -czf "$CHECKPOINT_DIR/checkpoint_embeddings_$(date +%Y%m%d_%H%M%S).tar.gz" \
+        "$DATA_DIR/embeddings.npy" "$DATA_DIR/faiss_index.bin"
+else
+    log "⊘ Embeddings already exist, skipping generation"
+fi
+
+# Step 5: Generate training data
+log "📊 Step 5/7: Generating training data..."
+if [ ! -f "$DATA_DIR/training_data.pkl" ]; then
+    # Generate 100K samples for full Wikipedia
+    python3 scripts/generate_training_data.py --num_samples 100000 || error_handler "Training Data"
+    log "✅ Training data generated"
+    # Create checkpoint
+    tar -czf "$CHECKPOINT_DIR/checkpoint_training_data_$(date +%Y%m%d_%H%M%S).tar.gz" \
+        "$DATA_DIR/training_data.pkl"
+else
+    log "⊘ Training data already exists, skipping generation"
+fi
+
+# Step 6: Train MLP scorer
+log "🎓 Step 6/7: Training MLP scorer model..."
+if [ ! -f "models/mlp_scorer_best.pt" ]; then
+    # Train for 50 epochs with checkpointing
+    python3 scripts/train_mlp_scorer.py --epochs 50 --checkpoint_interval 5 || error_handler "MLP Training"
+    log "✅ MLP model trained"
+    # Create checkpoint
+    tar -czf "$CHECKPOINT_DIR/checkpoint_mlp_$(date +%Y%m%d_%H%M%S).tar.gz" \
+        models/mlp_scorer_*.pt "$DATA_DIR/training_state.pkl"
+else
+    log "⊘ MLP model already exists, skipping training"
+fi
+
+# Step 7: Validate model
+log "✅ Step 7/7: Validating trained model..."
+python3 scripts/validate_mlp_scorer.py || error_handler "Validation"
+log "✅ Model validation complete"
+
+# Final checkpoint
+log "💾 Creating final checkpoint..."
+tar -czf "$CHECKPOINT_DIR/final_checkpoint_$(date +%Y%m%d_%H%M%S).tar.gz" \
+    data/*.pkl data/*.npz data/*.npy data/*.bin models/*.pt
+
+# Cleanup old checkpoints (keep last 5)
+log "🧹 Cleaning up old checkpoints..."
+cd "$CHECKPOINT_DIR"
+ls -t checkpoint_*.tar.gz 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
+
+log "=================================="
+log "✅ Training Pipeline Complete!"
+log "End time: $(date)"
+log "=================================="
+log ""
+log "📦 Final checkpoint saved to:"
+log "   $CHECKPOINT_DIR/final_checkpoint_$(date +%Y%m%d_%H%M%S).tar.gz"
+log ""
+log "📥 To download to local machine:"
+log "   scp -i your-key.pem ec2-user@your-instance:$CHECKPOINT_DIR/final_checkpoint_*.tar.gz ."
+log ""
+log "🎮 To test the model:"
+log "   python3 scripts/benchmark_navigator.py"
+log ""

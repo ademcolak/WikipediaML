@@ -104,11 +104,12 @@ def main():
     if all_passed:
         print("\n🎉 All tests passed! System is ready.")
         print("\nNext steps:")
-        print("1. Download Wikipedia data: python3 scripts/download_wikipedia_dumps.py --limit 1000")
+        print("1. Download Wikipedia data: python3 scripts/download_wikipedia_dumps.py")
         print("2. Parse and build graph: python3 scripts/parse_wikipedia_dumps.py")
         print("3. Build embeddings: python3 scripts/build_embedding_index.py")
         print("4. Generate training data: python3 scripts/generate_training_data.py")
         print("5. Train MLP: python3 scripts/train_mlp_scorer.py")
+        print("\nNote: All scripts auto-skip if output already exists.")
         return 0
     else:
         print("\n❌ Some tests failed. Please fix errors above.")

@@ -204,6 +204,14 @@ def main():
     data_dir = Path("data/wikipedia_dumps")
     output_dir = Path("data/cleaned")
     
+    # Check if output already exists (auto-skip)
+    pages_file = output_dir / "pages.json"
+    links_file = output_dir / "links.json"
+    if pages_file.exists() and links_file.exists():
+        print(f"⊘ Parsed data already exists in {output_dir}")
+        print("  Skipping parse step. Delete output files to re-run.")
+        return 0
+    
     # Check if dump files exist
     page_dump = data_dir / "enwiki-latest-page.sql.gz"
     links_dump = data_dir / "enwiki-latest-pagelinks.sql.gz"

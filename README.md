@@ -26,6 +26,21 @@ python3 test_new_system.py
 python3 quick_start.py
 ```
 
+### Option 3: AWS EC2 (Production - Full Wikipedia)
+For training on full Wikipedia dataset (6M+ pages):
+
+```bash
+# See detailed guide in docs/aws/README.md
+# Quick start:
+1. Launch EC2 instance (m5.2xlarge recommended)
+2. SSH to instance
+3. Run: curl -O https://raw.githubusercontent.com/ademcolak/WikipediaML/main/aws/ec2_setup.sh
+4. Run: chmod +x ec2_setup.sh && ./ec2_setup.sh
+5. Run: cd ~/WikipediaML && nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
+```
+
+**Time**: 30-50 hours | **Cost**: ~$7-8 (Spot) | **See**: [`docs/aws/README.md`](docs/aws/README.md)
+
 ## 📁 Project Structure
 
 ```
@@ -47,7 +62,17 @@ WikipediaML/
 │   ├── train_mlp_scorer.py
 │   ├── validate_mlp_scorer.py
 │   └── benchmark_navigator.py
+├── aws/               # AWS EC2 deployment scripts
+│   ├── ec2_setup.sh             # Instance setup script
+│   ├── run_training_pipeline.sh # Automated training
+│   ├── sync_data.sh             # Data sync (EC2 ↔ Local)
+│   └── config.example.sh        # Configuration template
 ├── docs/              # Documentation
+│   ├── aws/                     # AWS deployment docs
+│   │   ├── README.md            # Detailed AWS guide
+│   │   ├── QUICKSTART.md        # Quick start guide
+│   │   └── PROGRESS.md          # Progress report
+│   └── todo.md                  # Project todo list
 ├── legacy/            # Old system (archived)
 └── data/              # Generated data files
 ```
@@ -88,9 +113,9 @@ python3 scripts/build_adjacency_map.py
 python3 scripts/build_embedding_index.py
 
 # 4. Create training data
-python3 scripts/generate_training_data.py --num_samples 5000
+python3 scripts/generate_training_data.py
 
-# 5. Train MLP
+# 5. Train MLP (auto-resumes from checkpoint if exists)
 python3 scripts/train_mlp_scorer.py --epochs 20
 
 # 6. Validate
@@ -134,9 +159,11 @@ print(result['path'])  # ['Python', 'Programming', 'Computer']
 
 ## 📚 Documentation
 
-- `docs/KAGGLE_SETUP.md` - Kaggle/Colab setup guide
-- `docs/IMPLEMENTATION_PLAN.md` - Technical architecture
-- `docs/PROGRESS.md` - Development history
+- `docs/aws/README.md` - AWS EC2 deployment guide
+- `docs/aws/QUICKSTART.md` - Quick start for AWS
+- `docs/aws/RUNNING_ON_AWS.md` - **How to run training on AWS (where, how, background)**
+- `docs/aws/PROGRESS.md` - AWS integration progress
+- `docs/todo.md` - Project todo list
 - `WikipediaML_Kaggle.ipynb` - Interactive tutorial
 
 ## 🧪 Testing

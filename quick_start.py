@@ -28,10 +28,11 @@ def main():
     """Run quick start pipeline"""
     print("""
 ╔══════════════════════════════════════════════════════════╗
-║         WikipediaML Quick Start (Prototype Mode)         ║
+║         WikipediaML Quick Start                          ║
 ║                                                          ║
-║  This will create a small prototype with ~1000 pages    ║
-║  Estimated time: 30-60 minutes                          ║
+║  This will run the full training pipeline               ║
+║  All scripts auto-skip if output already exists         ║
+║  Estimated time: 30-50 hours (full Wikipedia)           ║
 ╚══════════════════════════════════════════════════════════╝
     """)
     
@@ -40,24 +41,24 @@ def main():
     
     steps = [
         (
-            f"{venv_python} scripts/download_wikipedia_dumps.py --limit 1000",
-            "Step 1/5: Download Wikipedia sample (1000 pages)"
+            f"{venv_python} scripts/download_wikipedia_dumps.py",
+            "Step 1/5: Download Wikipedia dumps (auto-skips if exists)"
         ),
         (
             f"{venv_python} scripts/parse_wikipedia_dumps.py",
-            "Step 2/5: Parse and clean Wikipedia data"
+            "Step 2/5: Parse and clean Wikipedia data (auto-skips if exists)"
         ),
         (
             f"{venv_python} scripts/build_adjacency_map.py",
-            "Step 3/5: Build graph adjacency matrix"
+            "Step 3/5: Build graph adjacency matrix (auto-skips if exists)"
         ),
         (
             f"{venv_python} scripts/build_embedding_index.py",
-            "Step 4/5: Generate embeddings and FAISS index"
+            "Step 4/5: Generate embeddings and FAISS index (auto-skips if exists)"
         ),
         (
-            f"{venv_python} scripts/generate_training_data.py --num_samples 5000",
-            "Step 5/5: Generate training dataset"
+            f"{venv_python} scripts/generate_training_data.py",
+            "Step 5/5: Generate training dataset (auto-skips if exists)"
         ),
     ]
     
@@ -84,9 +85,8 @@ Next steps:
 3. Test navigation:
    python3 -c "from core.beam_search import BeamSearchNavigator; nav = BeamSearchNavigator(); print(nav.find_path('Python', 'Computer'))"
 
-For full Wikipedia training (2-3 days):
-   python3 scripts/download_wikipedia_dumps.py  # No --limit flag
-   # Then repeat steps 2-5 above
+Note: All scripts automatically skip if output already exists.
+To start fresh, delete the output files or use clean_data.py
     """)
     
     return 0

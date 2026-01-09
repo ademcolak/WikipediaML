@@ -210,6 +210,14 @@ def main():
     data_dir = Path("data/cleaned")
     output_dir = Path("data/graph")
     
+    # Check if output already exists (auto-skip)
+    matrix_file = output_dir / "adjacency_matrix.npz"
+    mappings_file = output_dir / "page_mappings.pkl"
+    if matrix_file.exists() and mappings_file.exists():
+        print(f"⊘ Adjacency map already exists in {output_dir}")
+        print("  Skipping build step. Delete output files to re-run.")
+        return 0
+    
     # Check if cleaned data exists
     if not data_dir.exists():
         print(f"✗ Error: {data_dir} not found!")
