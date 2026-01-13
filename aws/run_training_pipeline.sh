@@ -5,7 +5,8 @@
 # Includes automatic checkpointing and resume capability
 ################################################################################
 
-set -e  # Exit on error
+# Don't exit on error - we handle errors manually
+set +e
 
 # Configuration
 PROJECT_DIR="$HOME/WikipediaML"
@@ -54,61 +55,62 @@ fi
 
 # Step 2: Parse Wikipedia dumps
 log "🔍 Step 2/7: Parsing Wikipedia dumps..."
-if [ ! -f "$DATA_DIR/parsed_pages.pkl" ]; then
+if [ ! -f "$DATA_DIR/cleaned/pages.json" ]; then
     python3 scripts/parse_wikipedia_dumps.py || error_handler "Parse"
     log "✅ Wikipedia dumps parsed"
     # Create checkpoint
-    tar -czf "$CHECKPOINT_DIR/checkpoint_parse_$(date +%Y%m%d_%H%M%S).tar.gz" "$DATA_DIR/parsed_pages.pkl"
+    tar -czf "$CHECKPOINT_DIR/checkpoint_parse_$(date +%Y%m%d_%H%M%S).tar.gz" \
+        "$DATA_DIR/cleaned/pages.json" "$DATA_DIR/cleaned/links.json"
 else
     log "⊘ Parsed data already exists, skipping parse"
 fi
 
 # Step 3: Build adjacency map
 log "🗺️  Step 3/7: Building adjacency map (Knowledge Graph)..."
-if [ ! -f "$DATA_DIR/adjacency_map.npz" ]; then
+if [ ! -f "$DATA_DIR/graph/adjacency_matrix.npz" ]; then
     python3 scripts/build_adjacency_map.py || error_handler "Adjacency Map"
     log "✅ Adjacency map built"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_adjacency_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        "$DATA_DIR/adjacency_map.npz" "$DATA_DIR/page_mappings.pkl"
+        "$DATA_DIR/graph/adjacency_matrix.npz" "$DATA_DIR/graph/page_mappings.pkl"
 else
     log "⊘ Adjacency map already exists, skipping build"
 fi
 
 # Step 4: Build embedding index
 log "🧠 Step 4/7: Generating embeddings and FAISS index..."
-if [ ! -f "$DATA_DIR/embeddings.npy" ]; then
+if [ ! -f "$DATA_DIR/embeddings/embeddings.npy" ]; then
     python3 scripts/build_embedding_index.py || error_handler "Embeddings"
     log "✅ Embeddings generated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_embeddings_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        "$DATA_DIR/embeddings.npy" "$DATA_DIR/faiss_index.bin"
+        "$DATA_DIR/embeddings/embeddings.npy" "$DATA_DIR/embeddings/faiss_index.bin"
 else
     log "⊘ Embeddings already exist, skipping generation"
 fi
 
 # Step 5: Generate training data
 log "📊 Step 5/7: Generating training data..."
-if [ ! -f "$DATA_DIR/training_data.pkl" ]; then
-    # Generate 100K samples for full Wikipedia
-    python3 scripts/generate_training_data.py --num_samples 100000 || error_handler "Training Data"
+if [ ! -f "$DATA_DIR/training/training_samples.json" ]; then
+    # Generate training data (script uses hardcoded 100K samples)
+    python3 scripts/generate_training_data.py || error_handler "Training Data"
     log "✅ Training data generated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_training_data_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        "$DATA_DIR/training_data.pkl"
+        "$DATA_DIR/training/training_samples.json" "$DATA_DIR/training/dataset_statistics.json"
 else
     log "⊘ Training data already exists, skipping generation"
 fi
 
 # Step 6: Train MLP scorer
 log "🎓 Step 6/7: Training MLP scorer model..."
-if [ ! -f "models/mlp_scorer_best.pt" ]; then
-    # Train for 50 epochs with checkpointing
-    python3 scripts/train_mlp_scorer.py --epochs 50 --checkpoint_interval 5 || error_handler "MLP Training"
+if [ ! -f "models/checkpoints/mlp_scorer_best.pt" ]; then
+    # Train for 50 epochs with checkpointing (default checkpoint interval is 5)
+    python3 scripts/train_mlp_scorer.py --epochs 50 --checkpoint-interval 5 || error_handler "MLP Training"
     log "✅ MLP model trained"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_mlp_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        models/mlp_scorer_*.pt "$DATA_DIR/training_state.pkl"
+        models/checkpoints/mlp_scorer_*.pt "$DATA_DIR/training/training_state.pkl" 2>/dev/null || true
 else
     log "⊘ MLP model already exists, skipping training"
 fi

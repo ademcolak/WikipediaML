@@ -63,8 +63,12 @@ pip install -r requirements.txt
 # Create necessary directories
 echo "📁 Creating data directories..."
 mkdir -p data/wikipedia_dumps
+mkdir -p data/cleaned
+mkdir -p data/graph
+mkdir -p data/embeddings
+mkdir -p data/training
 mkdir -p data/checkpoints
-mkdir -p models
+mkdir -p models/checkpoints
 mkdir -p logs
 
 # Set up cron job for automatic checkpointing (optional)
