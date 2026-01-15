@@ -249,6 +249,18 @@ class TrainingDataGenerator:
         
         distances = [s['distance_to_target'] for s in samples]
         
+        # Check if we have any samples
+        if len(distances) == 0:
+            print("⚠️  Warning: No samples generated!")
+            return {
+                'total_samples': 0,
+                'min_distance': 0,
+                'max_distance': 0,
+                'mean_distance': 0.0,
+                'median_distance': 0.0,
+                'distance_distribution': {}
+            }
+        
         stats = {
             'total_samples': len(samples),
             'min_distance': int(np.min(distances)),

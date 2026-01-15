@@ -232,10 +232,19 @@ class MLPScorerTrainer:
         print(f"\n{'='*80}")
         print("Starting training...")
         print(f"{'='*80}")
+        # Validate datasets
+        train_size = len(train_loader.dataset)  # type: ignore
+        val_size = len(val_loader.dataset)  # type: ignore
+        
+        if train_size == 0:
+            raise ValueError("Training dataset is empty! Please run generate_training_data.py first.")
+        if val_size == 0:
+            raise ValueError("Validation dataset is empty! Please run generate_training_data.py first.")
+        
         print(f"Device: {self.device}")
         print(f"Model parameters: {sum(p.numel() for p in self.model.parameters()):,}")
-        print(f"Training samples: {len(train_loader.dataset):,}")  # type: ignore
-        print(f"Validation samples: {len(val_loader.dataset):,}")  # type: ignore
+        print(f"Training samples: {train_size:,}")
+        print(f"Validation samples: {val_size:,}")
         print(f"Batch size: {train_loader.batch_size}")
         print(f"Total epochs: {n_epochs}")
         print(f"Starting from epoch: {self.start_epoch + 1}")
@@ -374,13 +383,23 @@ def load_training_data(data_dir: Path) -> List[Dict]:
     with open(samples_file, 'r', encoding='utf-8') as f:
         samples = json.load(f)
     
+    if len(samples) == 0:
+        raise ValueError("Training data file is empty! Please run generate_training_data.py first.")
+    
     print(f"✓ Loaded {len(samples):,} samples")
     return samples
 
 
 def split_data(samples: List[Dict], train_ratio: float = 0.8) -> Tuple[List[Dict], List[Dict]]:
     """Split data into train and validation sets."""
+    if len(samples) == 0:
+        raise ValueError("Cannot split empty dataset! Please run generate_training_data.py first.")
+    
     n_train = int(len(samples) * train_ratio)
+    
+    # Ensure at least 1 sample in validation set
+    if n_train >= len(samples):
+        n_train = max(1, len(samples) - 1)
     
     # Shuffle samples
     np.random.shuffle(samples)  # type: ignore
@@ -390,6 +409,9 @@ def split_data(samples: List[Dict], train_ratio: float = 0.8) -> Tuple[List[Dict
     
     print(f"✓ Train samples: {len(train_samples):,}")
     print(f"✓ Validation samples: {len(val_samples):,}")
+    
+    if len(train_samples) == 0 or len(val_samples) == 0:
+        raise ValueError("Split resulted in empty dataset! Need at least 2 samples.")
     
     return train_samples, val_samples
 

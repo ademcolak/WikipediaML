@@ -173,6 +173,18 @@ class ModelValidator:
         print("Validating model...")
         print(f"{'='*80}")
         
+        if len(test_samples) == 0:
+            print("⚠️  Warning: No test samples provided!")
+            return {
+                'mae': 0.0,
+                'mse': 0.0,
+                'rmse': 0.0,
+                'accuracy_within_1': 0.0,
+                'accuracy_within_2': 0.0,
+                'correlation': 0.0,
+                'n_samples': 0
+            }
+        
         predictions = []
         ground_truths = []
         
@@ -247,12 +259,15 @@ class ModelValidator:
         print("Distance Distribution Analysis:")
         print(f"{'='*80}")
         
-        for dist in range(int(ground_truths.min()), int(ground_truths.max()) + 1):
-            mask = ground_truths == dist
-            if mask.sum() > 0:
-                dist_mae = np.mean(np.abs(predictions[mask] - ground_truths[mask]))
-                count = mask.sum()
-                print(f"Distance {dist}: {count:,} samples, MAE: {dist_mae:.4f}")
+        if len(ground_truths) > 0:
+            for dist in range(int(ground_truths.min()), int(ground_truths.max()) + 1):
+                mask = ground_truths == dist
+                if mask.sum() > 0:
+                    dist_mae = np.mean(np.abs(predictions[mask] - ground_truths[mask]))
+                    count = mask.sum()
+                    print(f"Distance {dist}: {count:,} samples, MAE: {dist_mae:.4f}")
+        else:
+            print("⚠️  No test samples available for analysis")
         
         return metrics
     

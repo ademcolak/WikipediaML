@@ -4,15 +4,7 @@ ML-based system for finding shortest paths between Wikipedia pages using neural 
 
 ## 🚀 Quick Start
 
-### Option 1: Kaggle/Colab (Recommended)
-1. Open `WikipediaML_Kaggle.ipynb` in Kaggle or Google Colab
-2. Enable GPU (P100 or T4)
-3. Run all cells
-4. Download trained models
-
-**Time**: ~1 hour for 1000 pages
-
-### Option 2: Local Setup
+### Option 1: Local Setup (Laptop / Workstation)
 ```bash
 # Setup
 python3 -m venv venv
@@ -26,17 +18,28 @@ python3 test_new_system.py
 python3 quick_start.py
 ```
 
-### Option 3: AWS EC2 (Production - Full Wikipedia)
+### Option 2: AWS EC2 (Production - Full Wikipedia)
 For training on full Wikipedia dataset (6M+ pages):
 
 ```bash
 # See detailed guide in docs/aws/README.md
 # Quick start:
-1. Launch EC2 instance (m5.2xlarge recommended)
+1. Launch EC2 instance (m5.2xlarge recommended, 200 GB gp3)
 2. SSH to instance
 3. Run: curl -O https://raw.githubusercontent.com/ademcolak/WikipediaML/main/aws/ec2_setup.sh
 4. Run: chmod +x ec2_setup.sh && ./ec2_setup.sh
 5. Run: cd ~/WikipediaML && nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
+
+# Notes:
+# - Pipeline is idempotent: you can re-run run_training_pipeline.sh at any time.
+#   Completed steps (downloads, parsing, adjacency) are auto-detected and skipped.
+# - The embeddings step (Step 4/7) is the heaviest and can run for many hours.
+#   Seeing ~80% progress for a long time is normal.
+# - It is safe to close your SSH session or your local machine; training keeps
+#   running on EC2 thanks to nohup.
+# - If the instance is rebooted or the process crashes, simply re-run
+#   ./aws/run_training_pipeline.sh — it will resume from existing outputs and
+#   checkpoints.
 ```
 
 **Time**: 30-50 hours | **Cost**: ~$7-8 (Spot) | **See**: [`docs/aws/README.md`](docs/aws/README.md)
