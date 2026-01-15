@@ -359,6 +359,18 @@ def main():
             n_candidates_per_sample=10
         )
         
+        # Check if we actually generated any samples
+        if len(candidate_samples) == 0:
+            print("\n✗ ERROR: No training samples generated!")
+            print("Possible reasons:")
+            print("  1. Graph has insufficient connections")
+            print("  2. BFS cannot find paths between pages")
+            print("  3. Embeddings not loaded correctly")
+            print("\nPlease check:")
+            print("  - Graph connectivity: python3 scripts/build_adjacency_map.py")
+            print("  - Embeddings: python3 scripts/build_embedding_index.py")
+            return 1
+        
         # Analyze and save
         stats = generator.analyze_dataset(candidate_samples)
         generator.save_dataset(candidate_samples, stats, output_dir)

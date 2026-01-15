@@ -91,13 +91,24 @@ fi
 
 # Step 5: Generate training data
 log "📊 Step 5/7: Generating training data..."
-if [ ! -f "$DATA_DIR/training/training_samples.json" ]; then
+TRAINING_SAMPLES_FILE="$DATA_DIR/training/training_samples.json"
+if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then
+    # Remove empty/corrupted file if exists
+    [ -f "$TRAINING_SAMPLES_FILE" ] && rm -f "$TRAINING_SAMPLES_FILE"
+    
     # Generate training data (script uses hardcoded 100K samples)
     python3 scripts/generate_training_data.py || error_handler "Training Data"
+    
+    # Verify training data was actually generated
+    if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then
+        log "❌ ERROR: Training data file is empty or missing!"
+        error_handler "Training Data"
+    fi
+    
     log "✅ Training data generated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_training_data_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        "$DATA_DIR/training/training_samples.json" "$DATA_DIR/training/dataset_statistics.json"
+        "$TRAINING_SAMPLES_FILE" "$DATA_DIR/training/dataset_statistics.json"
 else
     log "⊘ Training data already exists, skipping generation"
 fi
