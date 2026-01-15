@@ -202,8 +202,8 @@ class TrainingDataGenerator:
             candidate_indices = np.random.choice(neighbors, n_to_sample, replace=False)
             
             for candidate_idx in candidate_indices:
-                    # Calculate distance from candidate to target
-                    distance_to_target = self.bfs_shortest_path(candidate_idx, target_idx, max_depth=20)
+                # Calculate distance from candidate to target
+                distance_to_target = self.bfs_shortest_path(candidate_idx, target_idx, max_depth=20)
                 
                 if distance_to_target < 0:
                     continue  # Skip if no path found
