@@ -122,7 +122,7 @@ class TrainingDataGenerator:
         n_pages = len(self.pages)
         samples = []
         attempts = 0
-        max_attempts = n_samples * 3  # Allow some failed attempts
+        max_attempts = n_samples * 10  # Increased from 3 to 10 for better success rate
         
         with tqdm(total=n_samples, desc="Generating samples") as pbar:
             while len(samples) < n_samples and attempts < max_attempts:
@@ -202,8 +202,8 @@ class TrainingDataGenerator:
             candidate_indices = np.random.choice(neighbors, n_to_sample, replace=False)
             
             for candidate_idx in candidate_indices:
-                # Calculate distance from candidate to target
-                distance_to_target = self.bfs_shortest_path(candidate_idx, target_idx, max_depth=10)
+                    # Calculate distance from candidate to target
+                    distance_to_target = self.bfs_shortest_path(candidate_idx, target_idx, max_depth=20)
                 
                 if distance_to_target < 0:
                     continue  # Skip if no path found
@@ -346,11 +346,12 @@ def main():
         generator.load_data()
         
         # Generate start-target pairs
+        # Note: Relaxed parameters for better connectivity
         samples = generator.generate_training_samples(
             n_samples=100_000,  # Start with 100k, can increase to 1M
-            max_depth=10,
-            min_distance=2,
-            max_distance=8
+            max_depth=20,  # Increased from 10 to find more paths
+            min_distance=1,  # Allow distance 1 (direct links)
+            max_distance=15  # Increased from 8 to allow longer paths
         )
         
         # Generate candidate samples with features

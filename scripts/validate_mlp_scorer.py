@@ -115,9 +115,9 @@ class ModelValidator:
                     continue
                 
                 # Find shortest path
-                distance = self.generator.bfs_shortest_path(start_idx, target_idx, max_depth=10)
+                distance = self.generator.bfs_shortest_path(start_idx, target_idx, max_depth=20)
                 
-                if distance < 2 or distance > 8:
+                if distance < 1 or distance > 15:
                     continue
                 
                 # Get neighbors and sample candidates
@@ -137,7 +137,7 @@ class ModelValidator:
                     
                     # Calculate distance from candidate to target
                     distance_to_target = self.generator.bfs_shortest_path(
-                        candidate_idx, target_idx, max_depth=10
+                        candidate_idx, target_idx, max_depth=20
                     )
                     
                     if distance_to_target < 0:
