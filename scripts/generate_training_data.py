@@ -96,15 +96,73 @@ class TrainingDataGenerator:
         
         return -1  # No path found
     
+    def get_high_degree_pages(self, top_k: int = 1000) -> List[int]:
+        """Get pages with highest out-degree (hub pages)."""
+        out_degrees = np.array(self.adjacency_matrix.sum(axis=1)).flatten()
+        top_indices = np.argsort(out_degrees)[-top_k:][::-1]
+        return top_indices.tolist()
+    
+    def test_graph_connectivity(self, n_tests: int = 100) -> Dict:
+        """Test if graph has sufficient connectivity."""
+        print(f"\n{'='*80}")
+        print("Testing graph connectivity...")
+        print(f"{'='*80}")
+        
+        n_pages = len(self.pages)
+        successful_paths = 0
+        total_tests = 0
+        
+        # Test with random pages
+        for _ in range(n_tests):
+            start_idx = np.random.randint(0, n_pages)
+            target_idx = np.random.randint(0, n_pages)
+            
+            if start_idx == target_idx:
+                continue
+            
+            total_tests += 1
+            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=20)
+            if distance > 0:
+                successful_paths += 1
+        
+        success_rate = (successful_paths / total_tests * 100) if total_tests > 0 else 0
+        print(f"✓ Random sampling: {successful_paths}/{total_tests} paths found ({success_rate:.2f}%)")
+        
+        # Test with hub pages
+        hub_pages = self.get_high_degree_pages(top_k=100)
+        hub_successful = 0
+        hub_tests = 0
+        
+        for _ in range(min(n_tests, len(hub_pages))):
+            start_idx = np.random.choice(hub_pages)
+            target_idx = np.random.randint(0, n_pages)
+            
+            if start_idx == target_idx:
+                continue
+            
+            hub_tests += 1
+            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=20)
+            if distance > 0:
+                hub_successful += 1
+        
+        hub_success_rate = (hub_successful / hub_tests * 100) if hub_tests > 0 else 0
+        print(f"✓ Hub-based sampling: {hub_successful}/{hub_tests} paths found ({hub_success_rate:.2f}%)")
+        
+        return {
+            'random_success_rate': success_rate,
+            'hub_success_rate': hub_success_rate,
+            'use_hub_sampling': hub_success_rate > success_rate * 1.5
+        }
+    
     def generate_training_samples(
         self,
-        n_samples: int = 1_000_000,
-        max_depth: int = 10,
-        min_distance: int = 2,
-        max_distance: int = 8
+        n_samples: int = 100_000,
+        max_depth: int = 20,
+        min_distance: int = 1,
+        max_distance: int = 15
     ) -> List[Dict]:
         """
-        Generate training samples.
+        Generate training samples using smart sampling strategy.
         
         Args:
             n_samples: Number of samples to generate
@@ -119,17 +177,40 @@ class TrainingDataGenerator:
         print(f"Generating {n_samples:,} training samples...")
         print(f"{'='*80}")
         
+        # Test connectivity first
+        connectivity = self.test_graph_connectivity(n_tests=200)
+        use_hub_sampling = connectivity['use_hub_sampling']
+        
+        if connectivity['random_success_rate'] < 0.1 and connectivity['hub_success_rate'] < 0.1:
+            print("\n⚠️  WARNING: Graph connectivity is very low!")
+            print("This may indicate:")
+            print("  1. Graph is fragmented (multiple disconnected components)")
+            print("  2. Links are mostly unidirectional")
+            print("  3. Parse process may have missed many links")
+            print("\nTrying with relaxed parameters...")
+            min_distance = 1
+            max_distance = 30  # Allow much longer paths
+        
         n_pages = len(self.pages)
         samples = []
         attempts = 0
-        max_attempts = n_samples * 10  # Increased from 3 to 10 for better success rate
+        max_attempts = n_samples * 20  # Much more attempts
+        
+        # Get hub pages if using hub sampling
+        hub_pages = self.get_high_degree_pages(top_k=5000) if use_hub_sampling else []
+        
+        print(f"\nUsing {'hub-based' if use_hub_sampling else 'random'} sampling strategy...")
         
         with tqdm(total=n_samples, desc="Generating samples") as pbar:
             while len(samples) < n_samples and attempts < max_attempts:
                 attempts += 1
                 
-                # Sample random start and target pages
-                start_idx = np.random.randint(0, n_pages)
+                # Smart sampling: prefer hub pages for start
+                if use_hub_sampling and len(hub_pages) > 0 and np.random.random() < 0.7:
+                    start_idx = np.random.choice(hub_pages)
+                else:
+                    start_idx = np.random.randint(0, n_pages)
+                
                 target_idx = np.random.randint(0, n_pages)
                 
                 # Skip if same page
@@ -161,8 +242,16 @@ class TrainingDataGenerator:
                 samples.append(sample)
                 pbar.update(1)
         
+        success_rate = (len(samples) / attempts * 100) if attempts > 0 else 0
         print(f"\n✓ Generated {len(samples):,} samples in {attempts:,} attempts")
-        print(f"✓ Success rate: {100 * len(samples) / attempts:.2f}%")
+        print(f"✓ Success rate: {success_rate:.2f}%")
+        
+        if len(samples) == 0:
+            print("\n⚠️  CRITICAL: No samples generated!")
+            print("Graph may be too fragmented. Consider:")
+            print("  1. Re-parsing Wikipedia dumps")
+            print("  2. Using a smaller subset of pages")
+            print("  3. Checking if links are being parsed correctly")
         
         return samples
     
@@ -346,12 +435,9 @@ def main():
         generator.load_data()
         
         # Generate start-target pairs
-        # Note: Relaxed parameters for better connectivity
+        # Parameters are auto-adjusted based on graph connectivity
         samples = generator.generate_training_samples(
-            n_samples=100_000,  # Start with 100k, can increase to 1M
-            max_depth=20,  # Increased from 10 to find more paths
-            min_distance=1,  # Allow distance 1 (direct links)
-            max_distance=15  # Increased from 8 to allow longer paths
+            n_samples=100_000  # Will use smart sampling strategy
         )
         
         # Generate candidate samples with features
