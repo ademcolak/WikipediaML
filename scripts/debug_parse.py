@@ -49,6 +49,7 @@ def check_dump_format(filepath: Path, n_lines: int = 50):
     
     with gzip.open(filepath, 'rt', encoding='utf-8', errors='ignore') as f:
         buffer = ""
+        first_insert_shown = False
         for i, line in enumerate(f):
             buffer += line
             
@@ -56,6 +57,35 @@ def check_dump_format(filepath: Path, n_lines: int = 50):
                 for match in insert_pattern.finditer(buffer):
                     matches_found += 1
                     values = match.group(1)
+                    
+                    # Show first INSERT statement content for debugging
+                    if not first_insert_shown and matches_found == 1:
+                        print(f"\n{'='*80}")
+                        print("First INSERT statement content (first 500 chars):")
+                        print(f"{'='*80}")
+                        print(values[:500])
+                        print(f"\n... (truncated, total length: {len(values)} chars)")
+                        print(f"{'='*80}\n")
+                        first_insert_shown = True
+                        
+                        # Try to find first row manually
+                        print("Trying to find first row pattern...")
+                        # Look for patterns like (123,456,'Title')
+                        manual_patterns = [
+                            r"\((\d+),(\d+),'([^']*)'",  # Standard: (id, ns, 'title')
+                            r"\((\d+),(\d+),\"([^\"]*)\"",  # Double quotes
+                            r"\((\d+),(\d+),([^,)]+)\)",  # No quotes
+                            r"\((\d+),(\d+),([^,)]+),",  # With trailing comma
+                        ]
+                        
+                        for idx, pattern in enumerate(manual_patterns):
+                            test_pattern = re.compile(pattern)
+                            test_matches = list(test_pattern.finditer(values[:1000]))
+                            if test_matches:
+                                print(f"  Pattern {idx+1} matched: {len(test_matches)} rows found in first 1000 chars")
+                                if len(test_matches) > 0:
+                                    m = test_matches[0]
+                                    print(f"    Example: from_id={m.group(1)}, ns={m.group(2)}, title={m.group(3)[:50]}")
                     
                     for row_match in row_pattern.finditer(values):
                         rows_found += 1
