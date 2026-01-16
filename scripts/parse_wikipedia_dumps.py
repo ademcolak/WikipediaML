@@ -97,12 +97,15 @@ class WikipediaParser:
             (re.compile(r"INSERT INTO pagelinks VALUES \((.*?)\);", re.DOTALL), "pagelinks no backticks"),
         ]
         
-        # Pattern to match individual rows: (from_id, namespace, title)
-        # Try multiple row patterns
+        # Pattern to match individual rows
+        # Wikipedia dump can have two formats:
+        # 1. (from_id, namespace, 'title') - title as string
+        # 2. (from_id, namespace, to_id) - to_id as number (page ID)
         row_patterns = [
-            re.compile(r"\((\d+),(\d+),'([^']*)'"),  # Standard: (id, ns, 'title')
-            re.compile(r"\((\d+),(\d+),\"([^\"]*)\""),  # Double quotes: (id, ns, "title")
-            re.compile(r"\((\d+),(\d+),([^,)]+)\)"),  # No quotes: (id, ns, title)
+            re.compile(r"\((\d+),(\d+),(\d+)\)"),  # Format 2: (id, ns, to_id) - DIRECT PAGE ID
+            re.compile(r"\((\d+),(\d+),'([^']*)'"),  # Format 1: (id, ns, 'title') - TITLE STRING
+            re.compile(r"\((\d+),(\d+),\"([^\"]*)\""),  # Format 1 variant: (id, ns, "title")
+            re.compile(r"\((\d+),(\d+),([^,)]+)\)"),  # Fallback: (id, ns, anything)
         ]
         
         total_links = 0
@@ -140,11 +143,20 @@ class WikipediaParser:
                 first_match = list(detected_insert_pattern.finditer(sample_buffer))[0]
                 values = first_match.group(1)
                 
+                # Try patterns in order of likelihood
+                # First try direct page ID format (most common in recent dumps)
                 for row_pattern in row_patterns:
                     matches = list(row_pattern.finditer(values))
                     if matches and len(matches) > 0:
                         detected_row_pattern = row_pattern
-                        print(f"✓ Detected row pattern: {len(matches)} rows found in sample")
+                        # Check if it's the direct ID format
+                        test_match = matches[0]
+                        third_field = test_match.group(3)
+                        if third_field.isdigit():
+                            print(f"✓ Detected row pattern: Direct page ID format (id, ns, to_id)")
+                        else:
+                            print(f"✓ Detected row pattern: Title string format (id, ns, 'title')")
+                        print(f"  Found {len(matches)} rows in sample")
                         break
         
         if not detected_insert_pattern or not detected_row_pattern:
@@ -172,10 +184,7 @@ class WikipediaParser:
                             try:
                                 from_id = int(row_match.group(1))
                                 to_namespace = int(row_match.group(2))
-                                to_title = row_match.group(3).strip().strip("'\"")
-                                
-                                # Clean title
-                                to_title = to_title.replace('_', ' ')
+                                third_field = row_match.group(3).strip()
                                 
                                 rows_parsed += 1
                                 total_links += 1
@@ -188,11 +197,24 @@ class WikipediaParser:
                                 if to_namespace != MAIN_NAMESPACE:
                                     continue
                                 
-                                # Check if target page exists
-                                to_id = title_to_id.get(to_title)
-                                if to_id is None:
-                                    redlinks += 1
-                                    continue
+                                # Determine if third field is page ID (number) or title (string)
+                                to_id = None
+                                if third_field.isdigit():
+                                    # Format 2: (from_id, namespace, to_id) - DIRECT PAGE ID
+                                    to_id = int(third_field)
+                                    # Verify this page ID exists in our pages
+                                    if to_id not in self.valid_page_ids:
+                                        redlinks += 1
+                                        continue
+                                else:
+                                    # Format 1: (from_id, namespace, 'title') - TITLE STRING
+                                    to_title = third_field.strip().strip("'\"")
+                                    to_title = to_title.replace('_', ' ')
+                                    # Look up page ID from title
+                                    to_id = title_to_id.get(to_title)
+                                    if to_id is None:
+                                        redlinks += 1
+                                        continue
                                 
                                 # Add valid link
                                 if from_id not in self.links:
