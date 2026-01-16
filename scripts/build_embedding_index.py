@@ -52,8 +52,14 @@ class EmbeddingIndexBuilder:
         print(f"{'='*80}")
         
         pages_file = data_dir / "pages.json"
+        if not pages_file.exists():
+            raise FileNotFoundError(f"Pages file not found: {pages_file}")
+        
         with open(pages_file, 'r', encoding='utf-8') as f:
             self.pages = {int(k): v for k, v in json.load(f).items()}
+        
+        if len(self.pages) == 0:
+            raise ValueError("Pages file is empty!")
         
         print(f"✓ Loaded {len(self.pages):,} pages")
         
@@ -62,7 +68,7 @@ class EmbeddingIndexBuilder:
         self.page_id_to_index = {pid: idx for idx, pid in enumerate(sorted_page_ids)}
         self.index_to_page_id = {idx: pid for pid, idx in self.page_id_to_index.items()}
         
-        print(f"✓ Created index mappings")
+        print(f"✓ Created index mappings for {len(sorted_page_ids):,} pages")
     
     def generate_embeddings(self, batch_size: int = 256) -> np.ndarray:
         """
@@ -79,6 +85,19 @@ class EmbeddingIndexBuilder:
         print(f"{'='*80}")
         
         n_pages = len(self.pages)
+        
+        # Validate we have pages
+        if n_pages == 0:
+            raise ValueError("No pages to generate embeddings for!")
+        
+        # Estimate memory usage
+        estimated_memory_gb = (n_pages * self.embedding_dim * 4) / (1024**3)  # float32 = 4 bytes
+        print(f"Estimated memory usage: {estimated_memory_gb:.2f} GB")
+        
+        if estimated_memory_gb > 100:
+            print(f"⚠️  WARNING: Very large embedding matrix ({estimated_memory_gb:.2f} GB)")
+            print("This may cause OOM errors. Consider using a smaller subset or more RAM.")
+        
         embeddings = np.zeros((n_pages, self.embedding_dim), dtype=np.float32)  # type: ignore
         
         # Prepare titles in index order
@@ -97,6 +116,17 @@ class EmbeddingIndexBuilder:
                 normalize_embeddings=True  # L2 normalization for cosine similarity
             )
             embeddings[i:i + len(batch_embeddings)] = batch_embeddings
+        
+        # Validate embeddings
+        if np.all(embeddings == 0):
+            raise ValueError("All embeddings are zero! Generation failed.")
+        
+        if np.any(np.isnan(embeddings)) or np.any(np.isinf(embeddings)):
+            raise ValueError("Embeddings contain NaN or Inf values!")
+        
+        print(f"✓ Generated {n_pages:,} embeddings")
+        print(f"✓ Embedding shape: {embeddings.shape}")
+        print(f"✓ Memory usage: {embeddings.nbytes / (1024**3):.2f} GB")
         
         print(f"✓ Generated embeddings for {n_pages:,} pages")
         print(f"✓ Embedding shape: {embeddings.shape}")

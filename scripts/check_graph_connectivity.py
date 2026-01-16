@@ -55,6 +55,25 @@ def main():
     n_edges = adjacency_matrix.nnz
     
     print(f"✓ Loaded: {n_pages:,} pages, {n_edges:,} edges")
+    
+    # Critical validation
+    if n_edges == 0:
+        print("\n❌ CRITICAL ERROR: Graph has 0 edges!")
+        print("\nThis means:")
+        print("  1. Parse process did not extract any links")
+        print("  2. Links.json is empty or corrupted")
+        print("  3. Adjacency matrix build failed")
+        print("\nRecommended actions:")
+        print("  1. Check data/cleaned/links.json file size")
+        print("  2. Check data/cleaned/statistics.json for total_links")
+        print("  3. Re-run parse_wikipedia_dumps.py")
+        print("  4. Re-run build_adjacency_map.py")
+        return 1
+    
+    if n_edges < 1000:
+        print(f"\n⚠️  WARNING: Very few edges ({n_edges:,}) in graph!")
+        print("This is unusually low for Wikipedia.")
+    
     print(f"✓ Average out-degree: {n_edges / n_pages:.2f}")
     
     # Load page mappings

@@ -55,12 +55,35 @@ fi
 
 # Step 2: Parse Wikipedia dumps
 log "🔍 Step 2/7: Parsing Wikipedia dumps..."
-if [ ! -f "$DATA_DIR/cleaned/pages.json" ]; then
+if [ ! -f "$DATA_DIR/cleaned/pages.json" ] || [ ! -f "$DATA_DIR/cleaned/links.json" ]; then
     python3 scripts/parse_wikipedia_dumps.py || error_handler "Parse"
-    log "✅ Wikipedia dumps parsed"
+    
+    # Validate parse results
+    if [ ! -f "$DATA_DIR/cleaned/pages.json" ] || [ ! -f "$DATA_DIR/cleaned/links.json" ]; then
+        log "❌ ERROR: Parse completed but output files missing!"
+        error_handler "Parse"
+    fi
+    
+    # Check links.json is not empty
+    if [ ! -s "$DATA_DIR/cleaned/links.json" ]; then
+        log "❌ ERROR: links.json is empty! Parse failed."
+        error_handler "Parse"
+    fi
+    
+    # Check statistics
+    if [ -f "$DATA_DIR/cleaned/statistics.json" ]; then
+        TOTAL_LINKS=$(python3 -c "import json; print(json.load(open('$DATA_DIR/cleaned/statistics.json'))['total_links'])" 2>/dev/null || echo "0")
+        if [ "$TOTAL_LINKS" -lt 1000 ]; then
+            log "❌ ERROR: Too few links parsed ($TOTAL_LINKS). Parse likely failed!"
+            error_handler "Parse"
+        fi
+        log "✓ Verified: $TOTAL_LINKS links parsed"
+    fi
+    
+    log "✅ Wikipedia dumps parsed and validated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_parse_$(date +%Y%m%d_%H%M%S).tar.gz" \
-        "$DATA_DIR/cleaned/pages.json" "$DATA_DIR/cleaned/links.json"
+        "$DATA_DIR/cleaned/pages.json" "$DATA_DIR/cleaned/links.json" "$DATA_DIR/cleaned/statistics.json"
 else
     log "⊘ Parsed data already exists, skipping parse"
 fi
@@ -69,19 +92,81 @@ fi
 log "🗺️  Step 3/7: Building adjacency map (Knowledge Graph)..."
 if [ ! -f "$DATA_DIR/graph/adjacency_matrix.npz" ]; then
     python3 scripts/build_adjacency_map.py || error_handler "Adjacency Map"
-    log "✅ Adjacency map built"
+    
+    # Validate adjacency matrix
+    if [ ! -f "$DATA_DIR/graph/adjacency_matrix.npz" ]; then
+        log "❌ ERROR: Adjacency matrix file not created!"
+        error_handler "Adjacency Map"
+    fi
+    
+    # Check matrix has edges using Python
+    EDGE_COUNT=$(python3 -c "
+from scipy.sparse import load_npz
+import sys
+try:
+    matrix = load_npz('$DATA_DIR/graph/adjacency_matrix.npz')
+    print(matrix.nnz)
+except Exception as e:
+    print('0', file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null || echo "0")
+    
+    if [ "$EDGE_COUNT" -eq 0 ]; then
+        log "❌ ERROR: Adjacency matrix has 0 edges! Build failed."
+        error_handler "Adjacency Map"
+    fi
+    
+    if [ "$EDGE_COUNT" -lt 1000 ]; then
+        log "⚠️  WARNING: Very few edges in graph ($EDGE_COUNT). This is unusual."
+    else
+        log "✓ Verified: $EDGE_COUNT edges in graph"
+    fi
+    
+    log "✅ Adjacency map built and validated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_adjacency_$(date +%Y%m%d_%H%M%S).tar.gz" \
         "$DATA_DIR/graph/adjacency_matrix.npz" "$DATA_DIR/graph/page_mappings.pkl"
 else
     log "⊘ Adjacency map already exists, skipping build"
+    
+    # Still validate existing matrix
+    EDGE_COUNT=$(python3 -c "
+from scipy.sparse import load_npz
+try:
+    matrix = load_npz('$DATA_DIR/graph/adjacency_matrix.npz')
+    print(matrix.nnz)
+except:
+    print('0')
+" 2>/dev/null || echo "0")
+    
+    if [ "$EDGE_COUNT" -eq 0 ]; then
+        log "⚠️  WARNING: Existing adjacency matrix has 0 edges! Rebuilding..."
+        rm -f "$DATA_DIR/graph/adjacency_matrix.npz"
+        python3 scripts/build_adjacency_map.py || error_handler "Adjacency Map"
+    fi
 fi
 
 # Step 4: Build embedding index
 log "🧠 Step 4/7: Generating embeddings and FAISS index..."
-if [ ! -f "$DATA_DIR/embeddings/embeddings.npy" ]; then
+if [ ! -f "$DATA_DIR/embeddings/embeddings.npy" ] || [ ! -f "$DATA_DIR/embeddings/faiss_index.bin" ]; then
     python3 scripts/build_embedding_index.py || error_handler "Embeddings"
-    log "✅ Embeddings generated"
+    
+    # Validate embeddings
+    if [ ! -f "$DATA_DIR/embeddings/embeddings.npy" ] || [ ! -f "$DATA_DIR/embeddings/faiss_index.bin" ]; then
+        log "❌ ERROR: Embedding files not created!"
+        error_handler "Embeddings"
+    fi
+    
+    # Check embeddings file size (should be > 100MB for full Wikipedia)
+    EMBEDDING_SIZE=$(stat -f%z "$DATA_DIR/embeddings/embeddings.npy" 2>/dev/null || stat -c%s "$DATA_DIR/embeddings/embeddings.npy" 2>/dev/null || echo "0")
+    if [ "$EMBEDDING_SIZE" -lt 1000000 ]; then
+        log "⚠️  WARNING: Embeddings file is suspiciously small ($EMBEDDING_SIZE bytes)"
+    else
+        EMBEDDING_SIZE_MB=$((EMBEDDING_SIZE / 1024 / 1024))
+        log "✓ Verified: Embeddings file size: ${EMBEDDING_SIZE_MB} MB"
+    fi
+    
+    log "✅ Embeddings generated and validated"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_embeddings_$(date +%Y%m%d_%H%M%S).tar.gz" \
         "$DATA_DIR/embeddings/embeddings.npy" "$DATA_DIR/embeddings/faiss_index.bin"

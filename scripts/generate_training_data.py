@@ -42,8 +42,27 @@ class TrainingDataGenerator:
         
         # Load adjacency matrix
         matrix_file = self.graph_dir / "adjacency_matrix.npz"
+        if not matrix_file.exists():
+            raise FileNotFoundError(f"Adjacency matrix not found: {matrix_file}")
+        
         self.adjacency_matrix = load_npz(matrix_file)
-        print(f"✓ Loaded adjacency matrix: {self.adjacency_matrix.shape}")  # type: ignore
+        n_pages, n_edges = self.adjacency_matrix.shape[0], self.adjacency_matrix.nnz
+        
+        print(f"✓ Loaded adjacency matrix: {self.adjacency_matrix.shape}")
+        print(f"✓ Total edges: {n_edges:,}")
+        
+        # Critical validation
+        if n_edges == 0:
+            raise ValueError("Adjacency matrix has 0 edges! Cannot generate training data.")
+        
+        if n_edges < 1000:
+            raise ValueError(f"Too few edges ({n_edges:,}) in graph. Parse likely failed!")
+        
+        avg_out_degree = n_edges / n_pages if n_pages > 0 else 0
+        print(f"✓ Average out-degree: {avg_out_degree:.2f}")
+        
+        if avg_out_degree < 0.1:
+            print("⚠️  WARNING: Very low average out-degree. Training data generation will be slow.")
         
         # Load page mappings
         mappings_file = self.graph_dir / "page_mappings.pkl"

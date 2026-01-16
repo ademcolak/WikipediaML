@@ -31,19 +31,43 @@ class AdjacencyMapBuilder:
         
         # Load pages
         pages_file = self.data_dir / "pages.json"
+        if not pages_file.exists():
+            raise FileNotFoundError(f"Pages file not found: {pages_file}")
+        
         with open(pages_file, 'r', encoding='utf-8') as f:
             # Convert string keys back to integers
             self.pages = {int(k): v for k, v in json.load(f).items()}
+        
+        if len(self.pages) == 0:
+            raise ValueError("Pages file is empty!")
+        
         print(f"✓ Loaded {len(self.pages):,} pages")
         
         # Load links
         links_file = self.data_dir / "links.json"
+        if not links_file.exists():
+            raise FileNotFoundError(f"Links file not found: {links_file}")
+        
+        file_size = links_file.stat().st_size
+        if file_size < 1000:
+            raise ValueError(f"Links file is suspiciously small ({file_size} bytes). Parse may have failed!")
+        
         with open(links_file, 'r', encoding='utf-8') as f:
             links_data = json.load(f)
             self.links = {
                 int(k): set(v) for k, v in links_data.items()
             }
+        
+        if len(self.links) == 0:
+            raise ValueError("Links file is empty! Parse may have failed.")
+        
+        total_links = sum(len(to_ids) for to_ids in self.links.values())
+        if total_links == 0:
+            raise ValueError("Total links count is 0! Cannot build graph.")
+        
         print(f"✓ Loaded {len(self.links):,} link entries")
+        print(f"✓ Total links: {total_links:,}")
+        print(f"✓ Links file size: {file_size / (1024*1024):.2f} MB")
         
         # Create bidirectional mapping between page IDs and matrix indices
         sorted_page_ids = sorted(self.pages.keys())
@@ -84,6 +108,13 @@ class AdjacencyMapBuilder:
                 col_indices.append(to_idx)
                 total_links += 1
         
+        # Validation before building matrix
+        if total_links == 0:
+            raise ValueError("No links to build adjacency matrix! Graph will be empty.")
+        
+        if len(row_indices) == 0:
+            raise ValueError("No edges found after processing links! Check page ID mappings.")
+        
         # Create sparse matrix (values are all 1s for unweighted graph)
         data = np.ones(len(row_indices), dtype=np.int8)
         adjacency_matrix = csr_matrix(
@@ -92,9 +123,17 @@ class AdjacencyMapBuilder:
             dtype=np.int8
         )
         
+        # Verify matrix was built correctly
+        actual_edges = adjacency_matrix.nnz
+        if actual_edges == 0:
+            raise ValueError("Adjacency matrix has 0 edges! Build failed.")
+        
+        if actual_edges != total_links:
+            print(f"⚠️  WARNING: Expected {total_links:,} edges but matrix has {actual_edges:,}")
+        
         print(f"✓ Built CSR matrix: {n_pages:,} × {n_pages:,}")
-        print(f"✓ Total edges: {total_links:,}")
-        print(f"✓ Sparsity: {100 * (1 - total_links / (n_pages * n_pages)):.6f}%")
+        print(f"✓ Total edges: {actual_edges:,}")
+        print(f"✓ Sparsity: {100 * (1 - actual_edges / (n_pages * n_pages)):.6f}%")
         
         # Calculate memory usage
         memory_mb = (
@@ -103,6 +142,10 @@ class AdjacencyMapBuilder:
             adjacency_matrix.indptr.nbytes
         ) / (1024 * 1024)
         print(f"✓ Memory usage: {memory_mb:.2f} MB")
+        
+        # Final validation
+        if actual_edges < 1000:
+            raise ValueError(f"Too few edges in graph ({actual_edges:,}). Graph build likely failed!")
         
         return adjacency_matrix
     
