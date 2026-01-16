@@ -128,11 +128,21 @@ class TrainingDataGenerator:
         print(f"{'='*80}")
         
         n_pages = len(self.pages)
+        
+        # For large graphs, reduce test count and depth for speed
+        if n_pages > 1_000_000:
+            n_tests = min(n_tests, 20)  # Reduce tests for very large graphs
+            max_test_depth = 10  # Shallow BFS for testing
+            print(f"⚠️  Large graph detected ({n_pages:,} pages). Using reduced test parameters for speed.")
+        else:
+            max_test_depth = 20
+        
         successful_paths = 0
         total_tests = 0
         
-        # Test with random pages
-        for _ in range(n_tests):
+        # Test with random pages (with progress bar)
+        print(f"Testing random sampling ({n_tests} tests)...")
+        for _ in tqdm(range(n_tests), desc="Random connectivity test", leave=False):
             start_idx = np.random.randint(0, n_pages)
             target_idx = np.random.randint(0, n_pages)
             
@@ -140,7 +150,7 @@ class TrainingDataGenerator:
                 continue
             
             total_tests += 1
-            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=20)
+            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=max_test_depth)
             if distance > 0:
                 successful_paths += 1
         
@@ -152,7 +162,8 @@ class TrainingDataGenerator:
         hub_successful = 0
         hub_tests = 0
         
-        for _ in range(min(n_tests, len(hub_pages))):
+        print(f"Testing hub-based sampling ({min(n_tests, len(hub_pages))} tests)...")
+        for _ in tqdm(range(min(n_tests, len(hub_pages))), desc="Hub connectivity test", leave=False):
             start_idx = np.random.choice(hub_pages)
             target_idx = np.random.randint(0, n_pages)
             
@@ -160,7 +171,7 @@ class TrainingDataGenerator:
                 continue
             
             hub_tests += 1
-            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=20)
+            distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=max_test_depth)
             if distance > 0:
                 hub_successful += 1
         
@@ -196,8 +207,10 @@ class TrainingDataGenerator:
         print(f"Generating {n_samples:,} training samples...")
         print(f"{'='*80}")
         
-        # Test connectivity first
-        connectivity = self.test_graph_connectivity(n_tests=200)
+        # Test connectivity first (reduced tests for large graphs)
+        n_pages = len(self.pages)
+        n_tests = 50 if n_pages > 1_000_000 else 200  # Fewer tests for large graphs
+        connectivity = self.test_graph_connectivity(n_tests=n_tests)
         use_hub_sampling = connectivity['use_hub_sampling']
         
         if connectivity['random_success_rate'] < 0.1 and connectivity['hub_success_rate'] < 0.1:
