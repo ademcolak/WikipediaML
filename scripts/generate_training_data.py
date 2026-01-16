@@ -211,7 +211,12 @@ class TrainingDataGenerator:
         n_pages = len(self.pages)
         n_tests = 50 if n_pages > 1_000_000 else 200  # Fewer tests for large graphs
         connectivity = self.test_graph_connectivity(n_tests=n_tests)
+        
+        # For large graphs with low connectivity, force hub-based sampling
         use_hub_sampling = connectivity['use_hub_sampling']
+        if n_pages > 1_000_000 and connectivity['random_success_rate'] < 20:
+            print("\n⚠️  Low connectivity detected. Forcing hub-based sampling for better success rate.")
+            use_hub_sampling = True
         
         if connectivity['random_success_rate'] < 0.1 and connectivity['hub_success_rate'] < 0.1:
             print("\n⚠️  WARNING: Graph connectivity is very low!")
@@ -229,21 +234,35 @@ class TrainingDataGenerator:
         max_attempts = n_samples * 20  # Much more attempts
         
         # Get hub pages if using hub sampling
-        hub_pages = self.get_high_degree_pages(top_k=5000) if use_hub_sampling else []
+        hub_pages = self.get_high_degree_pages(top_k=10000) if use_hub_sampling else []  # More hub pages
         
         print(f"\nUsing {'hub-based' if use_hub_sampling else 'random'} sampling strategy...")
+        if use_hub_sampling:
+            print(f"✓ Using {len(hub_pages):,} hub pages for better connectivity")
+        
+        # Progress update every N attempts to show activity
+        progress_update_interval = max(100, n_samples // 100)  # Update every 1% or 100 attempts
         
         with tqdm(total=n_samples, desc="Generating samples") as pbar:
             while len(samples) < n_samples and attempts < max_attempts:
                 attempts += 1
                 
-                # Smart sampling: prefer hub pages for start
-                if use_hub_sampling and len(hub_pages) > 0 and np.random.random() < 0.7:
-                    start_idx = np.random.choice(hub_pages)
+                # Smart sampling: prefer hub pages for start (higher probability for large graphs)
+                if use_hub_sampling and len(hub_pages) > 0:
+                    # Use hub pages more aggressively for large graphs
+                    hub_prob = 0.9 if n_pages > 1_000_000 else 0.7
+                    if np.random.random() < hub_prob:
+                        start_idx = np.random.choice(hub_pages)
+                    else:
+                        start_idx = np.random.randint(0, n_pages)
                 else:
                     start_idx = np.random.randint(0, n_pages)
                 
-                target_idx = np.random.randint(0, n_pages)
+                # For target, also prefer hub pages if using hub sampling
+                if use_hub_sampling and len(hub_pages) > 0 and np.random.random() < 0.3:
+                    target_idx = np.random.choice(hub_pages)
+                else:
+                    target_idx = np.random.randint(0, n_pages)
                 
                 # Skip if same page
                 if start_idx == target_idx:
@@ -273,6 +292,13 @@ class TrainingDataGenerator:
                 
                 samples.append(sample)
                 pbar.update(1)
+                
+                # Periodic progress update even if no new samples
+                if attempts % progress_update_interval == 0:
+                    pbar.set_postfix({
+                        'attempts': f'{attempts:,}',
+                        'success_rate': f'{len(samples)/attempts*100:.2f}%'
+                    })
         
         success_rate = (len(samples) / attempts * 100) if attempts > 0 else 0
         print(f"\n✓ Generated {len(samples):,} samples in {attempts:,} attempts")
@@ -467,9 +493,19 @@ def main():
         generator.load_data()
         
         # Generate start-target pairs
-        # Parameters are auto-adjusted based on graph connectivity
+        # For large graphs, reduce sample count for faster generation
+        n_pages = len(generator.pages)
+        if n_pages > 10_000_000:
+            n_samples = 10_000  # Very large graphs: 10K samples
+            print(f"\n⚠️  Very large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
+        elif n_pages > 1_000_000:
+            n_samples = 50_000  # Large graphs: 50K samples
+            print(f"\n⚠️  Large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
+        else:
+            n_samples = 100_000  # Normal graphs: 100K samples
+        
         samples = generator.generate_training_samples(
-            n_samples=100_000  # Will use smart sampling strategy
+            n_samples=n_samples  # Auto-adjusted based on graph size
         )
         
         # Generate candidate samples with features
