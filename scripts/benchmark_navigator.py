@@ -206,12 +206,9 @@ def main():
     test_pairs = benchmark.generate_test_pairs(n_pairs=50) # 50 pairs for quick test
     
     # Run Beam Search Benchmark (Parallel)
-    # Use fewer workers because each worker loads the FULL graph and embeddings (Heavy RAM usage)
-    # With 128GB RAM, we can maybe fit 4-5 workers safely.
-    # Graph + Embeddings approx 20GB per process if not shared perfectly.
-    # Linux 'fork' should share memory, so we can use more workers.
-    
-    n_workers = min(multiprocessing.cpu_count(), 8) 
+    # Use fewer workers to avoid OOM (Out Of Memory)
+    # Each worker needs significant RAM for graph + embeddings.
+    n_workers = 2
     
     benchmark.run_parallel_benchmark("beam", test_pairs, n_workers=n_workers)
     
