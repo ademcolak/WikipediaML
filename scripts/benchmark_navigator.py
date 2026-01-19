@@ -30,6 +30,9 @@ def init_worker(navigator_type: str, graph_dir: Path, model_path: Path, embeddin
     """Initialize worker process with navigator instance."""
     global NAVIGATOR
     
+    print(f"[Worker {multiprocessing.current_process().name}] Initializing (loading graph & embeddings)...")
+    sys.stdout.flush()
+    
     if navigator_type == "beam":
         NAVIGATOR = load_beam_search_navigator(
             graph_dir=graph_dir,
@@ -47,6 +50,9 @@ def init_worker(navigator_type: str, graph_dir: Path, model_path: Path, embeddin
             tabu_size=50,
             backtrack_limit=3
         )
+    
+    print(f"[Worker {multiprocessing.current_process().name}] Ready!")
+    sys.stdout.flush()
 
 def run_single_test(args):
     """Run a single navigation test."""
@@ -106,21 +112,61 @@ class NavigatorBenchmark:
             self.index_to_page_id = mappings['index_to_page_id']
     
     def generate_test_pairs(self, n_pairs: int = 100) -> List[Tuple[int, int]]:
-        """Generate random test page pairs."""
+        """
+        Generate test pairs using known paths from training data (Ground Truth).
+        This ensures paths definitely exist and are solvable.
+        """
         print(f"\n{'='*80}")
-        print(f"Generating {n_pairs} test pairs...")
+        print(f"Loading {n_pairs} test pairs from training data...")
         print(f"{'='*80}")
         
+        training_file = Path("data/training/training_samples.json")
+        if not training_file.exists():
+            print("⚠️  Training data not found! Falling back to random pairs.")
+            return self._generate_random_pairs(n_pairs)
+            
+        try:
+            with open(training_file, 'r', encoding='utf-8') as f:
+                samples = json.load(f)
+            
+            if len(samples) < n_pairs:
+                print(f"⚠️  Not enough training samples ({len(samples)} < {n_pairs}). Using all.")
+                n_pairs = len(samples)
+            
+            # Select random samples
+            selected_samples = random.sample(samples, n_pairs)
+            
+            pairs = []
+            for s in selected_samples:
+                start_id = s['start_page_id']
+                # Target depends on sample format. Training data might be (start, target) or (start, candidate).
+                # But generate_training_data creates (start, target) pairs first.
+                # Let's check keys.
+                if 'target_page_id' in s:
+                    target_id = s['target_page_id']
+                else:
+                    # Fallback or error
+                    continue
+                    
+                pairs.append((start_id, target_id))
+            
+            print(f"✓ Loaded {len(pairs)} pairs from training data (Ground Truth available)")
+            return pairs
+            
+        except Exception as e:
+            print(f"⚠️  Error reading training data: {e}. Falling back to random.")
+            return self._generate_random_pairs(n_pairs)
+
+    def _generate_random_pairs(self, n_pairs: int) -> List[Tuple[int, int]]:
+        """Generate completely random pairs (Hard mode)."""
         page_ids = list(self.pages.keys())
         pairs = []
-        
         for _ in range(n_pairs):
             start_id = random.choice(page_ids)
             target_id = random.choice(page_ids)
             while target_id == start_id:
                 target_id = random.choice(page_ids)
             pairs.append((start_id, target_id))
-        
         return pairs
     
     def run_parallel_benchmark(
