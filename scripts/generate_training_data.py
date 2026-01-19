@@ -208,7 +208,9 @@ class TrainingDataGenerator:
         n_samples: int = 100_000,
         max_depth: int = 20,
         min_distance: int = 1,
-        max_distance: int = 15
+        max_distance: int = 15,
+        output_file: Path = None,
+        existing_count: int = 0
     ) -> List[Dict]:
         """
         Generate training samples using smart sampling strategy.
@@ -340,9 +342,29 @@ class TrainingDataGenerator:
                 samples.append(sample)
                 pbar.update(1)
                 
+                # Incremental checkpoint: save every 100 samples
+                if output_file and len(samples) % 100 == 0 and len(samples) > 0:
+                    try:
+                        # Load existing samples if file exists
+                        all_samples = []
+                        if output_file.exists() and output_file.stat().st_size > 0:
+                            with open(output_file, 'r', encoding='utf-8') as f:
+                                all_samples = json.load(f)
+                        # Append new samples (don't clear, we'll return them)
+                        all_samples.extend(samples)
+                        # Save checkpoint
+                        with open(output_file, 'w', encoding='utf-8') as f:
+                            json.dump(all_samples, f, indent=2, ensure_ascii=False)
+                        print(f"\n[Checkpoint] Saved {len(all_samples):,} total samples to {output_file}")
+                        sys.stdout.flush()
+                    except Exception as e:
+                        print(f"\n⚠️  Warning: Could not save checkpoint: {e}")
+                        sys.stdout.flush()
+                
                 # For first few samples, print immediately to show progress
-                if len(samples) <= 10:
-                    print(f"\n[First samples] Found sample #{len(samples)}: distance={distance}, "
+                sample_num = existing_count + len(samples)
+                if sample_num <= 10:
+                    print(f"\n[First samples] Found sample #{sample_num}: distance={distance}, "
                           f"attempts={attempts}, success_rate={len(samples)/attempts*100:.2f}%")
                     sys.stdout.flush()
                 
@@ -544,10 +566,23 @@ def main():
     embeddings_dir = Path("data/embeddings")
     output_dir = Path("data/training")
     
-    # Check if output already exists (auto-skip)
+    # Check if output already exists (auto-skip or resume)
     samples_file = output_dir / "training_samples.json"
     stats_file = output_dir / "dataset_statistics.json"
+    
+    # Check if we have complete data (both samples and stats)
+    has_complete_data = False
     if samples_file.exists() and stats_file.exists():
+        try:
+            with open(samples_file, 'r', encoding='utf-8') as f:
+                existing_samples = json.load(f)
+            # Check if we have reasonable number of samples (at least 100)
+            if len(existing_samples) >= 100:
+                has_complete_data = True
+        except:
+            pass
+    
+    if has_complete_data:
         print(f"⊘ Training data already exists in {output_dir}")
         print("  Skipping generation step. Delete output files to re-run.")
         sys.stdout.flush()
@@ -576,20 +611,52 @@ def main():
         # For large graphs, reduce sample count for faster generation
         n_pages = len(generator.pages)
         if n_pages > 10_000_000:
-            n_samples = 10_000  # Very large graphs: 10K samples
+            n_samples = 2_000  # Very large graphs: 2K samples (was 10K, too slow)
             print(f"\n⚠️  Very large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
         elif n_pages > 1_000_000:
-            n_samples = 50_000  # Large graphs: 50K samples
+            n_samples = 5_000  # Large graphs: 5K samples
             print(f"\n⚠️  Large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
         else:
-            n_samples = 100_000  # Normal graphs: 100K samples
+            n_samples = 10_000  # Normal graphs: 10K samples
         sys.stdout.flush()
         
-        print(f"\n🔄 Starting sample generation (target: {n_samples:,} samples)...")
-        sys.stdout.flush()
-        samples = generator.generate_training_samples(
-            n_samples=n_samples  # Auto-adjusted based on graph size
-        )
+        # Check for existing partial samples (resume capability)
+        existing_samples = []
+        if samples_file.exists() and samples_file.stat().st_size > 0:
+            try:
+                with open(samples_file, 'r', encoding='utf-8') as f:
+                    existing_samples = json.load(f)
+                if len(existing_samples) > 0:
+                    print(f"\n✓ Found {len(existing_samples):,} existing samples. Resuming from checkpoint...")
+                    sys.stdout.flush()
+            except Exception as e:
+                print(f"\n⚠️  Warning: Could not load existing samples: {e}")
+                print("Starting fresh...")
+                sys.stdout.flush()
+                existing_samples = []
+        
+        # Calculate remaining samples needed
+        remaining_samples = max(0, n_samples - len(existing_samples))
+        
+        if remaining_samples > 0:
+            print(f"\n🔄 Starting sample generation (target: {n_samples:,} samples, "
+                  f"{len(existing_samples):,} already exist, need {remaining_samples:,} more)...")
+            sys.stdout.flush()
+            new_samples = generator.generate_training_samples(
+                n_samples=remaining_samples,  # Only generate what's needed
+                output_file=samples_file,  # For incremental checkpointing
+                existing_count=len(existing_samples)  # For progress tracking
+            )
+            # Load all samples (including incremental checkpoints)
+            if samples_file.exists():
+                with open(samples_file, 'r', encoding='utf-8') as f:
+                    samples = json.load(f)
+            else:
+                samples = existing_samples + new_samples
+        else:
+            print(f"\n✓ Already have {len(existing_samples):,} samples (target: {n_samples:,}). Skipping generation.")
+            sys.stdout.flush()
+            samples = existing_samples
         print(f"✓ Generated {len(samples):,} path samples")
         sys.stdout.flush()
         
