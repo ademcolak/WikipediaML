@@ -25,14 +25,16 @@ from models.mlp_scorer import create_mlp_scorer
 class WikipediaLinkDataset(Dataset):
     """Dataset for training the MLP scorer."""
     
-    def __init__(self, samples: List[Dict]):
+    def __init__(self, samples: List[Dict], embeddings_matrix: np.ndarray):
         """
         Initialize dataset.
         
         Args:
             samples: List of training samples with embeddings and labels
+            embeddings_matrix: Full embedding matrix to lookup vectors
         """
         self.samples = samples
+        self.embeddings_matrix = embeddings_matrix
         
     def __len__(self) -> int:
         return len(self.samples)
@@ -40,10 +42,29 @@ class WikipediaLinkDataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         sample = self.samples[idx]
         
-        start_emb = torch.tensor(sample['start_embedding'], dtype=torch.float32)
-        target_emb = torch.tensor(sample['target_embedding'], dtype=torch.float32)
-        candidate_emb = torch.tensor(sample['candidate_embedding'], dtype=torch.float32)
-        distance = torch.tensor([sample['distance_to_target']], dtype=torch.float32)
+        # Lookup embeddings from matrix using indices
+        # We assume sample has start_idx, target_idx, candidate_idx (indices into embedding matrix)
+        # Note: If generate_training_data.py stores 'start_idx' which is the index in adjacency matrix/embeddings
+        # then we are good.
+        
+        # Check if keys exist, fallback if needed (for backward compatibility or different format)
+        # The new generator stores: start_idx, target_idx, candidate_idx
+        
+        start_idx = sample['start_idx']
+        target_idx = sample['target_idx']
+        candidate_idx = sample['candidate_idx']
+        
+        # Get embeddings
+        start_vec = self.embeddings_matrix[start_idx]
+        target_vec = self.embeddings_matrix[target_idx]
+        candidate_vec = self.embeddings_matrix[candidate_idx]
+        
+        start_emb = torch.tensor(start_vec, dtype=torch.float32)
+        target_emb = torch.tensor(target_vec, dtype=torch.float32)
+        candidate_emb = torch.tensor(candidate_vec, dtype=torch.float32)
+        
+        # Target: distance to target
+        distance = torch.tensor([sample['candidate_dist']], dtype=torch.float32)
         
         return start_emb, target_emb, candidate_emb, distance
 
@@ -448,14 +469,27 @@ def main():
         print("Please run generate_training_data.py first.")
         return 1
     
+    # Check if embeddings file exists
+    embeddings_file = Path("data/embeddings/embeddings.npy")
+    if not embeddings_file.exists():
+        print(f"✗ Error: {embeddings_file} not found!")
+        print("Please run build_embedding_index.py first.")
+        return 1
+    
     try:
+        # Load embeddings (Memory map mode to save RAM if needed, or load full if enough RAM)
+        # Since we have 128GB RAM, let's load it fully for speed.
+        print(f"Loading embeddings from {embeddings_file}...")
+        embeddings_matrix = np.load(embeddings_file)
+        print(f"✓ Loaded embeddings matrix: {embeddings_matrix.shape}")
+        
         # Load data
         samples = load_training_data(data_dir)
         train_samples, val_samples = split_data(samples, train_ratio=0.8)
         
         # Create datasets
-        train_dataset = WikipediaLinkDataset(train_samples)
-        val_dataset = WikipediaLinkDataset(val_samples)
+        train_dataset = WikipediaLinkDataset(train_samples, embeddings_matrix)
+        val_dataset = WikipediaLinkDataset(val_samples, embeddings_matrix)
         
         # Create data loaders
         train_loader = DataLoader(
