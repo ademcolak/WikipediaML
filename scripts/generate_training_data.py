@@ -270,33 +270,53 @@ class TrainingDataGenerator:
         # Progress update every N attempts to show activity
         progress_update_interval = max(100, n_samples // 100)  # Update every 1% or 100 attempts
         
+        # For very large graphs, use adaptive strategy: aggressive hub sampling for first samples
+        initial_samples_threshold = min(100, n_samples // 10)  # First 10% or 100 samples
+        
         with tqdm(total=n_samples, desc="Generating samples") as pbar:
             while len(samples) < n_samples and attempts < max_attempts:
                 attempts += 1
                 
-                # Smart sampling: prefer hub pages for start (higher probability for large graphs)
-                if use_hub_sampling and len(hub_pages) > 0:
-                    # Use hub pages more aggressively for large graphs
-                    hub_prob = 0.9 if n_pages > 1_000_000 else 0.7
-                    if np.random.random() < hub_prob:
-                        start_idx = np.random.choice(hub_pages)
+                # Adaptive sampling: very aggressive hub sampling for first samples
+                if len(samples) < initial_samples_threshold and use_hub_sampling and len(hub_pages) > 0:
+                    # For first samples: both start and target should be hubs (much higher success rate)
+                    start_idx = np.random.choice(hub_pages)
+                    # 80% chance target is also a hub for first samples
+                    if np.random.random() < 0.8:
+                        target_idx = np.random.choice(hub_pages)
+                    else:
+                        target_idx = np.random.randint(0, n_pages)
+                else:
+                    # Normal sampling strategy
+                    if use_hub_sampling and len(hub_pages) > 0:
+                        # Use hub pages more aggressively for large graphs
+                        hub_prob = 0.9 if n_pages > 1_000_000 else 0.7
+                        if np.random.random() < hub_prob:
+                            start_idx = np.random.choice(hub_pages)
+                        else:
+                            start_idx = np.random.randint(0, n_pages)
                     else:
                         start_idx = np.random.randint(0, n_pages)
-                else:
-                    start_idx = np.random.randint(0, n_pages)
-                
-                # For target, also prefer hub pages if using hub sampling
-                if use_hub_sampling and len(hub_pages) > 0 and np.random.random() < 0.3:
-                    target_idx = np.random.choice(hub_pages)
-                else:
-                    target_idx = np.random.randint(0, n_pages)
+                    
+                    # For target, also prefer hub pages if using hub sampling
+                    if use_hub_sampling and len(hub_pages) > 0 and np.random.random() < 0.3:
+                        target_idx = np.random.choice(hub_pages)
+                    else:
+                        target_idx = np.random.randint(0, n_pages)
                 
                 # Skip if same page
                 if start_idx == target_idx:
                     continue
                 
+                # Adaptive BFS depth: shorter for first samples (faster), longer later
+                if len(samples) < initial_samples_threshold:
+                    # First samples: use shorter depth for speed
+                    adaptive_max_depth = min(max_depth, 10)  # Max 10 for first samples
+                else:
+                    adaptive_max_depth = max_depth
+                
                 # Find shortest path distance
-                distance = self.bfs_shortest_path(start_idx, target_idx, max_depth)
+                distance = self.bfs_shortest_path(start_idx, target_idx, max_depth=adaptive_max_depth)
                 
                 # Skip if no path found or distance out of range
                 if distance < min_distance or distance > max_distance:
@@ -320,6 +340,12 @@ class TrainingDataGenerator:
                 samples.append(sample)
                 pbar.update(1)
                 
+                # For first few samples, print immediately to show progress
+                if len(samples) <= 10:
+                    print(f"\n[First samples] Found sample #{len(samples)}: distance={distance}, "
+                          f"attempts={attempts}, success_rate={len(samples)/attempts*100:.2f}%")
+                    sys.stdout.flush()
+                
                 # Periodic progress update even if no new samples
                 if attempts % progress_update_interval == 0:
                     success_rate = len(samples)/attempts*100 if attempts > 0 else 0
@@ -332,6 +358,12 @@ class TrainingDataGenerator:
                         print(f"\n[Progress] {len(samples):,}/{n_samples:,} samples ({len(samples)/n_samples*100:.1f}%), "
                               f"{attempts:,} attempts, {success_rate:.2f}% success rate")
                         sys.stdout.flush()
+                
+                # Every attempt for first 100 attempts (to show activity)
+                if attempts <= 100 and attempts % 10 == 0:
+                    print(f"[Early progress] Attempts: {attempts}, Samples: {len(samples)}, "
+                          f"Success rate: {len(samples)/attempts*100:.2f}%")
+                    sys.stdout.flush()
         
         success_rate = (len(samples) / attempts * 100) if attempts > 0 else 0
         if len(samples) < n_samples:
