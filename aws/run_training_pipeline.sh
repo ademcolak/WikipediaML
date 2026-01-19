@@ -182,7 +182,8 @@ if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then
     [ -f "$TRAINING_SAMPLES_FILE" ] && rm -f "$TRAINING_SAMPLES_FILE"
     
     # Generate training data (script uses hardcoded 100K samples)
-    python3 scripts/generate_training_data.py || error_handler "Training Data"
+    log "Starting training data generation (this may take a while)..."
+    python3 scripts/generate_training_data.py 2>&1 | tee -a "$LOG_DIR/training.log" || error_handler "Training Data"
     
     # Verify training data was actually generated
     if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then

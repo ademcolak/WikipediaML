@@ -206,16 +206,22 @@ class TrainingDataGenerator:
         print(f"\n{'='*80}")
         print(f"Generating {n_samples:,} training samples...")
         print(f"{'='*80}")
+        sys.stdout.flush()
         
         # Test connectivity first (reduced tests for large graphs)
         n_pages = len(self.pages)
         n_tests = 50 if n_pages > 1_000_000 else 200  # Fewer tests for large graphs
+        print(f"\n🔍 Testing graph connectivity ({n_tests} tests)...")
+        sys.stdout.flush()
         connectivity = self.test_graph_connectivity(n_tests=n_tests)
+        print(f"✓ Connectivity test complete: Random={connectivity['random_success_rate']:.1f}%, Hub={connectivity['hub_success_rate']:.1f}%")
+        sys.stdout.flush()
         
         # For large graphs with low connectivity, force hub-based sampling
         use_hub_sampling = connectivity['use_hub_sampling']
         if n_pages > 1_000_000 and connectivity['random_success_rate'] < 20:
             print("\n⚠️  Low connectivity detected. Forcing hub-based sampling for better success rate.")
+            sys.stdout.flush()
             use_hub_sampling = True
         
         if connectivity['random_success_rate'] < 0.1 and connectivity['hub_success_rate'] < 0.1:
@@ -237,8 +243,10 @@ class TrainingDataGenerator:
         hub_pages = self.get_high_degree_pages(top_k=10000) if use_hub_sampling else []  # More hub pages
         
         print(f"\nUsing {'hub-based' if use_hub_sampling else 'random'} sampling strategy...")
+        sys.stdout.flush()
         if use_hub_sampling:
             print(f"✓ Using {len(hub_pages):,} hub pages for better connectivity")
+            sys.stdout.flush()
         
         # Progress update every N attempts to show activity
         progress_update_interval = max(100, n_samples // 100)  # Update every 1% or 100 attempts
@@ -295,14 +303,25 @@ class TrainingDataGenerator:
                 
                 # Periodic progress update even if no new samples
                 if attempts % progress_update_interval == 0:
+                    success_rate = len(samples)/attempts*100 if attempts > 0 else 0
                     pbar.set_postfix({
                         'attempts': f'{attempts:,}',
-                        'success_rate': f'{len(samples)/attempts*100:.2f}%'
+                        'success_rate': f'{success_rate:.2f}%'
                     })
+                    # Also print to stdout for log visibility
+                    if attempts % (progress_update_interval * 10) == 0:  # Every 10 progress updates
+                        print(f"\n[Progress] {len(samples):,}/{n_samples:,} samples ({len(samples)/n_samples*100:.1f}%), "
+                              f"{attempts:,} attempts, {success_rate:.2f}% success rate")
+                        sys.stdout.flush()
         
         success_rate = (len(samples) / attempts * 100) if attempts > 0 else 0
-        print(f"\n✓ Generated {len(samples):,} samples in {attempts:,} attempts")
-        print(f"✓ Success rate: {success_rate:.2f}%")
+        if len(samples) < n_samples:
+            print(f"\n⚠️  Generated {len(samples):,}/{n_samples:,} samples in {attempts:,} attempts")
+            print(f"⚠️  Success rate: {success_rate:.2f}% (target not reached)")
+        else:
+            print(f"\n✓ Generated {len(samples):,} samples in {attempts:,} attempts")
+            print(f"✓ Success rate: {success_rate:.2f}%")
+        sys.stdout.flush()
         
         if len(samples) == 0:
             print("\n⚠️  CRITICAL: No samples generated!")
@@ -465,6 +484,11 @@ class TrainingDataGenerator:
 
 def main():
     """Main generation function."""
+    print("="*80)
+    print("Training Data Generator - Starting...")
+    print("="*80)
+    sys.stdout.flush()
+    
     graph_dir = Path("data/graph")
     embeddings_dir = Path("data/embeddings")
     output_dir = Path("data/training")
@@ -475,6 +499,7 @@ def main():
     if samples_file.exists() and stats_file.exists():
         print(f"⊘ Training data already exists in {output_dir}")
         print("  Skipping generation step. Delete output files to re-run.")
+        sys.stdout.flush()
         return 0
     
     # Check if required data exists
@@ -489,8 +514,12 @@ def main():
         return 1
     
     try:
+        print("\n📦 Loading graph and embeddings...")
+        sys.stdout.flush()
         generator = TrainingDataGenerator(graph_dir, embeddings_dir)
         generator.load_data()
+        print("✓ Data loaded successfully")
+        sys.stdout.flush()
         
         # Generate start-target pairs
         # For large graphs, reduce sample count for faster generation
@@ -503,16 +532,25 @@ def main():
             print(f"\n⚠️  Large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
         else:
             n_samples = 100_000  # Normal graphs: 100K samples
+        sys.stdout.flush()
         
+        print(f"\n🔄 Starting sample generation (target: {n_samples:,} samples)...")
+        sys.stdout.flush()
         samples = generator.generate_training_samples(
             n_samples=n_samples  # Auto-adjusted based on graph size
         )
+        print(f"✓ Generated {len(samples):,} path samples")
+        sys.stdout.flush()
         
+        print(f"\n🔄 Generating candidate samples with features...")
+        sys.stdout.flush()
         # Generate candidate samples with features
         candidate_samples = generator.generate_candidate_samples(
             samples,
             n_candidates_per_sample=10
         )
+        print(f"✓ Generated {len(candidate_samples):,} candidate samples")
+        sys.stdout.flush()
         
         # Check if we actually generated any samples
         if len(candidate_samples) == 0:
