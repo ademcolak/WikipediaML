@@ -65,6 +65,13 @@ class ModelValidator:
         # Load data generator for creating test samples
         self.generator = TrainingDataGenerator(graph_dir, embeddings_dir)
         self.generator.load_data()
+        
+        # Ensure embeddings are loaded (generator loads them into self.generator.embeddings)
+        if self.generator.embeddings is None:
+             # Manually load if generator didn't (though load_data should have)
+             embeddings_file = embeddings_dir / "embeddings.npy"
+             self.generator.embeddings = np.load(embeddings_file)
+
     
     def generate_test_samples(
         self,
@@ -195,7 +202,7 @@ class ModelValidator:
                 candidate_idx = sample['candidate_idx']
                 true_distance = sample['distance_to_target']
                 
-                # Get embeddings
+                # Get embeddings using indices (Fixed: use matrix lookup instead of missing JSON keys)
                 start_emb = torch.tensor(
                     self.generator.embeddings[start_idx],  # type: ignore
                     dtype=torch.float32
