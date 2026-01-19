@@ -8,7 +8,7 @@ import json
 import torch
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Set
 from tqdm import tqdm
 import sys
 
@@ -70,13 +70,13 @@ class ModelValidator:
         if self.generator.embeddings is None:
              # Manually load if generator didn't (though load_data should have)
              embeddings_file = embeddings_dir / "embeddings.npy"
+             print(f"Loading embeddings from {embeddings_file}...")
              self.generator.embeddings = np.load(embeddings_file)
-
     
     def generate_test_samples(
         self,
         n_samples: int = 10_000,
-        exclude_page_ids: set | None = None
+        exclude_page_ids: Optional[Set] = None
     ) -> List[Dict]:
         """
         Generate test samples from unseen page pairs.
@@ -122,7 +122,8 @@ class ModelValidator:
                     continue
                 
                 # Find shortest path
-                distance = self.generator.bfs_shortest_path(start_idx, target_idx, max_depth=20)
+                # Use max_depth=10 to be faster for random pairs
+                distance = self.generator.bfs_shortest_path(start_idx, target_idx, max_depth=10)
                 
                 if distance < 1 or distance > 15:
                     continue
@@ -144,7 +145,7 @@ class ModelValidator:
                     
                     # Calculate distance from candidate to target
                     distance_to_target = self.generator.bfs_shortest_path(
-                        candidate_idx, target_idx, max_depth=20
+                        candidate_idx, target_idx, max_depth=10
                     )
                     
                     if distance_to_target < 0:
@@ -202,7 +203,7 @@ class ModelValidator:
                 candidate_idx = sample['candidate_idx']
                 true_distance = sample['distance_to_target']
                 
-                # Get embeddings using indices (Fixed: use matrix lookup instead of missing JSON keys)
+                # Get embeddings using indices directly from matrix
                 start_emb = torch.tensor(
                     self.generator.embeddings[start_idx],  # type: ignore
                     dtype=torch.float32
@@ -238,7 +239,10 @@ class ModelValidator:
         tolerance_2 = np.mean(np.abs(predictions - ground_truths) <= 2)
         
         # Correlation
-        correlation = np.corrcoef(predictions, ground_truths)[0, 1]
+        if len(predictions) > 1:
+            correlation = np.corrcoef(predictions, ground_truths)[0, 1]
+        else:
+            correlation = 0.0
         
         metrics = {
             'mae': float(mae),
@@ -294,7 +298,7 @@ class ModelValidator:
         print(f"\n✓ Validation results saved to {output_path}")
 
 
-def load_training_page_ids(training_dir: Path) -> set:
+def load_training_page_ids(training_dir: Path) -> Set[int]:
     """Load page IDs from training set to exclude from validation."""
     samples_file = training_dir / "training_samples.json"
     
@@ -309,7 +313,9 @@ def load_training_page_ids(training_dir: Path) -> set:
     for sample in samples:
         page_ids.add(sample['start_page_id'])
         page_ids.add(sample['target_page_id'])
-        page_ids.add(sample['candidate_page_id'])
+        # Handle different versions of sample format
+        if 'candidate_page_id' in sample:
+            page_ids.add(sample['candidate_page_id'])
     
     print(f"✓ Loaded {len(page_ids):,} unique page IDs from training set")
     return page_ids
