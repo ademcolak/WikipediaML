@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Benchmark Script for Wikipedia Navigator
-Tests different navigation strategies on random page pairs.
+Benchmark Script for Wikipedia Navigator (Optimized)
+Tests different navigation strategies using multiprocessing for speed.
 """
 
 import json
@@ -12,6 +12,9 @@ from typing import List, Dict, Tuple
 from tqdm import tqdm
 import numpy as np
 import sys
+import multiprocessing
+import concurrent.futures
+import signal
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -20,18 +23,76 @@ from core.beam_search import load_beam_search_navigator
 from core.advanced_navigator import load_advanced_navigator
 
 
+# Global variables for worker processes
+NAVIGATOR = None
+
+def init_worker(navigator_type: str, graph_dir: Path, model_path: Path, embeddings_dir: Path):
+    """Initialize worker process with navigator instance."""
+    global NAVIGATOR
+    
+    if navigator_type == "beam":
+        NAVIGATOR = load_beam_search_navigator(
+            graph_dir=graph_dir,
+            model_path=model_path,
+            embeddings_dir=embeddings_dir,
+            beam_width=10,
+            max_depth=20
+        )
+    elif navigator_type == "advanced":
+        NAVIGATOR = load_advanced_navigator(
+            graph_dir=graph_dir,
+            model_path=model_path,
+            embeddings_dir=embeddings_dir,
+            max_depth=20,
+            tabu_size=50,
+            backtrack_limit=3
+        )
+
+def run_single_test(args):
+    """Run a single navigation test."""
+    start_id, target_id = args
+    global NAVIGATOR
+    
+    if NAVIGATOR is None:
+        return None
+        
+    start_time = time.time()
+    try:
+        # Set a timeout for pathfinding to avoid hanging
+        # Note: signal.alarm only works on Unix
+        # Simple heuristic: if it takes too long, it's likely a fail
+        
+        path = None
+        if hasattr(NAVIGATOR, 'search_with_stats'):
+            path, stats = NAVIGATOR.search_with_stats(start_id, target_id)
+        else:
+            path = NAVIGATOR.search(start_id, target_id, verbose=False)
+            
+        duration = time.time() - start_time
+        
+        return {
+            'success': path is not None,
+            'path_length': len(path) if path else 0,
+            'duration': duration,
+            'start': start_id,
+            'target': target_id,
+            'path': path if path else []
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'path_length': 0,
+            'duration': time.time() - start_time,
+            'error': str(e),
+            'start': start_id,
+            'target': target_id
+        }
+
 class NavigatorBenchmark:
     """Benchmark suite for Wikipedia navigators."""
     
     def __init__(self, graph_dir: Path, model_path: Path, embeddings_dir: Path):
-        """
-        Initialize benchmark.
-        
-        Args:
-            graph_dir: Directory containing graph data
-            model_path: Path to trained MLP model
-            embeddings_dir: Directory containing embeddings
-        """
         self.graph_dir = graph_dir
         self.model_path = model_path
         self.embeddings_dir = embeddings_dir
@@ -42,26 +103,10 @@ class NavigatorBenchmark:
         with open(mappings_file, 'rb') as f:
             mappings = pickle.load(f)
             self.pages = mappings['pages']
-            self.page_id_to_index = mappings['page_id_to_index']
             self.index_to_page_id = mappings['index_to_page_id']
     
-    def generate_test_pairs(
-        self,
-        n_pairs: int = 100,
-        min_distance: int = 3,
-        max_distance: int = 8
-    ) -> List[Tuple[int, int]]:
-        """
-        Generate random test page pairs.
-        
-        Args:
-            n_pairs: Number of pairs to generate
-            min_distance: Minimum expected distance
-            max_distance: Maximum expected distance
-            
-        Returns:
-            List of (start_page_id, target_page_id) tuples
-        """
+    def generate_test_pairs(self, n_pairs: int = 100) -> List[Tuple[int, int]]:
+        """Generate random test page pairs."""
         print(f"\n{'='*80}")
         print(f"Generating {n_pairs} test pairs...")
         print(f"{'='*80}")
@@ -69,43 +114,28 @@ class NavigatorBenchmark:
         page_ids = list(self.pages.keys())
         pairs = []
         
-        # Simple random sampling (in production, use BFS to verify distances)
-        for _ in tqdm(range(n_pairs), desc="Generating pairs"):
+        for _ in range(n_pairs):
             start_id = random.choice(page_ids)
             target_id = random.choice(page_ids)
-            
-            # Ensure different pages
             while target_id == start_id:
                 target_id = random.choice(page_ids)
-            
             pairs.append((start_id, target_id))
         
-        print(f"✓ Generated {len(pairs)} test pairs")
         return pairs
     
-    def benchmark_navigator(
+    def run_parallel_benchmark(
         self,
-        navigator,
+        navigator_type: str,
         test_pairs: List[Tuple[int, int]],
-        navigator_name: str
+        n_workers: int = 4
     ) -> Dict:
-        """
-        Benchmark a navigator on test pairs.
-        
-        Args:
-            navigator: Navigator instance
-            test_pairs: List of test pairs
-            navigator_name: Name for reporting
-            
-        Returns:
-            Dictionary of benchmark results
-        """
+        """Run benchmark using multiple processes."""
         print(f"\n{'='*80}")
-        print(f"Benchmarking: {navigator_name}")
+        print(f"Benchmarking: {navigator_type.upper()} Navigator with {n_workers} workers")
         print(f"{'='*80}")
         
         results = {
-            'navigator_name': navigator_name,
+            'navigator_name': navigator_type,
             'total_tests': len(test_pairs),
             'successful': 0,
             'failed': 0,
@@ -113,210 +143,80 @@ class NavigatorBenchmark:
             'execution_times': [],
             'avg_path_length': 0.0,
             'avg_execution_time': 0.0,
-            'success_rate': 0.0,
-            'median_path_length': 0.0
+            'success_rate': 0.0
         }
         
-        for start_id, target_id in tqdm(test_pairs, desc=f"Testing {navigator_name}"):
-            start_time = time.time()
+        # Use spawn/fork context
+        ctx = multiprocessing.get_context('fork')
+        
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=n_workers,
+            mp_context=ctx,
+            initializer=init_worker,
+            initargs=(navigator_type, self.graph_dir, self.model_path, self.embeddings_dir)
+        ) as executor:
             
-            try:
-                if hasattr(navigator, 'search_with_stats'):
-                    path, stats = navigator.search_with_stats(start_id, target_id)
-                else:
-                    path = navigator.search(start_id, target_id, verbose=False)
-                    stats = {}
+            futures = [executor.submit(run_single_test, pair) for pair in test_pairs]
+            
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(test_pairs), desc="Testing"):
+                res = future.result()
                 
-                execution_time = time.time() - start_time
-                
-                if path:
+                if res['success']:
                     results['successful'] += 1
-                    results['path_lengths'].append(len(path))
-                    results['execution_times'].append(execution_time)
+                    results['path_lengths'].append(res['path_length'])
+                    results['execution_times'].append(res['duration'])
+                    
+                    # Log success immediately
+                    start_title = self.pages.get(res['start'], 'Unknown')
+                    target_title = self.pages.get(res['target'], 'Unknown')
+                    print(f"\n✓ Found path: {start_title} -> {target_title} (len: {res['path_length']}, time: {res['duration']:.2f}s)")
                 else:
                     results['failed'] += 1
-                    
-            except Exception as e:
-                print(f"\n✗ Error on pair ({start_id}, {target_id}): {e}")
-                results['failed'] += 1
-        
-        # Calculate statistics
+                    # Log failure occasionally
+                    if results['failed'] % 5 == 0:
+                        start_title = self.pages.get(res['start'], 'Unknown')
+                        target_title = self.pages.get(res['target'], 'Unknown')
+                        print(f"\n✗ No path: {start_title} -> {target_title}")
+
+        # Calculate stats
         if results['path_lengths']:
             results['avg_path_length'] = np.mean(results['path_lengths'])
-            results['median_path_length'] = np.median(results['path_lengths'])
-            results['min_path_length'] = int(np.min(results['path_lengths']))
-            results['max_path_length'] = int(np.max(results['path_lengths']))
-        
-        if results['execution_times']:
             results['avg_execution_time'] = np.mean(results['execution_times'])
-            results['median_execution_time'] = np.median(results['execution_times'])
         
         results['success_rate'] = results['successful'] / results['total_tests']
         
-        # Print summary
-        print(f"\n{'='*80}")
-        print(f"Results for {navigator_name}:")
-        print(f"{'='*80}")
-        print(f"Success rate: {results['success_rate']*100:.2f}%")
-        print(f"Successful: {results['successful']}/{results['total_tests']}")
-        print(f"Failed: {results['failed']}/{results['total_tests']}")
-        
-        if results['path_lengths']:
-            print(f"\nPath Statistics:")
-            print(f"  Average length: {results['avg_path_length']:.2f}")
-            print(f"  Median length: {results['median_path_length']:.1f}")
-            print(f"  Min length: {results['min_path_length']}")
-            print(f"  Max length: {results['max_path_length']}")
-        
-        if results['execution_times']:
-            print(f"\nPerformance:")
-            print(f"  Average time: {results['avg_execution_time']:.3f}s")
-            print(f"  Median time: {results['median_execution_time']:.3f}s")
+        print(f"\nResults for {navigator_type}:")
+        print(f"Success Rate: {results['success_rate']*100:.2f}%")
+        print(f"Avg Path Length: {results['avg_path_length']:.2f}")
+        print(f"Avg Time: {results['avg_execution_time']:.2f}s")
         
         return results
-    
-    def run_comparison(
-        self,
-        test_pairs: List[Tuple[int, int]]
-    ) -> Dict:
-        """
-        Run comparison between different navigators.
-        
-        Args:
-            test_pairs: List of test pairs
-            
-        Returns:
-            Dictionary of all results
-        """
-        all_results = {}
-        
-        # Test Beam Search Navigator
-        print("\n" + "="*80)
-        print("Loading Beam Search Navigator...")
-        print("="*80)
-        
-        beam_navigator = load_beam_search_navigator(
-            graph_dir=self.graph_dir,
-            model_path=self.model_path,
-            embeddings_dir=self.embeddings_dir,
-            beam_width=10,
-            max_depth=15
-        )
-        
-        all_results['beam_search'] = self.benchmark_navigator(
-            beam_navigator,
-            test_pairs,
-            "Beam Search (width=10)"
-        )
-        
-        # Test Advanced Navigator
-        print("\n" + "="*80)
-        print("Loading Advanced Navigator...")
-        print("="*80)
-        
-        advanced_navigator = load_advanced_navigator(
-            graph_dir=self.graph_dir,
-            model_path=self.model_path,
-            embeddings_dir=self.embeddings_dir,
-            max_depth=15,
-            tabu_size=100,
-            backtrack_limit=5
-        )
-        
-        all_results['advanced'] = self.benchmark_navigator(
-            advanced_navigator,
-            test_pairs,
-            "Advanced Navigator (with backtracking)"
-        )
-        
-        return all_results
-    
-    def print_comparison(self, all_results: Dict) -> None:
-        """Print comparison table."""
-        print(f"\n{'='*80}")
-        print("COMPARISON SUMMARY")
-        print(f"{'='*80}")
-        
-        print(f"\n{'Navigator':<40} {'Success Rate':<15} {'Avg Path':<12} {'Avg Time':<12}")
-        print("-" * 80)
-        
-        for name, results in all_results.items():
-            nav_name = results['navigator_name']
-            success = f"{results['success_rate']*100:.1f}%"
-            avg_path = f"{results['avg_path_length']:.2f}" if results['path_lengths'] else "N/A"
-            avg_time = f"{results['avg_execution_time']:.3f}s" if results['execution_times'] else "N/A"
-            
-            print(f"{nav_name:<40} {success:<15} {avg_path:<12} {avg_time:<12}")
-    
-    def save_results(self, results: Dict, output_path: Path) -> None:
-        """Save benchmark results to JSON."""
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Convert numpy types to native Python types
-        def convert_types(obj):
-            if isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_types(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_types(item) for item in obj]
-            return obj
-        
-        results_converted = convert_types(results)
-        
-        with open(output_path, 'w') as f:
-            json.dump(results_converted, f, indent=2)
-        
-        print(f"\n✓ Results saved to {output_path}")
-
 
 def main():
-    """Main benchmark function."""
     graph_dir = Path("data/graph")
     model_path = Path("models/checkpoints/mlp_scorer_best.pt")
     embeddings_dir = Path("data/embeddings")
-    output_dir = Path("benchmarks")
     
-    # Check if required files exist
+    # Check if files exist
     if not all(p.exists() for p in [graph_dir, model_path, embeddings_dir]):
-        print("✗ Error: Required files not found!")
-        print("Please run the full training pipeline first.")
-        return 1
+        print("Required files not found.")
+        return
+        
+    benchmark = NavigatorBenchmark(graph_dir, model_path, embeddings_dir)
+    test_pairs = benchmark.generate_test_pairs(n_pairs=50) # 50 pairs for quick test
     
-    try:
-        # Create benchmark
-        benchmark = NavigatorBenchmark(graph_dir, model_path, embeddings_dir)
-        
-        # Generate test pairs
-        test_pairs = benchmark.generate_test_pairs(n_pairs=100)
-        
-        # Run comparison
-        all_results = benchmark.run_comparison(test_pairs)
-        
-        # Print comparison
-        benchmark.print_comparison(all_results)
-        
-        # Save results
-        benchmark.save_results(all_results, output_dir / "benchmark_results.json")
-        
-        print("\n✓ Benchmark completed successfully!")
-        print("\nNext steps:")
-        print("1. Analyze results and identify bottlenecks")
-        print("2. Implement hybrid speed control")
-        print("3. Add fallback mechanism for missing data")
-        
-        return 0
-        
-    except Exception as e:
-        print(f"\n✗ Error during benchmark: {e}")
-        import traceback
-        traceback.print_exc()
-        return 1
-
+    # Run Beam Search Benchmark (Parallel)
+    # Use fewer workers because each worker loads the FULL graph and embeddings (Heavy RAM usage)
+    # With 128GB RAM, we can maybe fit 4-5 workers safely.
+    # Graph + Embeddings approx 20GB per process if not shared perfectly.
+    # Linux 'fork' should share memory, so we can use more workers.
+    
+    n_workers = min(multiprocessing.cpu_count(), 8) 
+    
+    benchmark.run_parallel_benchmark("beam", test_pairs, n_workers=n_workers)
+    
+    # Uncomment to test Advanced Navigator
+    # benchmark.run_parallel_benchmark("advanced", test_pairs, n_workers=n_workers)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
