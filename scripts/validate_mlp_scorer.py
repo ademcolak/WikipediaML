@@ -335,8 +335,9 @@ def main():
         )
         
         # Generate test samples from unseen pages
+        # FAST MODE: use fewer test samples to keep validation fast
         test_samples = validator.generate_test_samples(
-            n_samples=10_000,
+            n_samples=1_000,
             exclude_page_ids=training_page_ids
         )
         

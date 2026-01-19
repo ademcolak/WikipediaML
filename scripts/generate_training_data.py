@@ -608,16 +608,20 @@ def main():
         sys.stdout.flush()
         
         # Generate start-target pairs
-        # For large graphs, reduce sample count for faster generation
+        # FAST MODE: keep total runtime reasonable on very large graphs
         n_pages = len(generator.pages)
         if n_pages > 10_000_000:
-            n_samples = 2_000  # Very large graphs: 2K samples (was 10K, too slow)
-            print(f"\n⚠️  Very large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
+            # Full Wikipedia scale – be very conservative
+            n_samples = 200
+            print(f"\n⚠️  FAST MODE: Very large graph detected ({n_pages:,} pages). "
+                  f"Using {n_samples:,} samples for training data generation.")
         elif n_pages > 1_000_000:
-            n_samples = 5_000  # Large graphs: 5K samples
-            print(f"\n⚠️  Large graph detected ({n_pages:,} pages). Using reduced sample count: {n_samples:,}")
+            n_samples = 500
+            print(f"\n⚠️  FAST MODE: Large graph detected ({n_pages:,} pages). "
+                  f"Using {n_samples:,} samples for training data generation.")
         else:
-            n_samples = 10_000  # Normal graphs: 10K samples
+            n_samples = 1_000
+            print(f"\n⚠️  FAST MODE: Using {n_samples:,} samples for training data generation.")
         sys.stdout.flush()
         
         # Check for existing partial samples (resume capability)

@@ -200,10 +200,10 @@ else
 fi
 
 # Step 6: Train MLP scorer
-log "🎓 Step 6/7: Training MLP scorer model..."
+log "🎓 Step 6/7: Training MLP scorer model (FAST MODE)..."
 if [ ! -f "models/checkpoints/mlp_scorer_best.pt" ]; then
-    # Train for 50 epochs with checkpointing (default checkpoint interval is 5)
-    python3 scripts/train_mlp_scorer.py --epochs 50 --checkpoint-interval 5 || error_handler "MLP Training"
+    # FAST MODE: fewer epochs to keep runtime low (checkpointing still enabled)
+    python3 scripts/train_mlp_scorer.py --epochs 10 --checkpoint-interval 2 || error_handler "MLP Training"
     log "✅ MLP model trained"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_mlp_$(date +%Y%m%d_%H%M%S).tar.gz" \
@@ -213,7 +213,7 @@ else
 fi
 
 # Step 7: Validate model
-log "✅ Step 7/7: Validating trained model..."
+log "✅ Step 7/7: Validating trained model (FAST MODE)..."
 python3 scripts/validate_mlp_scorer.py || error_handler "Validation"
 log "✅ Model validation complete"
 
