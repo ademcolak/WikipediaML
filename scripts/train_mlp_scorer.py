@@ -84,8 +84,7 @@ class MLPScorerTrainer:
             self.optimizer,
             mode='min',
             factor=0.5,
-            patience=3,
-            verbose=True  # type: ignore
+            patience=3
         )
         
         # Loss function (MSE for regression)
