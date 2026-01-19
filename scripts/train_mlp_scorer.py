@@ -426,10 +426,10 @@ def main():
     )
     parser.add_argument('--epochs', type=int, default=50,
                        help='Number of training epochs')
-    parser.add_argument('--batch-size', type=int, default=256,
-                       help='Training batch size')
-    parser.add_argument('--lr', type=float, default=0.001,
-                       help='Learning rate')
+    parser.add_argument('--batch-size', type=int, default=4096,
+                       help='Training batch size (increased for large RAM)')
+    parser.add_argument('--lr', type=float, default=0.005,
+                       help='Learning rate (increased for large batch size)')
     parser.add_argument('--checkpoint-interval', type=int, default=5,
                        help='Save checkpoint every N epochs')
     parser.add_argument('--data-dir', type=str, default='data/training',
