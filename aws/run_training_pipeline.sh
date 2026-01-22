@@ -14,6 +14,18 @@ LOG_DIR="$PROJECT_DIR/logs"
 DATA_DIR="$PROJECT_DIR/data"
 CHECKPOINT_DIR="$DATA_DIR/checkpoints"
 
+# Pipeline parameters (override via env)
+TRAINING_NUM_SAMPLES="${TRAINING_NUM_SAMPLES:-50000}"
+TRAINING_CANDIDATES="${TRAINING_CANDIDATES:-10}"
+TRAINING_MAX_DEPTH="${TRAINING_MAX_DEPTH:-20}"
+TRAINING_MIN_DISTANCE="${TRAINING_MIN_DISTANCE:-1}"
+TRAINING_MAX_DISTANCE="${TRAINING_MAX_DISTANCE:-15}"
+
+MLP_EPOCHS="${MLP_EPOCHS:-20}"
+MLP_BATCH_SIZE="${MLP_BATCH_SIZE:-1024}"
+MLP_LR="${MLP_LR:-0.002}"
+MLP_CHECKPOINT_INTERVAL="${MLP_CHECKPOINT_INTERVAL:-5}"
+
 # Create log directory
 mkdir -p "$LOG_DIR"
 mkdir -p "$CHECKPOINT_DIR"
@@ -41,6 +53,9 @@ log "WikipediaML Training Pipeline"
 log "=================================="
 log "Instance: $(hostname)"
 log "Start time: $(date)"
+log "Training samples: $TRAINING_NUM_SAMPLES"
+log "Candidates/sample: $TRAINING_CANDIDATES"
+log "MLP epochs: $MLP_EPOCHS"
 log "=================================="
 
 # Step 1: Download Wikipedia dumps
@@ -181,9 +196,15 @@ if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then
     # Remove empty/corrupted file if exists
     [ -f "$TRAINING_SAMPLES_FILE" ] && rm -f "$TRAINING_SAMPLES_FILE"
     
-    # Generate training data (script uses hardcoded 100K samples)
+    # Generate training data
     log "Starting training data generation (this may take a while)..."
-    python3 scripts/generate_training_data.py 2>&1 | tee -a "$LOG_DIR/training.log" || error_handler "Training Data"
+    python3 scripts/generate_training_data.py \
+        --num-samples "$TRAINING_NUM_SAMPLES" \
+        --candidates-per-sample "$TRAINING_CANDIDATES" \
+        --max-depth "$TRAINING_MAX_DEPTH" \
+        --min-distance "$TRAINING_MIN_DISTANCE" \
+        --max-distance "$TRAINING_MAX_DISTANCE" \
+        2>&1 | tee -a "$LOG_DIR/training.log" || error_handler "Training Data"
     
     # Verify training data was actually generated
     if [ ! -f "$TRAINING_SAMPLES_FILE" ] || [ ! -s "$TRAINING_SAMPLES_FILE" ]; then
@@ -200,10 +221,14 @@ else
 fi
 
 # Step 6: Train MLP scorer
-log "🎓 Step 6/7: Training MLP scorer model (FAST MODE)..."
+log "🎓 Step 6/7: Training MLP scorer model..."
 if [ ! -f "models/checkpoints/mlp_scorer_best.pt" ]; then
-    # FAST MODE: fewer epochs to keep runtime low (checkpointing still enabled)
-    python3 scripts/train_mlp_scorer.py --epochs 10 --checkpoint-interval 2 || error_handler "MLP Training"
+    python3 scripts/train_mlp_scorer.py \
+        --epochs "$MLP_EPOCHS" \
+        --batch-size "$MLP_BATCH_SIZE" \
+        --lr "$MLP_LR" \
+        --checkpoint-interval "$MLP_CHECKPOINT_INTERVAL" \
+        || error_handler "MLP Training"
     log "✅ MLP model trained"
     # Create checkpoint
     tar -czf "$CHECKPOINT_DIR/checkpoint_mlp_$(date +%Y%m%d_%H%M%S).tar.gz" \

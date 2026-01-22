@@ -63,7 +63,7 @@ fi
 echo ""
 echo -e "${BLUE}What would you like to do?${NC}"
 echo "  1) Setup EC2 instance (first time)"
-echo "  2) Start training pipeline"
+echo "  2) Start training pipeline (run_training_pipeline.sh)"
 echo "  3) Check training status"
 echo "  4) Download trained models"
 echo "  5) Stop training"

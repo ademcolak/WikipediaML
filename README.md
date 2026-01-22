@@ -1,224 +1,136 @@
-# WikipediaML - AI-Powered Wikipedia Navigation
+# WikipediaML
 
-ML-based system for finding shortest paths between Wikipedia pages using neural heuristics and beam search.
+ML-based system for finding short paths between Wikipedia pages using a neural heuristic and beam search.
 
-## 🚀 Quick Start
+---
 
-### Option 1: Local Setup (Laptop / Workstation)
+## Turkce
+
+### Amac
+Wikipedia sayfalari arasinda kisa bir yol bulmak icin MLP tabanli heuristik + beam search kullanir.
+
+### Kurulum (Lokal)
 ```bash
-# Setup
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# Test system
-python3 test_new_system.py
-
-# Quick prototype (1000 pages)
-python3 quick_start.py
 ```
 
-### Option 2: AWS EC2 (Production - Full Wikipedia)
-For training on full Wikipedia dataset (6M+ pages):
-
+### Temel Pipeline (Lokal)
 ```bash
-# See detailed guide in docs/aws/README.md
-# Quick start:
-1. Launch EC2 instance (m5.2xlarge recommended, 200 GB gp3)
-2. SSH to instance
-3. Run: curl -O https://raw.githubusercontent.com/ademcolak/WikipediaML/main/aws/ec2_setup.sh
-4. Run: chmod +x ec2_setup.sh && ./ec2_setup.sh
-5. Run: cd ~/WikipediaML && nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
-
-# Notes:
-# - Pipeline is idempotent: you can re-run run_training_pipeline.sh at any time.
-#   Completed steps (downloads, parsing, adjacency) are auto-detected and skipped.
-# - The embeddings step (Step 4/7) is the heaviest and can run for many hours.
-#   Seeing ~80% progress for a long time is normal.
-# - It is safe to close your SSH session or your local machine; training keeps
-#   running on EC2 thanks to nohup.
-# - If the instance is rebooted or the process crashes, simply re-run
-#   ./aws/run_training_pipeline.sh — it will resume from existing outputs and
-#   checkpoints.
-```
-
-**Time**: 30-50 hours | **Cost**: ~$7-8 (Spot) | **See**: [`docs/aws/README.md`](docs/aws/README.md)
-
-## 📁 Project Structure
-
-```
-WikipediaML/
-├── core/              # Core navigation modules
-│   ├── beam_search.py           # Beam search navigator
-│   ├── hybrid_scorer.py         # MLP + cosine + hub scoring
-│   ├── fast_hybrid_scorer.py    # Two-stage filtering
-│   ├── advanced_navigator.py    # Backtracking + tabu
-│   └── wikipedia_fallback.py    # API fallback
-├── models/            # Neural network models
-│   └── mlp_scorer.py            # MLP distance predictor
-├── scripts/           # Data processing & training
-│   ├── download_wikipedia_dumps.py
-│   ├── parse_wikipedia_dumps.py
-│   ├── build_adjacency_map.py
-│   ├── build_embedding_index.py
-│   ├── generate_training_data.py
-│   ├── train_mlp_scorer.py
-│   ├── validate_mlp_scorer.py
-│   └── benchmark_navigator.py
-├── aws/               # AWS EC2 deployment scripts
-│   ├── ec2_setup.sh             # Instance setup script
-│   ├── run_training_pipeline.sh # Automated training
-│   ├── sync_data.sh             # Data sync (EC2 ↔ Local)
-│   └── config.example.sh        # Configuration template
-├── docs/              # Documentation
-│   ├── aws/                     # AWS deployment docs
-│   │   ├── README.md            # Detailed AWS guide
-│   │   ├── QUICKSTART.md        # Quick start guide
-│   │   └── PROGRESS.md          # Progress report
-│   └── todo.md                  # Project todo list
-├── legacy/            # Old system (archived)
-└── data/              # Generated data files
-```
-
-## 🎯 Features
-
-- **Neural Heuristic**: MLP predicts distance to target
-- **Hybrid Scoring**: Combines MLP, cosine similarity, hub scores
-- **Beam Search**: Explores top-k paths simultaneously
-- **Fast Filtering**: Two-stage scoring (80-90% speedup)
-- **Backtracking**: Recovers from dead ends
-- **API Fallback**: Live Wikipedia data when needed
-
-## 📊 Performance
-
-**Small Test (1000 pages)**:
-- Training: 15-20 minutes (GPU)
-- Inference: <100ms per path
-- Success rate: ~85%
-
-**Full Wikipedia (6M+ pages)**:
-- Training: 20-30 hours (GPU)
-- Inference: <200ms per path
-- Success rate: ~95%
-
-## 🛠️ Usage
-
-### Training Pipeline
-```bash
-# 1. Download Wikipedia
+# 1) Dump indir
 python3 scripts/download_wikipedia_dumps.py --limit 1000
 
-# 2. Parse and build graph
+# 2) Parse ve graph
 python3 scripts/parse_wikipedia_dumps.py
 python3 scripts/build_adjacency_map.py
 
-# 3. Generate embeddings
+# 3) Embeddings
 python3 scripts/build_embedding_index.py
 
-# 4. Create training data
+# 4) Training data
 python3 scripts/generate_training_data.py
 
-# 5. Train MLP (auto-resumes from checkpoint if exists)
+# 5) MLP train
 python3 scripts/train_mlp_scorer.py --epochs 20
 
-# 6. Validate
+# 6) Validate + benchmark
 python3 scripts/validate_mlp_scorer.py
-
-# 7. Benchmark
 python3 scripts/benchmark_navigator.py
+```
+
+### AWS (Tek Script, Sirali Calisir)
+```bash
+curl -O https://raw.githubusercontent.com/ademcolak/WikipediaML/main/aws/ec2_setup.sh
+chmod +x ec2_setup.sh && ./ec2_setup.sh
+
+cd ~/WikipediaML
+nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
+```
+
+Gerekirse pipeline parametreleri (ENV):
+```bash
+TRAINING_NUM_SAMPLES=100000 \
+TRAINING_CANDIDATES=10 \
+MLP_EPOCHS=30 \
+nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
+```
+
+### Tani / Diagnostik
+```bash
+python3 scripts/validate_artifacts.py --check-paths
+python3 scripts/check_graph_connectivity.py
+```
+
+### Benchmark
+```bash
+python3 scripts/benchmark_navigator.py --n-pairs 50 --beam-width 50 --max-depth 10
+```
+
+### Proje Yapisi (Sade)
+```
+core/    models/    scripts/    aws/    data/    README.md
+```
+
+Not: `data/` buyuk dosyalari icerir ve git ile takip edilmez.
+
+---
+
+## English
+
+### Goal
+Find short paths between Wikipedia pages using an MLP-based heuristic and beam search.
+
+### Local Setup
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Local Pipeline
+```bash
+python3 scripts/download_wikipedia_dumps.py --limit 1000
+python3 scripts/parse_wikipedia_dumps.py
+python3 scripts/build_adjacency_map.py
+python3 scripts/build_embedding_index.py
+python3 scripts/generate_training_data.py
+python3 scripts/train_mlp_scorer.py --epochs 20
+python3 scripts/validate_mlp_scorer.py
+python3 scripts/benchmark_navigator.py
+```
+
+### AWS (Single Script, Sequential)
+```bash
+curl -O https://raw.githubusercontent.com/ademcolak/WikipediaML/main/aws/ec2_setup.sh
+chmod +x ec2_setup.sh && ./ec2_setup.sh
+
+cd ~/WikipediaML
+nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
+```
+
+Optional ENV overrides:
+```bash
+TRAINING_NUM_SAMPLES=100000 \
+TRAINING_CANDIDATES=10 \
+MLP_EPOCHS=30 \
+nohup ./aws/run_training_pipeline.sh > logs/training.log 2>&1 &
 ```
 
 ### Diagnostics
 ```bash
-# Validate artifact compatibility (graph/embeddings/training)
 python3 scripts/validate_artifacts.py --check-paths
-
-# Graph connectivity sanity check
 python3 scripts/check_graph_connectivity.py
 ```
 
-### Using Trained Model
-```python
-import numpy as np
-import pickle
-from pathlib import Path
-from scipy.sparse import load_npz
-from core.hybrid_scorer import load_hybrid_scorer
-from core.beam_search import BeamSearchNavigator
-
-# Load data
-adjacency = load_npz('data/graph/adjacency_matrix.npz')
-with open('data/graph/page_mappings.pkl', 'rb') as f:
-    mappings = pickle.load(f)
-
-# Create navigator
-scorer = load_hybrid_scorer(
-    model_path=Path('models/checkpoints/mlp_scorer_best.pt'),
-    embeddings_dir=Path('data/embeddings'),
-    graph_dir=Path('data/graph')
-)
-
-navigator = BeamSearchNavigator(
-    adjacency_matrix=adjacency,
-    page_mappings=mappings,
-    hybrid_scorer=scorer,
-    beam_width=10
-)
-
-# Find path
-result = navigator.search("Python", "Computer", max_depth=6)
-print(result['path'])  # ['Python', 'Programming', 'Computer']
-```
-
-## 📚 Documentation
-
-- `docs/aws/README.md` - AWS EC2 deployment guide
-- `docs/aws/QUICKSTART.md` - Quick start for AWS
-- `docs/aws/RUNNING_ON_AWS.md` - **How to run training on AWS (where, how, background)**
-- `docs/aws/PROGRESS.md` - AWS integration progress
-- `docs/todo.md` - Project todo list
-- `docs/archive/WikipediaML_Kaggle.md` - Archived Kaggle/Colab guide
-
-## 🧪 Testing
-
+### Benchmark
 ```bash
-# System test
-python3 test_new_system.py
-
-# Unit tests (if available)
-pytest tests/
+python3 scripts/benchmark_navigator.py --n-pairs 50 --beam-width 50 --max-depth 10
 ```
 
-## 📦 Requirements
+### Project Structure (Minimal)
+```
+core/    models/    scripts/    aws/    data/    README.md
+```
 
-- Python 3.8+
-- PyTorch 2.0+
-- sentence-transformers
-- FAISS
-- NetworkX
-- scipy, numpy, pandas
-
-See `requirements.txt` for full list.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Run tests
-5. Submit pull request
-
-## 📄 License
-
-MIT License - see LICENSE file
-
-## 🙏 Acknowledgments
-
-- Wikipedia for data
-- Sentence-Transformers for embeddings
-- PyTorch for ML framework
-- FAISS for vector search
-
-## 📧 Contact
-
-For questions or issues, please open a GitHub issue.
+Note: `data/` contains large artifacts and is not tracked in git.

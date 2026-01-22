@@ -26,7 +26,7 @@ check_process() {
 # Function to show running processes
 show_processes() {
     echo -e "${GREEN}=== Running WikipediaML Processes ===${NC}"
-    local processes=$(ps aux | grep -E "(generate_training_data|run_training_pipeline|train_mlp_scorer|build_embedding|parse_wikipedia)" | grep -v grep)
+    local processes=$(ps aux | grep -E "(run_training_pipeline|generate_training_data|train_mlp_scorer|build_embedding|parse_wikipedia)" | grep -v grep)
     
     if [ -z "$processes" ]; then
         echo -e "${YELLOW}No WikipediaML processes found running.${NC}"
@@ -58,7 +58,7 @@ stop_all() {
     sleep 2
     
     # Check if still running, force kill if needed
-    if pgrep -f "run_training_pipeline|generate_training_data" > /dev/null; then
+    if pgrep -f "run_training_pipeline|generate_training_data|train_mlp_scorer" > /dev/null; then
         echo -e "${RED}Processes still running, forcing shutdown...${NC}"
         pkill -9 -f run_training_pipeline
         pkill -9 -f generate_training_data
@@ -66,7 +66,7 @@ stop_all() {
         sleep 1
     fi
     
-    if ! pgrep -f "run_training_pipeline|generate_training_data" > /dev/null; then
+    if ! pgrep -f "run_training_pipeline|generate_training_data|train_mlp_scorer" > /dev/null; then
         echo -e "${GREEN}All processes stopped successfully.${NC}"
         return 0
     else
@@ -142,7 +142,7 @@ start_pipeline() {
     echo -e "${GREEN}Starting training pipeline...${NC}"
     cd "$PROJECT_DIR"
     source venv/bin/activate
-    nohup ./aws/run_training_pipeline.sh > /dev/null 2>&1 &
+    nohup ./aws/run_training_pipeline.sh > "$LOG_DIR/training.log" 2>&1 &
     
     sleep 2
     
@@ -156,7 +156,6 @@ start_pipeline() {
     fi
 }
 
-# Main menu
 case "${1:-status}" in
     status|check)
         echo -e "${GREEN}=== WikipediaML Pipeline Status ===${NC}"

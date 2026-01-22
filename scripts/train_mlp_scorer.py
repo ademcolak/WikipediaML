@@ -550,7 +550,6 @@ def main():
         print("\nNext steps:")
         print("1. Validate model: python3 scripts/validate_mlp_scorer.py")
         print("2. Run benchmark: python3 scripts/benchmark_navigator.py")
-        print("3. Test navigation: python3 test_new_system.py")
         
         return 0
         
