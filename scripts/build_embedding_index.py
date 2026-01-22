@@ -6,6 +6,7 @@ and builds a FAISS index for fast similarity search.
 """
 
 import json
+import hashlib
 import pickle
 import numpy as np
 import faiss
@@ -39,6 +40,30 @@ class EmbeddingIndexBuilder:
         self.pages: Dict[int, str] = {}
         self.page_id_to_index: Dict[int, int] = {}
         self.index_to_page_id: Dict[int, int] = {}
+        self.sorted_page_ids: List[int] = []
+        self.pages_fingerprint: str = ""
+
+    def _compute_pages_fingerprint(self, sample_size: int = 1000) -> str:
+        if not self.sorted_page_ids:
+            return ""
+
+        n_pages = len(self.sorted_page_ids)
+        indices = list(range(min(sample_size, n_pages)))
+
+        if n_pages > sample_size:
+            step = max(1, n_pages // sample_size)
+            indices.extend(range(0, n_pages, step))
+            indices.extend(range(max(0, n_pages - sample_size), n_pages))
+
+        indices = sorted(set(i for i in indices if i < n_pages))
+
+        hasher = hashlib.sha256()
+        for i in indices:
+            page_id = self.sorted_page_ids[i]
+            title = self.pages.get(page_id, "")
+            hasher.update(f"{page_id}\t{title}\n".encode("utf-8"))
+
+        return hasher.hexdigest()
         
     def load_pages(self, data_dir: Path) -> None:
         """
@@ -65,10 +90,15 @@ class EmbeddingIndexBuilder:
         
         # Create index mappings
         sorted_page_ids = sorted(self.pages.keys())
+        self.sorted_page_ids = sorted_page_ids
         self.page_id_to_index = {pid: idx for idx, pid in enumerate(sorted_page_ids)}
         self.index_to_page_id = {idx: pid for pid, idx in self.page_id_to_index.items()}
         
         print(f"✓ Created index mappings for {len(sorted_page_ids):,} pages")
+
+        self.pages_fingerprint = self._compute_pages_fingerprint()
+        if self.pages_fingerprint:
+            print(f"✓ Pages fingerprint: {self.pages_fingerprint[:12]}...")
     
     def generate_embeddings(self, batch_size: int = 256) -> np.ndarray:
         """
@@ -252,7 +282,9 @@ class EmbeddingIndexBuilder:
             "embedding_dim": self.embedding_dim,
             "n_pages": len(self.pages),
             "page_id_to_index": self.page_id_to_index,
-            "index_to_page_id": self.index_to_page_id
+            "index_to_page_id": self.index_to_page_id,
+            "pages_fingerprint": self.pages_fingerprint,
+            "pages_count": len(self.pages)
         }
         with open(metadata_file, 'wb') as f:
             pickle.dump(metadata, f)

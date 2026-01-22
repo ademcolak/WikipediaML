@@ -128,24 +128,34 @@ python3 scripts/validate_mlp_scorer.py
 python3 scripts/benchmark_navigator.py
 ```
 
+### Diagnostics
+```bash
+# Validate artifact compatibility (graph/embeddings/training)
+python3 scripts/validate_artifacts.py --check-paths
+
+# Graph connectivity sanity check
+python3 scripts/check_graph_connectivity.py
+```
+
 ### Using Trained Model
 ```python
 import numpy as np
 import pickle
+from pathlib import Path
 from scipy.sparse import load_npz
-from core.hybrid_scorer import HybridScorer
+from core.hybrid_scorer import load_hybrid_scorer
 from core.beam_search import BeamSearchNavigator
 
 # Load data
-adjacency = load_npz('data/adjacency_map.npz')
-with open('data/page_mappings.pkl', 'rb') as f:
+adjacency = load_npz('data/graph/adjacency_matrix.npz')
+with open('data/graph/page_mappings.pkl', 'rb') as f:
     mappings = pickle.load(f)
-embeddings = np.load('data/embeddings.npy')
 
 # Create navigator
-scorer = HybridScorer(
-    embeddings=embeddings,
-    mlp_model_path='models/mlp_scorer_best.pt'
+scorer = load_hybrid_scorer(
+    model_path=Path('models/checkpoints/mlp_scorer_best.pt'),
+    embeddings_dir=Path('data/embeddings'),
+    graph_dir=Path('data/graph')
 )
 
 navigator = BeamSearchNavigator(
@@ -167,7 +177,7 @@ print(result['path'])  # ['Python', 'Programming', 'Computer']
 - `docs/aws/RUNNING_ON_AWS.md` - **How to run training on AWS (where, how, background)**
 - `docs/aws/PROGRESS.md` - AWS integration progress
 - `docs/todo.md` - Project todo list
-- `WikipediaML_Kaggle.ipynb` - Interactive tutorial
+- `docs/archive/WikipediaML_Kaggle.md` - Archived Kaggle/Colab guide
 
 ## 🧪 Testing
 

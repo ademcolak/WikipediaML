@@ -6,11 +6,12 @@ from the cleaned Wikipedia link data.
 """
 
 import json
+import hashlib
 import numpy as np
 import pickle
 from pathlib import Path
 from scipy.sparse import csr_matrix
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 import sys
 
 class AdjacencyMapBuilder:
@@ -22,6 +23,30 @@ class AdjacencyMapBuilder:
         self.links: Dict[int, Set[int]] = {}
         self.page_id_to_index: Dict[int, int] = {}
         self.index_to_page_id: Dict[int, int] = {}
+        self.sorted_page_ids: List[int] = []
+        self.pages_fingerprint: Optional[str] = None
+
+    def _compute_pages_fingerprint(self, sample_size: int = 1000) -> str:
+        if not self.sorted_page_ids:
+            return ""
+
+        n_pages = len(self.sorted_page_ids)
+        indices = list(range(min(sample_size, n_pages)))
+
+        if n_pages > sample_size:
+            step = max(1, n_pages // sample_size)
+            indices.extend(range(0, n_pages, step))
+            indices.extend(range(max(0, n_pages - sample_size), n_pages))
+
+        indices = sorted(set(i for i in indices if i < n_pages))
+
+        hasher = hashlib.sha256()
+        for i in indices:
+            page_id = self.sorted_page_ids[i]
+            title = self.pages.get(page_id, "")
+            hasher.update(f"{page_id}\t{title}\n".encode("utf-8"))
+
+        return hasher.hexdigest()
         
     def load_cleaned_data(self) -> None:
         """Load cleaned data from JSON files."""
@@ -71,9 +96,14 @@ class AdjacencyMapBuilder:
         
         # Create bidirectional mapping between page IDs and matrix indices
         sorted_page_ids = sorted(self.pages.keys())
+        self.sorted_page_ids = sorted_page_ids
         self.page_id_to_index = {pid: idx for idx, pid in enumerate(sorted_page_ids)}
         self.index_to_page_id = {idx: pid for pid, idx in self.page_id_to_index.items()}
         print(f"✓ Created index mappings for {len(sorted_page_ids):,} pages")
+
+        self.pages_fingerprint = self._compute_pages_fingerprint()
+        if self.pages_fingerprint:
+            print(f"✓ Pages fingerprint: {self.pages_fingerprint[:12]}...")
     
     def build_csr_matrix(self) -> csr_matrix:
         """
@@ -180,7 +210,8 @@ class AdjacencyMapBuilder:
             "avg_in_degree": float(np.mean(in_degrees)),
             "max_in_degree": int(np.max(in_degrees)),
             "min_in_degree": int(np.min(in_degrees)),
-            "sparsity": float(1 - adjacency_matrix.nnz / (n_pages * n_pages))
+            "sparsity": float(1 - adjacency_matrix.nnz / (n_pages * n_pages)),
+            "pages_fingerprint": self.pages_fingerprint
         }
         
         # Find hub pages (highest in-degree)
@@ -232,7 +263,9 @@ class AdjacencyMapBuilder:
         mappings = {
             "pages": self.pages,
             "page_id_to_index": self.page_id_to_index,
-            "index_to_page_id": self.index_to_page_id
+            "index_to_page_id": self.index_to_page_id,
+            "pages_fingerprint": self.pages_fingerprint,
+            "pages_count": len(self.pages)
         }
         with open(mappings_file, 'wb') as f:
             pickle.dump(mappings, f)

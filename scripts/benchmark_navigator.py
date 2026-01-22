@@ -8,7 +8,7 @@ import json
 import time
 import random
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 import numpy as np
 import sys
@@ -114,6 +114,7 @@ class NavigatorBenchmark:
         with open(mappings_file, 'rb') as f:
             mappings = pickle.load(f)
             self.pages = mappings['pages']
+            self.page_id_to_index = mappings.get('page_id_to_index', {})
             self.index_to_page_id = mappings['index_to_page_id']
     
     def generate_test_pairs(self, n_pairs: int = 100) -> List[Tuple[int, int]]:
@@ -134,40 +135,94 @@ class NavigatorBenchmark:
             with open(training_file, 'r', encoding='utf-8') as f:
                 samples = json.load(f)
             
-            if len(samples) < n_pairs:
-                print(f"⚠️  Not enough training samples ({len(samples)} < {n_pairs}). Using all.")
-                n_pairs = len(samples)
+            if len(samples) == 0:
+                print("⚠️  Training data is empty! Falling back to random pairs.")
+                return self._generate_random_pairs(n_pairs)
+
+            print(f"✓ Loaded {len(samples):,} raw training samples")
+            has_distance = any('distance' in s for s in samples)
+            has_candidate_dist = any('candidate_dist' in s for s in samples)
+            if not has_distance and has_candidate_dist:
+                print("⚠️  Only 'candidate_dist' found; start-target distance is unknown.")
+            
+            # Validate samples against current graph mappings
+            pairs_by_key: Dict[Tuple[int, int], Optional[int]] = {}
+            invalid_count = 0
+            non_mappable = 0
+            candidate_samples = 0
+            for s in samples:
+                start_id = s.get('start_page_id')
+                target_id = s.get('target_page_id')
+                if start_id is None or target_id is None:
+                    invalid_count += 1
+                    continue
+                if self.pages and (start_id not in self.pages or target_id not in self.pages):
+                    non_mappable += 1
+                    continue
+
+                if 'candidate_idx' in s or 'candidate_page_id' in s:
+                    candidate_samples += 1
+
+                distance = None
+                if 'distance' in s:
+                    distance = s.get('distance')
+                elif 'candidate_dist' in s:
+                    distance = s.get('candidate_dist')
+
+                if distance is not None:
+                    try:
+                        distance = int(distance)
+                    except (TypeError, ValueError):
+                        distance = None
+
+                key = (start_id, target_id)
+                if key not in pairs_by_key:
+                    pairs_by_key[key] = distance
+                else:
+                    existing = pairs_by_key[key]
+                    if existing is None and distance is not None:
+                        pairs_by_key[key] = distance
+                    elif existing is not None and distance is not None and distance < existing:
+                        pairs_by_key[key] = distance
+            
+            if invalid_count > 0:
+                print(f"⚠️  Dropped {invalid_count:,} samples with missing IDs.")
+            if non_mappable > 0:
+                print(f"⚠️  Dropped {non_mappable:,} samples not compatible with current graph.")
+
+            if candidate_samples > 0:
+                print(f"ℹ️  Candidate-format samples detected: {candidate_samples:,}")
+
+            if len(pairs_by_key) == 0:
+                print("⚠️  No valid samples after filtering. Falling back to random pairs.")
+                return self._generate_random_pairs(n_pairs)
             
             # Filter for short paths (max 3 hops) to test basic capability first
-            short_paths = []
-            for s in samples:
-                if 'path' in s and isinstance(s['path'], list):
-                    # path includes start and end, so len <= 4 means max 3 hops
-                    if len(s['path']) <= 4: 
-                        short_paths.append(s)
+            short_pairs = []
+            all_pairs = []
+            for (start_id, target_id), distance in pairs_by_key.items():
+                if distance is not None:
+                    optimal_len = distance + 1
+                else:
+                    optimal_len = 0
+
+                all_pairs.append((start_id, target_id, optimal_len))
+
+                # path includes start and end, so len <= 4 means max 3 hops
+                if optimal_len > 0 and optimal_len <= 4:
+                    short_pairs.append((start_id, target_id, optimal_len))
             
-            print(f"Found {len(short_paths)} short paths (<= 3 hops) out of {len(samples)} samples.")
+            if short_pairs:
+                print(f"Found {len(short_pairs)} short paths (<= 3 hops) out of {len(all_pairs)} unique pairs.")
+            else:
+                print("⚠️  No short paths found; using all available pairs.")
             
             # If we have enough short paths, use them. Otherwise use random samples.
-            source_samples = short_paths if len(short_paths) >= n_pairs else samples
+            source_pairs = short_pairs if len(short_pairs) >= n_pairs else all_pairs
+            selected_pairs = random.sample(source_pairs, min(n_pairs, len(source_pairs)))
             
-            # Select random samples
-            selected_samples = random.sample(source_samples, min(n_pairs, len(source_samples)))
-            
-            pairs = []
-            for s in selected_samples:
-                start_id = s['start_page_id']
-                if 'target_page_id' in s:
-                    target_id = s['target_page_id']
-                else:
-                    continue
-                
-                # Store the optimal path length for comparison
-                optimal_len = len(s['path']) if 'path' in s else 0
-                pairs.append((start_id, target_id, optimal_len))
-            
-            print(f"✓ Loaded {len(pairs)} test pairs (Ground Truth available)")
-            return pairs
+            print(f"✓ Loaded {len(selected_pairs)} test pairs")
+            return selected_pairs
             
         except Exception as e:
             print(f"⚠️  Error reading training data: {e}. Falling back to random.")

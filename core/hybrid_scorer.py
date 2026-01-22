@@ -297,6 +297,19 @@ def load_hybrid_scorer(
     import json
     with open(stats_file, 'r') as f:
         graph_stats = json.load(f)
+
+    # Optional fingerprint check (if metadata exists)
+    meta_file = embeddings_dir / "embedding_metadata.pkl"
+    if meta_file.exists():
+        try:
+            with open(meta_file, "rb") as f:
+                meta = pickle.load(f)
+            graph_fp = graph_stats.get("pages_fingerprint")
+            embed_fp = meta.get("pages_fingerprint")
+            if graph_fp and embed_fp and graph_fp != embed_fp:
+                print("⚠️  WARNING: Embeddings/graph fingerprint mismatch detected.")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not read embedding metadata ({e})")
     
     # Create scorer
     scorer = HybridScorer(
