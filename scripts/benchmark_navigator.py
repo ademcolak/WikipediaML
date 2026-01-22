@@ -4,6 +4,7 @@ Benchmark Script for Wikipedia Navigator (Optimized)
 Tests different navigation strategies using multiprocessing for speed.
 """
 
+import argparse
 import json
 import time
 import random
@@ -26,7 +27,15 @@ from core.advanced_navigator import load_advanced_navigator
 # Global variables for worker processes
 NAVIGATOR = None
 
-def init_worker(navigator_type: str, graph_dir: Path, model_path: Path, embeddings_dir: Path):
+def init_worker(
+    navigator_type: str,
+    graph_dir: Path,
+    model_path: Path,
+    embeddings_dir: Path,
+    beam_width: int,
+    max_depth: int,
+    scorer_kwargs: Dict
+):
     """Initialize worker process with navigator instance."""
     global NAVIGATOR
     
@@ -38,17 +47,19 @@ def init_worker(navigator_type: str, graph_dir: Path, model_path: Path, embeddin
             graph_dir=graph_dir,
             model_path=model_path,
             embeddings_dir=embeddings_dir,
-            beam_width=10,
-            max_depth=20
+            beam_width=beam_width,
+            max_depth=max_depth,
+            **scorer_kwargs
         )
     elif navigator_type == "advanced":
         NAVIGATOR = load_advanced_navigator(
             graph_dir=graph_dir,
             model_path=model_path,
             embeddings_dir=embeddings_dir,
-            max_depth=20,
+            max_depth=max_depth,
             tabu_size=50,
-            backtrack_limit=3
+            backtrack_limit=3,
+            **scorer_kwargs
         )
     
     print(f"[Worker {multiprocessing.current_process().name}] Ready!")
@@ -244,11 +255,17 @@ class NavigatorBenchmark:
         self,
         navigator_type: str,
         test_pairs: List[Tuple[int, int, int]],
-        n_workers: int = 4
+        n_workers: int,
+        beam_width: int,
+        max_depth: int,
+        scorer_kwargs: Dict
     ) -> Dict:
         """Run benchmark using multiple processes."""
         print(f"\n{'='*80}")
         print(f"Benchmarking: {navigator_type.upper()} Navigator with {n_workers} workers")
+        print(f"Beam width: {beam_width}, Max depth: {max_depth}")
+        if scorer_kwargs:
+            print(f"Scorer overrides: {scorer_kwargs}")
         print(f"{'='*80}")
         
         results = {
@@ -270,7 +287,15 @@ class NavigatorBenchmark:
             max_workers=n_workers,
             mp_context=ctx,
             initializer=init_worker,
-            initargs=(navigator_type, self.graph_dir, self.model_path, self.embeddings_dir)
+            initargs=(
+                navigator_type,
+                self.graph_dir,
+                self.model_path,
+                self.embeddings_dir,
+                beam_width,
+                max_depth,
+                scorer_kwargs
+            )
         ) as executor:
             
             futures = [executor.submit(run_single_test, pair) for pair in test_pairs]
@@ -308,27 +333,52 @@ class NavigatorBenchmark:
         return results
 
 def main():
-    graph_dir = Path("data/graph")
-    model_path = Path("models/checkpoints/mlp_scorer_best.pt")
-    embeddings_dir = Path("data/embeddings")
-    
+    parser = argparse.ArgumentParser(
+        description="Benchmark Wikipedia navigator",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--graph-dir", type=str, default="data/graph")
+    parser.add_argument("--embeddings-dir", type=str, default="data/embeddings")
+    parser.add_argument("--model-path", type=str, default="models/checkpoints/mlp_scorer_best.pt")
+    parser.add_argument("--navigator", type=str, default="beam", choices=["beam", "advanced"])
+    parser.add_argument("--n-pairs", type=int, default=50)
+    parser.add_argument("--n-workers", type=int, default=2)
+    parser.add_argument("--beam-width", type=int, default=10)
+    parser.add_argument("--max-depth", type=int, default=20)
+    parser.add_argument("--alpha", type=float, default=None)
+    parser.add_argument("--beta", type=float, default=None)
+    parser.add_argument("--gamma", type=float, default=None)
+
+    args = parser.parse_args()
+
+    graph_dir = Path(args.graph_dir)
+    model_path = Path(args.model_path)
+    embeddings_dir = Path(args.embeddings_dir)
+
     # Check if files exist
     if not all(p.exists() for p in [graph_dir, model_path, embeddings_dir]):
         print("Required files not found.")
         return
-        
+
+    scorer_kwargs: Dict = {}
+    if args.alpha is not None:
+        scorer_kwargs["alpha"] = args.alpha
+    if args.beta is not None:
+        scorer_kwargs["beta"] = args.beta
+    if args.gamma is not None:
+        scorer_kwargs["gamma"] = args.gamma
+
     benchmark = NavigatorBenchmark(graph_dir, model_path, embeddings_dir)
-    test_pairs = benchmark.generate_test_pairs(n_pairs=50) # 50 pairs for quick test
-    
-    # Run Beam Search Benchmark (Parallel)
-    # Use fewer workers to avoid OOM (Out Of Memory)
-    # Each worker needs significant RAM for graph + embeddings.
-    n_workers = 2
-    
-    benchmark.run_parallel_benchmark("beam", test_pairs, n_workers=n_workers)
-    
-    # Uncomment to test Advanced Navigator
-    # benchmark.run_parallel_benchmark("advanced", test_pairs, n_workers=n_workers)
+    test_pairs = benchmark.generate_test_pairs(n_pairs=args.n_pairs)
+
+    benchmark.run_parallel_benchmark(
+        args.navigator,
+        test_pairs,
+        n_workers=args.n_workers,
+        beam_width=args.beam_width,
+        max_depth=args.max_depth,
+        scorer_kwargs=scorer_kwargs
+    )
 
 if __name__ == "__main__":
     main()
