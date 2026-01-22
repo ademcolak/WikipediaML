@@ -341,8 +341,14 @@ class TrainingDataGenerator:
         try:
             all_samples = []
             if output_file.exists() and output_file.stat().st_size > 0:
-                with open(output_file, 'r', encoding='utf-8') as f:
-                    all_samples = json.load(f)
+                try:
+                    with open(output_file, 'r', encoding='utf-8') as f:
+                        all_samples = json.load(f)
+                except Exception as e:
+                    backup_path = output_file.with_suffix(".corrupt.json")
+                    output_file.rename(backup_path)
+                    print(f"Warning: Checkpoint file corrupted, moved to {backup_path} ({e})")
+                    all_samples = []
             
             all_samples.extend(new_samples)
             
@@ -518,7 +524,10 @@ def main():
                     print(f"\n✓ Found {len(existing_samples):,} existing samples. Resuming from checkpoint...")
                     sys.stdout.flush()
             except Exception as e:
-                print(f"\n⚠️  Warning: Could not load existing samples: {e}")
+                backup_path = samples_file.with_suffix(".corrupt.json")
+                samples_file.rename(backup_path)
+                print(f"\n⚠️  Warning: Existing samples file corrupted, moved to {backup_path}")
+                print(f"⚠️  Error: {e}")
                 print("Starting fresh...")
                 sys.stdout.flush()
                 existing_samples = []
@@ -542,8 +551,17 @@ def main():
             
             # Load all samples (including incremental checkpoints)
             if samples_file.exists():
-                with open(samples_file, 'r', encoding='utf-8') as f:
-                    samples = json.load(f)
+                try:
+                    with open(samples_file, 'r', encoding='utf-8') as f:
+                        samples = json.load(f)
+                except Exception as e:
+                    backup_path = samples_file.with_suffix(".corrupt.json")
+                    samples_file.rename(backup_path)
+                    print(f"\n⚠️  Warning: Samples file corrupted after generation, moved to {backup_path}")
+                    print(f"⚠️  Error: {e}")
+                    samples = existing_samples + new_samples
+                    with open(samples_file, 'w', encoding='utf-8') as f:
+                        json.dump(samples, f, indent=2, ensure_ascii=False)
             else:
                 samples = existing_samples + new_samples
         else:
