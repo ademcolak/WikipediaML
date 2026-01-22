@@ -441,6 +441,24 @@ class TrainingDataGenerator:
 
 def main():
     """Main generation function."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate training data for WikipediaML",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("--num-samples", type=int, default=None,
+                        help="Target number of start-target pairs to generate")
+    parser.add_argument("--candidates-per-sample", type=int, default=10,
+                        help="Number of candidate links per sample")
+    parser.add_argument("--max-depth", type=int, default=20,
+                        help="Max BFS depth for start-target distance")
+    parser.add_argument("--min-distance", type=int, default=1,
+                        help="Minimum accepted distance")
+    parser.add_argument("--max-distance", type=int, default=15,
+                        help="Maximum accepted distance")
+    args = parser.parse_args()
+
     print("="*80)
     print("Training Data Generator - Starting...")
     print("="*80)
@@ -453,24 +471,6 @@ def main():
     # Check if output already exists (auto-skip or resume)
     samples_file = output_dir / "training_samples.json"
     stats_file = output_dir / "dataset_statistics.json"
-    
-    # Check if we have complete data (both samples and stats)
-    has_complete_data = False
-    if samples_file.exists() and stats_file.exists():
-        try:
-            with open(samples_file, 'r', encoding='utf-8') as f:
-                existing_samples = json.load(f)
-            # Check if we have reasonable number of samples (at least 100)
-            if len(existing_samples) >= 100:
-                has_complete_data = True
-        except:
-            pass
-    
-    if has_complete_data:
-        print(f"⊘ Training data already exists in {output_dir}")
-        print("  Skipping generation step. Delete output files to re-run.")
-        sys.stdout.flush()
-        return 0
     
     # Check if required data exists
     if not graph_dir.exists():
@@ -491,17 +491,21 @@ def main():
         print("✓ Data loaded successfully")
         sys.stdout.flush()
         
-        # Generate start-target pairs
-        # With optimizations, we can handle more samples!
+        # Determine target sample count
         n_pages = len(generator.pages)
-        if n_pages > 10_000_000:
-            # Optimized: Can handle 5k-10k easily with multiprocessing
-            n_samples = 10_000 
-            print(f"\n🚀 Optimized Pipeline: Generating {n_samples:,} samples for very large graph")
-        elif n_pages > 1_000_000:
-            n_samples = 20_000
+        if args.num_samples is not None:
+            n_samples = args.num_samples
+            print(f"\n🎯 Target samples (override): {n_samples:,}")
         else:
-            n_samples = 50_000
+            # With optimizations, we can handle more samples!
+            if n_pages > 10_000_000:
+                # Optimized: Can handle 5k-10k easily with multiprocessing
+                n_samples = 10_000
+                print(f"\n🚀 Optimized Pipeline: Generating {n_samples:,} samples for very large graph")
+            elif n_pages > 1_000_000:
+                n_samples = 20_000
+            else:
+                n_samples = 50_000
         sys.stdout.flush()
         
         # Check for existing partial samples (resume capability)
@@ -529,6 +533,9 @@ def main():
             
             new_samples = generator.generate_training_samples(
                 n_samples=remaining_samples,  # Only generate what's needed
+                max_depth=args.max_depth,
+                min_distance=args.min_distance,
+                max_distance=args.max_distance,
                 output_file=samples_file,  # For incremental checkpointing
                 existing_count=len(existing_samples)  # For progress tracking
             )
@@ -549,7 +556,7 @@ def main():
         # Generate candidate samples with features
         candidate_samples = generator.generate_candidate_samples(
             samples,
-            n_candidates_per_sample=10
+            n_candidates_per_sample=args.candidates_per_sample
         )
         print(f"✓ Generated {len(candidate_samples):,} candidate samples")
         sys.stdout.flush()
